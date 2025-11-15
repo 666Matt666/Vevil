@@ -1,0 +1,13 @@
+services:
+  postgres:
+    image: postgres:15 # Usamos una versión específica y moderna de PostgreSQL
+    container_name: vevil_postgres_db
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: admin
+      POSTGRES_DB: vevil_db
+    ports:
+      - "5432:5432" # Mapea el puerto de tu PC al del contenedor
+    volumes:
+      - ./postgres_data:/var/lib/postgresql/data # Guarda los datos de la BD en tu PC

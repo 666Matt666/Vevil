@@ -16,6 +16,8 @@ import CustomerList from './components/customers/CustomerList.tsx';
 import InvoiceList from './components/invoices/InvoiceList.tsx';
 import InvoiceDetail from './components/invoices/InvoiceDetail.tsx';
 import Settings from './components/settings/Settings.tsx';
+import Reports from './components/reports/Reports.tsx';
+import AccountsReceivable from './components/accounts/AccountsReceivable.tsx';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
     <React.StrictMode>
@@ -32,6 +34,8 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
                     <Route path="customers" element={<CustomerList />} />
                     <Route path="invoices" element={<InvoiceList />} />
                     <Route path="invoices/:invoiceId" element={<InvoiceDetail />} />
+                    <Route path="reports" element={<Reports />} />
+                    <Route path="accounts" element={<AccountsReceivable />} />
                     <Route path="settings" element={<Settings />} />
                 </Route>
             </Routes>

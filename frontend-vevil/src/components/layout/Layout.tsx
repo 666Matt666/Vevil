@@ -6,6 +6,8 @@ const menuItems = [
     { label: 'Productos', icon: '📦', path: '/products' },
     { label: 'Clientes', icon: '👥', path: '/customers' },
     { label: 'Facturas', icon: '📄', path: '/invoices' },
+    { label: 'Cuentas Corrientes', icon: '💳', path: '/accounts' },
+    { label: 'Reportes', icon: '📊', path: '/reports' },
     { label: 'Configuración', icon: '⚙️', path: '/settings' },
 ];
 

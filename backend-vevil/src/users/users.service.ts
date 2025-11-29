@@ -2,6 +2,7 @@ import { ConflictException, Injectable, NotFoundException, UnauthorizedException
 import { InjectRepository } from '@nestjs/typeorm';
 import { ILike, Repository } from 'typeorm';
 import { User } from './user.entity';
+import { UserRole } from './entities/user-role.enum';
 import { CreateUserDto } from '@/users/dto/create-user.dto';
 import { UpdateUserDto } from '@/users/dto/update-user.dto';
 import { PaginationQueryDto } from '@/common/dto/pagination-query.dto';
@@ -118,21 +119,26 @@ export class UsersService {
    * @param createUserDto Los datos para crear el nuevo usuario.
    * @returns El usuario guardado (sin la contraseña).
    */
-  async create(createUserDto: CreateUserDto): Promise<User> {
-    const { name, email, password, role } = createUserDto;
+  async create( // 1. Asegurarse de que el método create exista y esté bien definido
+    createUserDto: CreateUserDto,
+    role: UserRole = UserRole.USER,
+  ): Promise<User> {
+    const { name, email, password } = createUserDto; // Ahora 'name' existe
 
     // 1. Verificar si el email ya está en uso
-    const existingUser = await this.userRepository.findOne({ where: { email } });
+    const existingUser = await this.findOneByEmail(email);
     if (existingUser) {
       throw new ConflictException('Email already exists');
     }
 
-    // 2. Encriptar la contraseña
+    // 2. Encriptar la contraseña antes de guardarla
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // 3. Crear y guardar la nueva entidad de usuario
-    const newUser = this.userRepository.create({ name, email, password: hashedPassword, role });
-    return this.userRepository.save(newUser);
+    // 3. Crear la nueva entidad de usuario con los datos y la contraseña encriptada
+    const user = this.userRepository.create({ ...createUserDto, password: hashedPassword, role });
+
+    // 4. Guardar el nuevo usuario en la base de datos
+    return this.userRepository.save(user);
   }
 
   /**

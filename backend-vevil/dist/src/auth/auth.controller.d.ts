@@ -1,25 +1,29 @@
 import { AuthService } from './auth.service';
+import { User } from '@/users/user.entity';
+import { CreateUserDto } from '@/users/dto/create-user.dto';
 import { LoginDto } from './dto/login.dto';
-import { RegisterDto } from './dto/register.dto';
 export declare class AuthController {
     private authService;
     constructor(authService: AuthService);
-    login(req: any, loginDto: LoginDto): Promise<{
+    login(user: User, _loginDto: LoginDto): Promise<{
         access_token: string;
         refresh_token: string;
     }>;
-    register(registerDto: RegisterDto): Promise<{
+    register(createUserDto: CreateUserDto): Promise<{
         id: string;
         email: string;
         name: string;
+        avatar?: string;
+        role: import("../users/entities/user-role.enum").UserRole;
         hashedRefreshToken?: string;
-        avatarPath?: string;
-        role: import("@/users/user.entity").UserRole;
         createdAt: Date;
         updatedAt: Date;
     }>;
-    logout(userId: string): Promise<void>;
-    refreshTokens(user: any): Promise<{
+    getProfile(user: User): User;
+    logout(user: User): Promise<void>;
+    refreshTokens(user: User & {
+        refreshToken: string;
+    }): Promise<{
         access_token: string;
         refresh_token: string;
     }>;

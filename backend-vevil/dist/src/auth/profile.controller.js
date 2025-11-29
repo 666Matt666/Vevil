@@ -17,7 +17,7 @@ const common_1 = require("@nestjs/common");
 const passport_1 = require("@nestjs/passport");
 const roles_guard_1 = require("./roles.guard");
 const roles_decorator_1 = require("./decorators/roles.decorator");
-const user_entity_1 = require("../users/user.entity");
+const user_role_enum_1 = require("../users/entities/user-role.enum");
 let ProfileController = class ProfileController {
     getProfile(req) {
         return req.user;
@@ -40,7 +40,7 @@ __decorate([
 ], ProfileController.prototype, "getProfile", null);
 __decorate([
     (0, common_1.UseGuards)((0, passport_1.AuthGuard)('jwt'), roles_guard_1.RolesGuard),
-    (0, roles_decorator_1.Roles)(user_entity_1.UserRole.ADMIN),
+    (0, roles_decorator_1.Roles)(user_role_enum_1.UserRole.ADMIN),
     (0, common_1.Get)('admin'),
     __param(0, (0, common_1.Request)()),
     __metadata("design:type", Function),

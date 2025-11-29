@@ -5,47 +5,41 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
 } from 'typeorm';
-import * as bcrypt from 'bcrypt';
+import { UserRole } from './entities/user-role.enum';
+import { Exclude } from 'class-transformer';
 
-
-// Definimos los roles como un enum para mayor seguridad y consistencia
-export enum UserRole {
-  ADMIN = 'admin',
-  SUPERVISOR = 'supervisor',
-  USER = 'user',
-}
-
-@Entity('users') // Esto le dice a TypeORM que cree una tabla llamada 'users'
+@Entity()
 export class User {
-  @PrimaryGeneratedColumn('uuid') // Clave primaria autogenerada como UUID
+  @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ unique: true, nullable: false }) // El email debe ser único y no puede ser nulo
+  @Column({ unique: true })
   email: string;
 
-  @Column({ nullable: false })
+  @Column()
   name: string;
 
-  @Column({ select: false }) // Por seguridad, la contraseña no se incluirá en las consultas SELECT por defecto
-  password: string;
+  @Column({ nullable: true })
+  @Exclude() // Excluir por defecto en las respuestas
+  password?: string;
 
-  @Column({ nullable: true, select: false }) // El refresh token puede ser nulo y no se selecciona por defecto
-  hashedRefreshToken?: string;
-
-  @Column({ nullable: true }) // Guardaremos la ruta o el nombre del archivo del avatar
-  avatarPath?: string;
+  @Column({ nullable: true })
+  avatar?: string;
 
   @Column({
     type: 'enum',
     enum: UserRole,
-    default: UserRole.USER, // El rol por defecto será 'user'
+    default: UserRole.USER,
   })
   role: UserRole;
 
-  @CreateDateColumn() // Columna para la fecha de creación, gestionada automáticamente por TypeORM
+  @Column({ nullable: true })
+  @Exclude() // Excluir por defecto en las respuestas
+  hashedRefreshToken?: string;
+
+  @CreateDateColumn()
   createdAt: Date;
 
-  @UpdateDateColumn() // Columna para la fecha de última actualización, gestionada automáticamente
+  @UpdateDateColumn()
   updatedAt: Date;
-
 }

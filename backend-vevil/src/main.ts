@@ -1,27 +1,48 @@
-import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
-import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module';
-// import { AllExceptionsFilter } from './common/filters/http-exception.filter';
+import { ValidationPipe } from '@nestjs/common';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-  app.useGlobalPipes(new ValidationPipe());
 
-  // Se desactiva temporalmente el filtro global para diagnosticar el error de arranque.
-  // El manejador de errores por defecto de NestJS se usará en su lugar.
-  // app.useGlobalFilters(new AllExceptionsFilter());
+  // Configuración de CORS para producción
+  const allowedOrigins = process.env.CORS_ORIGINS
+    ? process.env.CORS_ORIGINS.split(',')
+    : ['http://localhost:5173', 'http://localhost:3000'];
 
-  // Configuración de Swagger
+  app.enableCors({
+    origin: allowedOrigins,
+    credentials: true,
+  });
+
+  // Prefijo global para la API
+  app.setGlobalPrefix('api');
+
+  // Validación global de DTOs
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      transform: true,
+    }),
+  );
+
+  // Configuración de Swagger (documentación de API)
   const config = new DocumentBuilder()
-    .setTitle('Vevil System API')
-    .setDescription('La documentación de la API para el sistema Vevil')
+    .setTitle('Vevil API')
+    .setDescription('API del sistema Vevil')
     .setVersion('1.0')
-    .addBearerAuth() // ¡Importante! Esto añade el candado para la autenticación JWT
+    .addBearerAuth()
     .build();
   const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api-docs', app, document); // La documentación estará disponible en /api-docs
+  SwaggerModule.setup('api/docs', app, document);
 
-  await app.listen(3000);
+  // Puerto configurable para producción (Render usa PORT)
+  const port = process.env.PORT || 3000;
+  await app.listen(port);
+  
+  console.log(`🚀 Servidor corriendo en puerto ${port}`);
+  console.log(`📚 Documentación disponible en /api/docs`);
 }
 bootstrap();

@@ -15,12 +15,16 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.UsersController = void 0;
 const common_1 = require("@nestjs/common");
 const cache_manager_1 = require("@nestjs/cache-manager");
+const passport_1 = require("@nestjs/passport");
 const platform_express_1 = require("@nestjs/platform-express");
 const multer_1 = require("multer");
 const users_service_1 = require("./users.service");
 const user_entity_1 = require("./user.entity");
+const user_role_enum_1 = require("./entities/user-role.enum");
 const create_user_dto_1 = require("./dto/create-user.dto");
 const update_user_dto_1 = require("./dto/update-user.dto");
+const roles_decorator_1 = require("../auth/decorators/roles.decorator");
+const roles_guard_1 = require("../auth/guards/roles.guard");
 const get_user_decorator_1 = require("../auth/decorators/get-user.decorator");
 const exclude_password_interceptor_1 = require("../common/interceptors/exclude-password.interceptor");
 const paginated_users_response_dto_1 = require("./dto/paginated-users-response.dto");
@@ -45,10 +49,10 @@ let UsersController = class UsersController {
         return this.usersService.findOne(id);
     }
     update(id, updateUserDto, user) {
-        if (user.role !== user_entity_1.UserRole.ADMIN && user.id !== id) {
+        if (user.role !== user_role_enum_1.UserRole.ADMIN && user.id !== id) {
             throw new common_1.ForbiddenException('You are not allowed to perform this action');
         }
-        if (user.role !== user_entity_1.UserRole.ADMIN && updateUserDto.role) {
+        if (user.role !== user_role_enum_1.UserRole.ADMIN && updateUserDto.role) {
             throw new common_1.ForbiddenException('You are not allowed to change your own role.');
         }
         return this.usersService.update(id, updateUserDto);
@@ -63,6 +67,7 @@ __decorate([
     (0, swagger_1.ApiOperation)({ summary: 'Crear un nuevo usuario (Solo para Admins)' }),
     (0, swagger_1.ApiResponse)({ status: 201, description: 'El usuario ha sido creado exitosamente.', type: user_entity_1.User }),
     (0, swagger_1.ApiResponse)({ status: 403, description: 'Forbidden. No tienes permiso.' }),
+    (0, roles_decorator_1.Roles)(user_role_enum_1.UserRole.ADMIN),
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [create_user_dto_1.CreateUserDto]),
@@ -73,6 +78,7 @@ __decorate([
     (0, swagger_1.ApiOperation)({ summary: 'Obtener una lista de todos los usuarios' }),
     (0, swagger_1.ApiResponse)({ status: 200, description: 'Lista de usuarios paginada.', type: paginated_users_response_dto_1.PaginatedUsersResponseDto }),
     (0, common_1.UseInterceptors)(cache_manager_1.CacheInterceptor),
+    (0, swagger_1.ApiBearerAuth)(),
     __param(0, (0, common_1.Query)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [pagination_query_dto_1.PaginationQueryDto]),
@@ -116,6 +122,7 @@ __decorate([
 ], UsersController.prototype, "update", null);
 __decorate([
     (0, common_1.Delete)(':id'),
+    (0, roles_decorator_1.Roles)(user_role_enum_1.UserRole.ADMIN),
     (0, common_1.HttpCode)(common_1.HttpStatus.NO_CONTENT),
     __param(0, (0, common_1.Param)('id')),
     __metadata("design:type", Function),
@@ -126,6 +133,7 @@ exports.UsersController = UsersController = __decorate([
     (0, swagger_1.ApiTags)('Users'),
     (0, common_1.Controller)('users'),
     (0, common_1.UseInterceptors)(exclude_password_interceptor_1.ExcludePasswordInterceptor),
+    (0, common_1.UseGuards)((0, passport_1.AuthGuard)('jwt'), roles_guard_1.RolesGuard),
     __metadata("design:paramtypes", [users_service_1.UsersService])
 ], UsersController);
 //# sourceMappingURL=users.controller.js.map

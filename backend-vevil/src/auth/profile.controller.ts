@@ -2,7 +2,8 @@ import { Controller, Get, UseGuards, Request } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { RolesGuard } from './roles.guard';
 import { Roles } from './decorators/roles.decorator';
-import { UserRole } from '@/users/user.entity';
+import { UserRole } from '@/users/entities/user-role.enum';
+
 
 @Controller('profile')
 export class ProfileController {

@@ -1,11 +1,13 @@
 import { Body, Controller, Delete, ForbiddenException, FileTypeValidator, Get, HttpCode, HttpStatus, MaxFileSizeValidator, Param, ParseFilePipe, Patch, Post, Query, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
 import { CacheInterceptor } from '@nestjs/cache-manager';
+import { AuthGuard } from '@nestjs/passport';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer'; // Asegúrate de que multer esté instalado: npm install multer @types/multer
 import { UsersService } from './users.service';
-import { User, UserRole } from '@/users/user.entity';
+import { User } from './user.entity';
+import { UserRole } from './entities/user-role.enum';
 import { CreateUserDto } from './dto/create-user.dto';
-import { UpdateUserDto } from '@/users/dto/update-user.dto';
+import { UpdateUserDto } from './dto/update-user.dto'; // Aseguramos que la ruta sea relativa
 import { Roles } from '@/auth/decorators/roles.decorator';
 import { RolesGuard } from '@/auth/guards/roles.guard';
 import { GetUser } from '@/auth/decorators/get-user.decorator';
@@ -18,7 +20,7 @@ import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagg
 @ApiTags('Users') // Agrupa todos los endpoints de este controlador bajo la etiqueta "Users"
 @Controller('users')
 @UseInterceptors(ExcludePasswordInterceptor)
-// @UseGuards(AuthGuard('jwt'), RolesGuard) // DESACTIVADO TEMPORALMENTE
+@UseGuards(AuthGuard('jwt'), RolesGuard)
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
@@ -26,7 +28,7 @@ export class UsersController {
   @ApiOperation({ summary: 'Crear un nuevo usuario (Solo para Admins)' })
   @ApiResponse({ status: 201, description: 'El usuario ha sido creado exitosamente.', type: User })
   @ApiResponse({ status: 403, description: 'Forbidden. No tienes permiso.' })
-  // @Roles(UserRole.ADMIN) // DESACTIVADO TEMPORALMENTE
+  @Roles(UserRole.ADMIN)
   create(@Body() createUserDto: CreateUserDto): Promise<User> {
     // Gracias al ValidationPipe, si los datos en createUserDto no son válidos,
     // NestJS devolverá automáticamente un error 400 Bad Request.
@@ -37,7 +39,7 @@ export class UsersController {
   @ApiOperation({ summary: 'Obtener una lista de todos los usuarios' })
   @ApiResponse({ status: 200, description: 'Lista de usuarios paginada.', type: PaginatedUsersResponseDto })
   @UseInterceptors(CacheInterceptor) // ¡Aquí está la magia!
-  // @ApiBearerAuth() // DESACTIVADO TEMPORALMENTE
+  @ApiBearerAuth() // Indica a Swagger que este endpoint requiere un token
   async findAll(@Query() paginationQuery: PaginationQueryDto): Promise<PaginatedUsersResponseDto> {
     const [users, total] = await this.usersService.findAll(paginationQuery);
     return { data: users, total };
@@ -98,7 +100,7 @@ export class UsersController {
   }
 
   @Delete(':id')
-  // @Roles(UserRole.ADMIN) // DESACTIVADO TEMPORALMENTE
+  @Roles(UserRole.ADMIN)
   @HttpCode(HttpStatus.NO_CONTENT) // Devuelve 204 No Content en caso de éxito
   remove(@Param('id') id: string): Promise<void> {
     return this.usersService.remove(id);

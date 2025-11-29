@@ -6,10 +6,12 @@ import {
 } from '@nestjs/common';
 import { UsersService } from '@/users/users.service';
 import { JwtService } from '@nestjs/jwt';
-import { User, UserRole } from '@/users/user.entity'; // 1. Importar UserRole
+import { User } from '@/users/user.entity';
+import { UserRole } from '@/users/entities/user-role.enum';
 import * as bcrypt from 'bcrypt';
 import { ConfigService } from '@nestjs/config';
 import { RegisterDto } from './dto/register.dto';
+import { CreateUserDto } from '@/users/dto/create-user.dto';
 
 @Injectable()
 export class AuthService {
@@ -109,25 +111,27 @@ export class AuthService {
   /**
    * Registra un nuevo usuario en el sistema.
    * @param email El email del nuevo usuario.
-   * @param password La contraseña en texto plano.
    * @returns El usuario creado (sin datos sensibles).
    */
-  async register(registerDto: RegisterDto) {
-    const { email, name } = registerDto; // Ya no necesitamos la contraseña aquí
+  async register(createUserDto: CreateUserDto) {
+    const { email, name, password } = createUserDto;
     const existingUser = await this.usersService.findOneByEmail(email);
     if (existingUser) {
       throw new ConflictException('El email ya está en uso');
     }
-
+  
     const userCount = await this.usersService.count();
     const isFirstUser = userCount === 0;
 
+    // Creamos un nuevo DTO para asegurar que solo pasamos las propiedades correctas
+    const userToCreate: CreateUserDto = { email, name, password };
+  
     // Pasamos el DTO completo al servicio de usuarios, que se encargará de la encriptación.
-    const newUser = await this.usersService.create({
-      ...registerDto,
-      role: isFirstUser ? UserRole.ADMIN : UserRole.USER,
-    });
-
+    const newUser = await this.usersService.create(
+      userToCreate,
+      isFirstUser ? UserRole.ADMIN : UserRole.USER,
+    );
+  
     // Devolvemos el usuario sin la contraseña y sin generar tokens
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { password: _, ...result } = newUser;

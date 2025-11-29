@@ -13,7 +13,7 @@ exports.UpdateUserDto = void 0;
 const swagger_1 = require("@nestjs/swagger");
 const create_user_dto_1 = require("./create-user.dto");
 const class_validator_1 = require("class-validator");
-const user_entity_1 = require("../user.entity");
+const user_role_enum_1 = require("../entities/user-role.enum");
 class UpdateUserDto extends (0, swagger_1.PartialType)(create_user_dto_1.CreateUserDto) {
 }
 exports.UpdateUserDto = UpdateUserDto;
@@ -33,7 +33,7 @@ __decorate([
     __metadata("design:type", String)
 ], UpdateUserDto.prototype, "avatarPath", void 0);
 __decorate([
-    (0, class_validator_1.IsEnum)(user_entity_1.UserRole),
+    (0, class_validator_1.IsEnum)(user_role_enum_1.UserRole),
     (0, class_validator_1.IsOptional)(),
     __metadata("design:type", String)
 ], UpdateUserDto.prototype, "role", void 0);

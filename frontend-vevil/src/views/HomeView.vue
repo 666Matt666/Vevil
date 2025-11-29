@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue';
-import axios from 'axios';
+import apiClient from '@/api/axios'; // Usar el cliente de API centralizado
 
 // Creamos variables reactivas para almacenar los datos del formulario
 const name = ref('');
@@ -14,7 +14,7 @@ const handleRegister = async () => {
   try {
     // Hacemos la petición POST al endpoint de registro del backend.
     // Gracias al proxy de Vite, '/api' se redirige a 'http://localhost:3000'.
-    const response = await axios.post('/api/auth/register', {
+    const response = await apiClient.post('/auth/register', { // Usar apiClient y la ruta sin /api
       name: name.value,
       email: email.value,
       password: password.value,

@@ -1,8 +1,9 @@
 import { UsersService } from '@/users/users.service';
 import { JwtService } from '@nestjs/jwt';
-import { User, UserRole } from '@/users/user.entity';
+import { User } from '@/users/user.entity';
+import { UserRole } from '@/users/entities/user-role.enum';
 import { ConfigService } from '@nestjs/config';
-import { RegisterDto } from './dto/register.dto';
+import { CreateUserDto } from '@/users/dto/create-user.dto';
 export declare class AuthService {
     private usersService;
     private jwtService;
@@ -19,13 +20,13 @@ export declare class AuthService {
         refresh_token: string;
     }>;
     logout(userId: string): Promise<void>;
-    register(registerDto: RegisterDto): Promise<{
+    register(createUserDto: CreateUserDto): Promise<{
         id: string;
         email: string;
         name: string;
-        hashedRefreshToken?: string;
-        avatarPath?: string;
+        avatar?: string;
         role: UserRole;
+        hashedRefreshToken?: string;
         createdAt: Date;
         updatedAt: Date;
     }>;

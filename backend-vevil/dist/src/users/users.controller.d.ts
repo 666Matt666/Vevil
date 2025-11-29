@@ -1,7 +1,7 @@
 import { UsersService } from './users.service';
-import { User } from '@/users/user.entity';
+import { User } from './user.entity';
 import { CreateUserDto } from './dto/create-user.dto';
-import { UpdateUserDto } from '@/users/dto/update-user.dto';
+import { UpdateUserDto } from './dto/update-user.dto';
 import { PaginatedUsersResponseDto } from '@/users/dto/paginated-users-response.dto';
 import { PaginationQueryDto } from '@/common/dto/pagination-query.dto';
 export declare class UsersController {

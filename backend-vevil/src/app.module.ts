@@ -7,6 +7,9 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { UsersModule } from './users/users.module';
 import { AuthModule } from './auth/auth.module';
+import { ProductsModule } from './products/products.module';
+import { CustomersModule } from './customers/customers.module';
+import { InvoicesModule } from './invoices/invoices.module';
 // import { ProfileModule } from './profile/profile.module';
 
 @Module({
@@ -18,7 +21,7 @@ import { AuthModule } from './auth/auth.module';
       // El prefijo de la URL desde el cual se servirán los archivos.
       serveRoot: '/uploads',
     }),
-
+ 
     // Carga las variables de entorno de forma global desde el archivo .env
     ConfigModule.forRoot({
       isGlobal: true,
@@ -49,9 +52,15 @@ import { AuthModule } from './auth/auth.module';
 
     AuthModule,
 
+    ProductsModule,
+
+    CustomersModule,
+
+    InvoicesModule,
+
     // ProfileModule,
   ],
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule {}
+export class AppModule { }

@@ -3,21 +3,23 @@ RUN apt-get update && apt-get install -y python3 make g++ && rm -rf /var/lib/apt
 WORKDIR /app
 
 # Copiar package.json
-COPY backend-vevil/package*.json ./
+COPY package*.json ./
 
 # Instalar TODAS las dependencias
 RUN npm install
 
 # Copiar código fuente
-COPY backend-vevil/src ./src
-COPY backend-vevil/tsconfig*.json ./
-COPY backend-vevil/nest-cli.json ./
+COPY src ./src
+COPY tsconfig*.json ./
+COPY nest-cli.json ./
 
 # Compilar con NestJS (resuelve path aliases)
 RUN npm run build
 
-# Verificar
-RUN ls -la dist/
+# Verificar que el build fue exitoso
+RUN ls -la dist/ && ls -la dist/src/ || true
 
 EXPOSE 3000
-CMD ["node", "dist/main.js"]
+
+# El archivo compilado está en dist/src/main.js según nest-cli
+CMD ["node", "dist/src/main.js"]

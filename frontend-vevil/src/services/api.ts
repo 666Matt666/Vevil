@@ -1,8 +1,8 @@
 // Obtener la URL del backend dinámicamente
 const getApiBaseUrl = (): string => {
     // Si hay variable de entorno, usarla
-    if (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_API_URL) {
-        return (import.meta as any).env.VITE_API_URL;
+    if (import.meta.env.VITE_API_URL) {
+        return import.meta.env.VITE_API_URL;
     }
     // Si estamos en localhost, usar localhost
     if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {

@@ -1,18 +1,33 @@
 // Obtener la URL del backend dinámicamente
 const getApiBaseUrl = (): string => {
+    // Debug: mostrar todas las variables de entorno disponibles
+    console.log('import.meta.env:', import.meta.env);
+    console.log('VITE_API_URL value:', import.meta.env.VITE_API_URL);
+    console.log('typeof VITE_API_URL:', typeof import.meta.env.VITE_API_URL);
+    
     // Si hay variable de entorno, usarla
-    if (import.meta.env.VITE_API_URL) {
-        console.log('Using VITE_API_URL:', import.meta.env.VITE_API_URL);
-        return import.meta.env.VITE_API_URL;
+    const viteApiUrl = import.meta.env.VITE_API_URL;
+    if (viteApiUrl && viteApiUrl !== 'undefined' && viteApiUrl.trim() !== '') {
+        console.log('✅ Using VITE_API_URL:', viteApiUrl);
+        return viteApiUrl;
     }
+    
+    // Si estamos en producción (Vercel), usar el backend de Fly.io directamente
+    if (window.location.hostname.includes('vercel.app')) {
+        const productionUrl = 'https://vevil-dtt7ta.fly.dev/api';
+        console.log('✅ Using production backend:', productionUrl);
+        return productionUrl;
+    }
+    
     // Si estamos en localhost, usar localhost
     if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
         console.log('Using localhost fallback');
         return 'http://localhost:3000/api';
     }
+    
     // Si estamos accediendo por IP (desde celular), usar la misma IP con puerto 3000
     const fallbackUrl = `http://${window.location.hostname}:3000/api`;
-    console.log('Using hostname fallback:', fallbackUrl);
+    console.log('⚠️ Using hostname fallback:', fallbackUrl);
     return fallbackUrl;
 };
 

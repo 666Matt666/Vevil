@@ -46,10 +46,19 @@ let AuthService = class AuthService {
         this.configService = configService;
     }
     async validateUser(email, pass) {
+        console.log('🔍 Validating user:', { email, passwordLength: pass?.length });
         const user = await this.usersService.findOneByEmail(email);
-        if (user && (await bcrypt.compare(pass, user.password))) {
-            const { password, ...result } = user;
-            return result;
+        console.log('👤 User found:', user ? { id: user.id, email: user.email, hasPassword: !!user.password } : 'NOT FOUND');
+        if (user && user.password) {
+            const passwordMatches = await bcrypt.compare(pass, user.password);
+            console.log('🔐 Password match:', passwordMatches);
+            if (passwordMatches) {
+                const { password, ...result } = user;
+                return result;
+            }
+        }
+        else {
+            console.log('❌ User not found or no password');
         }
         return null;
     }

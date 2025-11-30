@@ -7,13 +7,17 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   // Configuración de CORS - permitir acceso desde cualquier origen
+  const corsOrigins = process.env.CORS_ORIGINS
+    ? process.env.CORS_ORIGINS.split(',').map(origin => origin.trim())
+    : [
+        'http://localhost:5173',
+        'http://localhost:3000',
+        /\.vercel\.app$/, // Permite cualquier subdominio de Vercel
+        /\.vercel\.dev$/, // Permite preview deployments de Vercel
+      ];
+
   app.enableCors({
-    origin: [
-      'http://localhost:5173',
-      'http://localhost:3000',
-      /\.vercel\.app$/, // Permite cualquier subdominio de Vercel
-      /\.vercel\.dev$/, // Permite preview deployments de Vercel
-    ],
+    origin: corsOrigins,
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],

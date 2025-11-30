@@ -70,11 +70,15 @@ let UsersService = class UsersService {
         return user;
     }
     async findOneByEmail(email) {
-        return this.userRepository
+        const normalizedEmail = email.trim().toLowerCase();
+        console.log('🔎 Searching for user with email:', normalizedEmail);
+        const user = await this.userRepository
             .createQueryBuilder('user')
-            .where('user.email = :email', { email })
+            .where('LOWER(TRIM(user.email)) = :email', { email: normalizedEmail })
             .addSelect('user.password')
             .getOne();
+        console.log('🔎 Query result:', user ? `Found user ${user.id}` : 'No user found');
+        return user;
     }
     async update(id, updateUserDto) {
         if (updateUserDto.password) {

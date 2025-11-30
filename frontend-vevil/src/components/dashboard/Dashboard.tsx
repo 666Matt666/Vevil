@@ -214,7 +214,7 @@ const Dashboard: React.FC = () => {
                 </div>
                 
                 {/* Botón para cargar datos de ejemplo */}
-                {(!stats || (stats.totalProducts === 0 && stats.totalCustomers === 0)) && (
+                {!loading && (stats?.totalProducts ?? 0) === 0 && (stats?.totalCustomers ?? 0) === 0 && (
                     <button
                         onClick={loadSeedData}
                         disabled={seeding}

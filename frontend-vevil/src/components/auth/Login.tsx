@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { login } from '../services/api';
+import { login } from '../../services/api';
 
 const Login: React.FC = () => {
     const [email, setEmail] = useState('');

@@ -1,15 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-
-// Obtener la URL del backend dinámicamente
-const getApiUrl = () => {
-    // Si estamos en localhost, usar localhost
-    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-        return 'http://localhost:3000';
-    }
-    // Si estamos accediendo por IP (desde celular), usar la misma IP con puerto 3000
-    return `http://${window.location.hostname}:3000`;
-};
+import { login } from '../services/api';
 
 const Login: React.FC = () => {
     const [email, setEmail] = useState('');
@@ -32,18 +23,7 @@ const Login: React.FC = () => {
         setIsLoading(true);
 
         try {
-            const apiUrl = getApiUrl();
-            const response = await fetch(`${apiUrl}/api/auth/login`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, password }),
-            });
-
-            if (!response.ok) {
-                throw new Error('Credenciales inválidas');
-            }
-
-            const data = await response.json();
+            const data = await login(email, password);
             localStorage.setItem('token', data.access_token);
             navigate('/dashboard');
         } catch (err: any) {

@@ -19,6 +19,22 @@ const getToken = (): string | null => {
     return localStorage.getItem('token');
 };
 
+// ============ AUTENTICACIÓN ============
+export const login = async (email: string, password: string): Promise<{ access_token: string }> => {
+    const response = await fetch(`${API_BASE_URL}/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+    });
+
+    if (!response.ok) {
+        const error = await response.json().catch(() => ({ message: 'Credenciales inválidas' }));
+        throw new Error(error.message || 'Error al iniciar sesión');
+    }
+
+    return response.json();
+};
+
 // Función helper para hacer peticiones autenticadas
 const fetchWithAuth = async (endpoint: string, options: RequestInit = {}): Promise<Response> => {
     const token = getToken();

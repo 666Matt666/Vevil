@@ -6,10 +6,17 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  // Configuración de CORS - permitir acceso desde cualquier origen en desarrollo
+  // Configuración de CORS - permitir acceso desde cualquier origen
   app.enableCors({
-    origin: true, // Permite cualquier origen en desarrollo
+    origin: [
+      'http://localhost:5173',
+      'http://localhost:3000',
+      /\.vercel\.app$/, // Permite cualquier subdominio de Vercel
+      /\.vercel\.dev$/, // Permite preview deployments de Vercel
+    ],
     credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
   });
 
   // Prefijo global para la API

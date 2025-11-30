@@ -1,5 +1,15 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+
+// Obtener la URL del backend dinámicamente
+const getApiUrl = () => {
+    // Si estamos en localhost, usar localhost
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+        return 'http://localhost:3000';
+    }
+    // Si estamos accediendo por IP (desde celular), usar la misma IP con puerto 3000
+    return `http://${window.location.hostname}:3000`;
+};
 
 const Login: React.FC = () => {
     const [email, setEmail] = useState('');
@@ -7,6 +17,14 @@ const Login: React.FC = () => {
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const navigate = useNavigate();
+    
+    // Si ya está autenticado, redirigir al dashboard
+    useEffect(() => {
+        const token = localStorage.getItem('token');
+        if (token) {
+            navigate('/dashboard');
+        }
+    }, [navigate]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -14,7 +32,8 @@ const Login: React.FC = () => {
         setIsLoading(true);
 
         try {
-            const response = await fetch('http://localhost:3000/api/auth/login', {
+            const apiUrl = getApiUrl();
+            const response = await fetch(`${apiUrl}/api/auth/login`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email, password }),

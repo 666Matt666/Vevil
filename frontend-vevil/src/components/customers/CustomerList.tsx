@@ -215,19 +215,21 @@ const CustomerList: React.FC = () => {
     }
 
     return (
-        <div style={{ padding: '32px' }}>
+        <div className="responsive-padding" style={{ padding: '32px' }}>
             {/* Header */}
             <div style={{ 
                 display: 'flex', 
                 justifyContent: 'space-between', 
-                alignItems: 'center',
-                marginBottom: '24px'
+                alignItems: 'flex-start',
+                marginBottom: '24px',
+                flexWrap: 'wrap',
+                gap: '16px'
             }}>
                 <div>
-                    <h1 style={{ fontSize: '28px', fontWeight: 700, color: '#1e293b', margin: 0 }}>
+                    <h1 style={{ fontSize: 'clamp(22px, 5vw, 28px)', fontWeight: 700, color: '#1e293b', margin: 0 }}>
                         Clientes
                     </h1>
-                    <p style={{ fontSize: '16px', color: '#64748b', margin: '4px 0 0 0' }}>
+                    <p style={{ fontSize: '14px', color: '#64748b', margin: '4px 0 0 0' }}>
                         {customers.length} clientes registrados
                     </p>
                 </div>
@@ -235,9 +237,10 @@ const CustomerList: React.FC = () => {
                     onClick={openCreateModal}
                     style={{
                         ...buttonStyle,
-                        padding: '12px 24px',
+                        padding: '12px 20px',
                         backgroundColor: '#22c55e',
                         color: 'white',
+                        whiteSpace: 'nowrap'
                     }}
                 >
                     + Nuevo Cliente
@@ -352,10 +355,11 @@ const CustomerList: React.FC = () => {
                 <div style={{
                     backgroundColor: 'white',
                     borderRadius: '12px',
-                    overflow: 'hidden',
-                    boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
+                    overflowX: 'auto',
+                    WebkitOverflowScrolling: 'touch'
                 }}>
-                    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '800px' }}>
                         <thead>
                             <tr style={{ backgroundColor: '#f8fafc' }}>
                                 <th style={{ padding: '16px', textAlign: 'left', fontWeight: 600, color: '#475569', fontSize: '14px' }}>ID</th>

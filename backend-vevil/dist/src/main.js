@@ -6,11 +6,8 @@ const common_1 = require("@nestjs/common");
 const swagger_1 = require("@nestjs/swagger");
 async function bootstrap() {
     const app = await core_1.NestFactory.create(app_module_1.AppModule);
-    const allowedOrigins = process.env.CORS_ORIGINS
-        ? process.env.CORS_ORIGINS.split(',')
-        : ['http://localhost:5173', 'http://localhost:3000'];
     app.enableCors({
-        origin: allowedOrigins,
+        origin: true,
         credentials: true,
     });
     app.setGlobalPrefix('api');
@@ -28,8 +25,9 @@ async function bootstrap() {
     const document = swagger_1.SwaggerModule.createDocument(app, config);
     swagger_1.SwaggerModule.setup('api/docs', app, document);
     const port = process.env.PORT || 3000;
-    await app.listen(port);
+    await app.listen(port, '0.0.0.0');
     console.log(`🚀 Servidor corriendo en puerto ${port}`);
+    console.log(`🌐 Accesible en http://localhost:${port} y http://192.168.1.38:${port}`);
     console.log(`📚 Documentación disponible en /api/docs`);
 }
 bootstrap();

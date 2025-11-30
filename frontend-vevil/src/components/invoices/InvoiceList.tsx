@@ -384,16 +384,18 @@ const InvoiceList: React.FC = () => {
     }
 
     return (
-        <div style={{ padding: '32px' }}>
+        <div className="responsive-padding" style={{ padding: '32px' }}>
             {/* Header */}
             <div style={{ 
                 display: 'flex', 
                 justifyContent: 'space-between', 
-                alignItems: 'center',
-                marginBottom: '24px'
+                alignItems: 'flex-start',
+                marginBottom: '24px',
+                flexWrap: 'wrap',
+                gap: '16px'
             }}>
                 <div>
-                    <h1 style={{ fontSize: '28px', fontWeight: 700, color: '#1e293b', margin: 0 }}>
+                    <h1 style={{ fontSize: 'clamp(22px, 5vw, 28px)', fontWeight: 700, color: '#1e293b', margin: 0 }}>
                         Facturas
                     </h1>
                     <p style={{ fontSize: '16px', color: '#64748b', margin: '4px 0 0 0' }}>
@@ -566,10 +568,11 @@ const InvoiceList: React.FC = () => {
                 <div style={{
                     backgroundColor: 'white',
                     borderRadius: '12px',
-                    overflow: 'hidden',
-                    boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
+                    overflowX: 'auto',
+                    WebkitOverflowScrolling: 'touch'
                 }}>
-                    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '750px' }}>
                         <thead>
                             <tr style={{ backgroundColor: '#f8fafc' }}>
                                 <th style={{ padding: '16px', textAlign: 'left', fontWeight: 600, color: '#475569', fontSize: '14px' }}>N° Factura</th>
@@ -684,15 +687,17 @@ const InvoiceList: React.FC = () => {
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    zIndex: 1000
+                    zIndex: 1000,
+                    padding: window.innerWidth < 768 ? 0 : '16px'
                 }}>
                     <div style={{
                         backgroundColor: 'white',
-                        borderRadius: '16px',
-                        padding: '32px',
+                        borderRadius: window.innerWidth < 768 ? 0 : '16px',
+                        padding: window.innerWidth < 768 ? '20px' : '32px',
                         width: '100%',
-                        maxWidth: '700px',
-                        maxHeight: '90vh',
+                        maxWidth: window.innerWidth < 768 ? '100%' : '700px',
+                        height: window.innerWidth < 768 ? '100%' : 'auto',
+                        maxHeight: window.innerWidth < 768 ? '100%' : '90vh',
                         overflow: 'auto'
                     }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>

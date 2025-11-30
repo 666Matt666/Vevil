@@ -6,13 +6,9 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  // Configuración de CORS para producción
-  const allowedOrigins = process.env.CORS_ORIGINS
-    ? process.env.CORS_ORIGINS.split(',')
-    : ['http://localhost:5173', 'http://localhost:3000'];
-
+  // Configuración de CORS - permitir acceso desde cualquier origen en desarrollo
   app.enableCors({
-    origin: allowedOrigins,
+    origin: true, // Permite cualquier origen en desarrollo
     credentials: true,
   });
 
@@ -40,9 +36,11 @@ async function bootstrap() {
 
   // Puerto configurable para producción (Render usa PORT)
   const port = process.env.PORT || 3000;
-  await app.listen(port);
+  // Escuchar en todas las interfaces (0.0.0.0) para permitir acceso desde otros dispositivos
+  await app.listen(port, '0.0.0.0');
   
   console.log(`🚀 Servidor corriendo en puerto ${port}`);
+  console.log(`🌐 Accesible en http://localhost:${port} y http://192.168.1.38:${port}`);
   console.log(`📚 Documentación disponible en /api/docs`);
 }
 bootstrap();

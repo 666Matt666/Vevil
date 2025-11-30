@@ -1,5 +1,18 @@
-// En desarrollo usa localhost, en producción usa la variable de entorno
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+// Obtener la URL del backend dinámicamente
+const getApiBaseUrl = (): string => {
+    // Si hay variable de entorno, usarla
+    if (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_API_URL) {
+        return (import.meta as any).env.VITE_API_URL;
+    }
+    // Si estamos en localhost, usar localhost
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+        return 'http://localhost:3000/api';
+    }
+    // Si estamos accediendo por IP (desde celular), usar la misma IP con puerto 3000
+    return `http://${window.location.hostname}:3000/api`;
+};
+
+const API_BASE_URL = getApiBaseUrl();
 
 // Función helper para obtener el token
 const getToken = (): string | null => {

@@ -84,3 +84,78 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
+
+/* ============================================
+   RESPONSIVE STYLES
+   ============================================ */
+
+/* Tablas responsive - scroll horizontal en móviles */
+.table-responsive {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Ocultar en móviles */
+@media (max-width: 768px) {
+  .hide-mobile {
+    display: none !important;
+  }
+  
+  .show-mobile {
+    display: block !important;
+  }
+  
+  /* Reducir padding en móviles */
+  .mobile-padding {
+    padding: 16px !important;
+  }
+  
+  /* Textos más pequeños */
+  .mobile-text-sm {
+    font-size: 12px !important;
+  }
+  
+  /* Botones más pequeños */
+  .mobile-btn-sm {
+    padding: 6px 10px !important;
+    font-size: 12px !important;
+  }
+  
+  /* Grid de una columna */
+  .mobile-grid-1 {
+    grid-template-columns: 1fr !important;
+  }
+  
+  /* Flex column en móviles */
+  .mobile-flex-col {
+    flex-direction: column !important;
+  }
+  
+  /* Full width en móviles */
+  .mobile-full-width {
+    width: 100% !important;
+  }
+}
+
+/* Tablets */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .tablet-grid-2 {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}
+
+/* Touch-friendly */
+@media (hover: none) and (pointer: coarse) {
+  button, a, select, input {
+    min-height: 44px;
+  }
+}
+
+/* Safe area para dispositivos con notch */
+@supports (padding: max(0px)) {
+  body {
+    padding-left: max(0px, env(safe-area-inset-left));
+    padding-right: max(0px, env(safe-area-inset-right));
+  }
+}

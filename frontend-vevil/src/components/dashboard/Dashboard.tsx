@@ -63,11 +63,11 @@ const Dashboard: React.FC = () => {
     };
 
     return (
-        <div style={{ padding: '32px' }}>
+        <div className="responsive-padding" style={{ padding: '32px' }}>
             {/* Header */}
-            <div style={{ marginBottom: '32px' }}>
+            <div style={{ marginBottom: '24px' }}>
                 <h1 style={{ 
-                    fontSize: '32px', 
+                    fontSize: 'clamp(24px, 5vw, 32px)', 
                     fontWeight: 700, 
                     color: '#1e293b',
                     margin: '0 0 8px 0'
@@ -75,7 +75,7 @@ const Dashboard: React.FC = () => {
                     ¡Bienvenido!
                 </h1>
                 <p style={{ 
-                    fontSize: '18px', 
+                    fontSize: 'clamp(14px, 3vw, 18px)', 
                     color: '#64748b',
                     margin: 0
                 }}>
@@ -86,8 +86,8 @@ const Dashboard: React.FC = () => {
             {/* Cards Grid */}
             <div style={{ 
                 display: 'grid', 
-                gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', 
-                gap: '24px' 
+                gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', 
+                gap: '16px' 
             }}>
                 {menuItems.map((item) => (
                     <div
@@ -146,10 +146,10 @@ const Dashboard: React.FC = () => {
 
             {/* Quick Stats */}
             <div style={{ 
-                marginTop: '48px',
+                marginTop: '32px',
                 display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-                gap: '16px'
+                gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
+                gap: '12px'
             }}>
                 <div style={{
                     backgroundColor: 'white',

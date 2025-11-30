@@ -185,19 +185,21 @@ const ProductList: React.FC = () => {
     }
 
     return (
-        <div style={{ padding: '32px' }}>
+        <div className="responsive-padding" style={{ padding: '32px' }}>
             {/* Header */}
             <div style={{ 
                 display: 'flex', 
                 justifyContent: 'space-between', 
-                alignItems: 'center',
-                marginBottom: '24px'
+                alignItems: 'flex-start',
+                marginBottom: '24px',
+                flexWrap: 'wrap',
+                gap: '16px'
             }}>
                 <div>
-                    <h1 style={{ fontSize: '28px', fontWeight: 700, color: '#1e293b', margin: 0 }}>
+                    <h1 style={{ fontSize: 'clamp(22px, 5vw, 28px)', fontWeight: 700, color: '#1e293b', margin: 0 }}>
                         Productos
                     </h1>
-                    <p style={{ fontSize: '16px', color: '#64748b', margin: '4px 0 0 0' }}>
+                    <p style={{ fontSize: '14px', color: '#64748b', margin: '4px 0 0 0' }}>
                         {products.length} productos en inventario
                     </p>
                 </div>
@@ -205,9 +207,10 @@ const ProductList: React.FC = () => {
                     onClick={openCreateModal}
                     style={{
                         ...buttonStyle,
-                        padding: '12px 24px',
+                        padding: '12px 20px',
                         backgroundColor: '#4f46e5',
                         color: 'white',
+                        whiteSpace: 'nowrap'
                     }}
                 >
                     + Nuevo Producto
@@ -239,64 +242,66 @@ const ProductList: React.FC = () => {
                     borderRadius: '12px',
                     padding: '16px',
                     marginBottom: '16px',
-                    boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
-                    display: 'flex',
-                    gap: '16px',
-                    alignItems: 'center',
-                    flexWrap: 'wrap'
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
                 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <span style={{ fontSize: '20px' }}>🔍</span>
-                        <input
-                            type="text"
-                            placeholder="Buscar por nombre..."
-                            value={searchName}
-                            onChange={(e) => setSearchName(e.target.value)}
-                            style={{
-                                padding: '10px 16px',
-                                border: '1px solid #e2e8f0',
-                                borderRadius: '8px',
-                                fontSize: '14px',
-                                width: '250px',
-                                outline: 'none'
-                            }}
-                        />
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <span style={{ fontSize: '14px', color: '#64748b' }}>Tipo:</span>
+                    <div style={{
+                        display: 'flex',
+                        gap: '12px',
+                        alignItems: 'center',
+                        flexWrap: 'wrap'
+                    }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: '1 1 200px', minWidth: '150px' }}>
+                            <span style={{ fontSize: '20px' }}>🔍</span>
+                            <input
+                                type="text"
+                                placeholder="Buscar..."
+                                value={searchName}
+                                onChange={(e) => setSearchName(e.target.value)}
+                                style={{
+                                    padding: '10px 12px',
+                                    border: '1px solid #e2e8f0',
+                                    borderRadius: '8px',
+                                    fontSize: '14px',
+                                    width: '100%',
+                                    outline: 'none'
+                                }}
+                            />
+                        </div>
                         <select
                             value={filterType}
                             onChange={(e) => setFilterType(e.target.value)}
                             style={{
-                                padding: '10px 16px',
+                                padding: '10px 12px',
                                 border: '1px solid #e2e8f0',
                                 borderRadius: '8px',
                                 fontSize: '14px',
                                 backgroundColor: 'white',
-                                cursor: 'pointer'
+                                cursor: 'pointer',
+                                minWidth: '120px'
                             }}
                         >
                             <option value="all">Todos</option>
                             <option value="fuel">Combustible</option>
                             <option value="other">Otro</option>
                         </select>
+                        {(searchName || filterType !== 'all') && (
+                            <button
+                                onClick={() => { setSearchName(''); setFilterType('all'); }}
+                                style={{
+                                    ...buttonStyle,
+                                    backgroundColor: '#f1f5f9',
+                                    color: '#64748b',
+                                    fontSize: '12px',
+                                    padding: '10px 12px'
+                                }}
+                            >
+                                ✕ Limpiar
+                            </button>
+                        )}
                     </div>
-                    {(searchName || filterType !== 'all') && (
-                        <button
-                            onClick={() => { setSearchName(''); setFilterType('all'); }}
-                            style={{
-                                ...buttonStyle,
-                                backgroundColor: '#f1f5f9',
-                                color: '#64748b',
-                                fontSize: '12px'
-                            }}
-                        >
-                            ✕ Limpiar filtros
-                        </button>
-                    )}
-                    <span style={{ marginLeft: 'auto', fontSize: '14px', color: '#64748b' }}>
+                    <div style={{ marginTop: '12px', fontSize: '13px', color: '#64748b' }}>
                         Mostrando {filteredProducts.length} de {products.length}
-                    </span>
+                    </div>
                 </div>
             )}
 
@@ -319,10 +324,11 @@ const ProductList: React.FC = () => {
                 <div style={{
                     backgroundColor: 'white',
                     borderRadius: '12px',
-                    overflow: 'hidden',
-                    boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
+                    overflowX: 'auto',
+                    WebkitOverflowScrolling: 'touch'
                 }}>
-                    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '700px' }}>
                         <thead>
                             <tr style={{ backgroundColor: '#f8fafc' }}>
                                 <th style={{ padding: '16px', textAlign: 'left', fontWeight: 600, color: '#475569', fontSize: '14px' }}>ID</th>
@@ -411,15 +417,17 @@ const ProductList: React.FC = () => {
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    zIndex: 1000
+                    zIndex: 1000,
+                    padding: window.innerWidth < 768 ? 0 : '16px'
                 }}>
                     <div style={{
                         backgroundColor: 'white',
-                        borderRadius: '16px',
-                        padding: '32px',
+                        borderRadius: window.innerWidth < 768 ? 0 : '16px',
+                        padding: window.innerWidth < 768 ? '20px' : '32px',
                         width: '100%',
-                        maxWidth: '500px',
-                        maxHeight: '90vh',
+                        maxWidth: window.innerWidth < 768 ? '100%' : '500px',
+                        height: window.innerWidth < 768 ? '100%' : 'auto',
+                        maxHeight: window.innerWidth < 768 ? '100%' : '90vh',
                         overflow: 'auto'
                     }}>
                         <h2 style={{ margin: '0 0 24px 0', fontSize: '24px', fontWeight: 600, color: '#1e293b' }}>

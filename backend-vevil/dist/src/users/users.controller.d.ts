@@ -1,3 +1,4 @@
+/// <reference types="multer" />
 import { UsersService } from './users.service';
 import { User } from './user.entity';
 import { CreateUserDto } from './dto/create-user.dto';

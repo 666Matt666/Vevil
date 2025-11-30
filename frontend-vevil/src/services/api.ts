@@ -65,6 +65,31 @@ export const login = async (email: string, password: string): Promise<{ access_t
     }
 };
 
+export const register = async (name: string, email: string, password: string): Promise<any> => {
+    const url = `${API_BASE_URL}/auth/register`;
+    console.log('Register request to:', url);
+    
+    try {
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name, email, password }),
+        });
+
+        console.log('Register response status:', response.status);
+
+        if (!response.ok) {
+            const error = await response.json().catch(() => ({ message: 'Error al registrar usuario' }));
+            throw new Error(error.message || 'Error al registrar usuario');
+        }
+
+        return response.json();
+    } catch (error: any) {
+        console.error('Register error:', error);
+        throw error;
+    }
+};
+
 // Función helper para hacer peticiones autenticadas
 const fetchWithAuth = async (endpoint: string, options: RequestInit = {}): Promise<Response> => {
     const token = getToken();

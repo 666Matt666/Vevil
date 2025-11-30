@@ -2,6 +2,7 @@ app = 'vevil-dtt7ta'
 primary_region = 'gru'
 
 [build]
+  dockerfile = "backend-vevil/Dockerfile"
 
 [http_service]
   internal_port = 3000

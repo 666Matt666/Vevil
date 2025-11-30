@@ -6,7 +6,7 @@
   "private": true,
   "license": "UNLICENSED",
   "scripts": {
-    "build": "nest build --tsconfig tsconfig.build.json",
+    "build": "nest build",
     "start": "node dist/main",
     "start:dev": "nest start --watch --preserveWatchOutput -r tsconfig-paths/register",
     "start:prod": "node dist/main",

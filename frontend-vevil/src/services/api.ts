@@ -2,17 +2,22 @@
 const getApiBaseUrl = (): string => {
     // Si hay variable de entorno, usarla
     if (import.meta.env.VITE_API_URL) {
+        console.log('Using VITE_API_URL:', import.meta.env.VITE_API_URL);
         return import.meta.env.VITE_API_URL;
     }
     // Si estamos en localhost, usar localhost
     if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+        console.log('Using localhost fallback');
         return 'http://localhost:3000/api';
     }
     // Si estamos accediendo por IP (desde celular), usar la misma IP con puerto 3000
-    return `http://${window.location.hostname}:3000/api`;
+    const fallbackUrl = `http://${window.location.hostname}:3000/api`;
+    console.log('Using hostname fallback:', fallbackUrl);
+    return fallbackUrl;
 };
 
 const API_BASE_URL = getApiBaseUrl();
+console.log('API_BASE_URL configured as:', API_BASE_URL);
 
 // Función helper para obtener el token
 const getToken = (): string | null => {
@@ -21,18 +26,28 @@ const getToken = (): string | null => {
 
 // ============ AUTENTICACIÓN ============
 export const login = async (email: string, password: string): Promise<{ access_token: string }> => {
-    const response = await fetch(`${API_BASE_URL}/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
-    });
+    const url = `${API_BASE_URL}/auth/login`;
+    console.log('Login request to:', url);
+    
+    try {
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password }),
+        });
 
-    if (!response.ok) {
-        const error = await response.json().catch(() => ({ message: 'Credenciales inválidas' }));
-        throw new Error(error.message || 'Error al iniciar sesión');
+        console.log('Login response status:', response.status);
+
+        if (!response.ok) {
+            const error = await response.json().catch(() => ({ message: 'Credenciales inválidas' }));
+            throw new Error(error.message || 'Error al iniciar sesión');
+        }
+
+        return response.json();
+    } catch (error: any) {
+        console.error('Login error:', error);
+        throw error;
     }
-
-    return response.json();
 };
 
 // Función helper para hacer peticiones autenticadas

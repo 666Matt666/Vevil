@@ -5,17 +5,17 @@ RUN apt-get update && apt-get install -y python3 make g++ && rm -rf /var/lib/apt
 
 WORKDIR /app
 
-# Copiar package.json y yarn.lock
-COPY package.json yarn.lock ./
+# Copiar package.json y package-lock.json
+COPY package.json package-lock.json ./
 
-# Instalar dependencias
-RUN npm install -g yarn && yarn install
+# Instalar dependencias con npm
+RUN npm ci
 
 # Copiar código fuente
 COPY . .
 
 # Compilar TypeScript
-RUN ./node_modules/.bin/tsc -p tsconfig.build.json
+RUN npm run build
 
 # Verificar que dist existe
 RUN ls -la dist/
@@ -25,4 +25,3 @@ EXPOSE 3000
 
 # Iniciar
 CMD ["node", "dist/main.js"]
-

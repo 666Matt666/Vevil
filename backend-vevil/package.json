@@ -11,6 +11,7 @@
     "start:dev": "nest start --watch --preserveWatchOutput -r tsconfig-paths/register",
     "start:prod": "node dist/main",
     "seed:examples": "ts-node -r tsconfig-paths/register src/scripts/seed-example-data.ts",
+    "seed:production": "ts-node -r tsconfig-paths/register src/scripts/seed.ts",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage"

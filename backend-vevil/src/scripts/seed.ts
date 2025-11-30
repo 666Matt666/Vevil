@@ -1,10 +1,43 @@
 import { Logger } from '@nestjs/common';
 
-const API_URL = 'http://localhost:3000';
+// Usar la URL del backend en producción o localhost según la variable de entorno
+const API_URL = process.env.API_URL || 'https://vevil-dtt7ta.fly.dev/api';
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'mdibella@gmail.com';
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || '';
 
 async function seed() {
     const logger = new Logger('Seeding');
-    logger.log('Starting seed process...');
+    logger.log(`Starting seed process with API: ${API_URL}...`);
+
+    // 1. Autenticarse primero
+    let token = '';
+    if (ADMIN_PASSWORD) {
+        try {
+            const loginResponse = await fetch(`${API_URL}/auth/login`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: ADMIN_EMAIL, password: ADMIN_PASSWORD }),
+            });
+            if (loginResponse.ok) {
+                const loginData = await loginResponse.json();
+                token = loginData.access_token;
+                logger.log('✅ Authenticated successfully');
+            } else {
+                logger.warn('⚠️ Could not authenticate, proceeding without token (may fail if auth required)');
+            }
+        } catch (error) {
+            logger.warn(`⚠️ Authentication error: ${error}, proceeding without token`);
+        }
+    } else {
+        logger.warn('⚠️ No ADMIN_PASSWORD provided, proceeding without authentication');
+    }
+
+    const headers: HeadersInit = {
+        'Content-Type': 'application/json',
+    };
+    if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+    }
 
     // 1. Create Products
     const products = [
@@ -20,7 +53,7 @@ async function seed() {
         try {
             const response = await fetch(`${API_URL}/products`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers,
                 body: JSON.stringify(product),
             });
             if (response.ok) {
@@ -84,7 +117,7 @@ async function seed() {
         try {
             const response = await fetch(`${API_URL}/customers`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers,
                 body: JSON.stringify(customer),
             });
             if (response.ok) {
@@ -130,7 +163,7 @@ async function seed() {
             try {
                 const response = await fetch(`${API_URL}/invoices`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers,
                     body: JSON.stringify(invoice),
                 });
                 if (response.ok) {

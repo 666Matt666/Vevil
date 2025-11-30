@@ -66,11 +66,18 @@ export class UsersService {
    * @returns El usuario encontrado, incluyendo la contraseña.
    */
   async findOneByEmail(email: string): Promise<User | undefined> {
-    return this.userRepository
+    // Normalizar el email: trim y lowercase para comparación
+    const normalizedEmail = email.trim().toLowerCase();
+    console.log('🔎 Searching for user with email:', normalizedEmail);
+    
+    const user = await this.userRepository
       .createQueryBuilder('user')
-      .where('user.email = :email', { email })
+      .where('LOWER(TRIM(user.email)) = :email', { email: normalizedEmail })
       .addSelect('user.password') // ¡Importante! Seleccionamos explícitamente la contraseña.
       .getOne();
+    
+    console.log('🔎 Query result:', user ? `Found user ${user.id}` : 'No user found');
+    return user;
   }
 
   /**

@@ -28,10 +28,19 @@ export class AuthService {
    * @returns El objeto de usuario si es válido, de lo contrario null.
    */
   async validateUser(email: string, pass: string): Promise<any> {
+    console.log('🔍 Validating user:', { email, passwordLength: pass?.length });
     const user = await this.usersService.findOneByEmail(email); // Asegúrate que este método devuelve el usuario con su contraseña
-    if (user && (await bcrypt.compare(pass, user.password))) {
-      const { password, ...result } = user;
-      return result;
+    console.log('👤 User found:', user ? { id: user.id, email: user.email, hasPassword: !!user.password } : 'NOT FOUND');
+    
+    if (user && user.password) {
+      const passwordMatches = await bcrypt.compare(pass, user.password);
+      console.log('🔐 Password match:', passwordMatches);
+      if (passwordMatches) {
+        const { password, ...result } = user;
+        return result;
+      }
+    } else {
+      console.log('❌ User not found or no password');
     }
     return null;
   }

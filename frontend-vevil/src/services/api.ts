@@ -12,9 +12,9 @@ const getApiBaseUrl = (): string => {
         return viteApiUrl;
     }
     
-    // Si estamos en producción (Vercel), usar el backend de Fly.io directamente
+    // Si estamos en producción (Vercel), usar el backend de Render directamente
     if (window.location.hostname.includes('vercel.app')) {
-        const productionUrl = 'https://vevil-dtt7ta.fly.dev/api';
+        const productionUrl = 'https://vevil-backend.onrender.com/api';
         console.log('✅ Using production backend:', productionUrl);
         return productionUrl;
     }

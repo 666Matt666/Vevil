@@ -15,6 +15,9 @@ export class Product {
   @Column('decimal', { precision: 10, scale: 2 })
   price: number;
 
+  @Column({ length: 3, default: 'PYG' })
+  currency: string;
+
   @Column('int')
   stock: number;
 

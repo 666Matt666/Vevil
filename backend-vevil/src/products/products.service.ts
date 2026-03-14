@@ -13,7 +13,10 @@ export class ProductsService {
     ) { }
 
     create(createProductDto: CreateProductDto) {
-        const product = this.productsRepository.create(createProductDto);
+        const product = this.productsRepository.create({
+            ...createProductDto,
+            currency: createProductDto.currency || 'PYG',
+        });
         return this.productsRepository.save(product);
     }
 

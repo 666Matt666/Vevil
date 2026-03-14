@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { getConversionTarget, getRates, convert, fetchRates, setConversionTarget } from '../../services/currencyRates';
 
 // ============== TIPOS ==============
 
@@ -71,6 +72,7 @@ const defaultCurrencies: CurrencyConfig[] = [
     { code: 'PYG', symbol: '₲', name: 'Guaraníes (Paraguay)', enabled: true },
     { code: 'USD', symbol: '$', name: 'Dólares (USD)', enabled: true },
     { code: 'ARS', symbol: '$', name: 'Pesos Argentinos', enabled: false },
+    { code: 'BRL', symbol: 'R$', name: 'Reales (Brasil)', enabled: false },
 ];
 
 const defaultCompany: CompanyConfig = {
@@ -205,21 +207,30 @@ export const getAppearanceConfig = (): AppearanceConfig => {
     return saved ? JSON.parse(saved) : defaultAppearance;
 };
 
-// Formatear moneda
-export const formatMoney = (amount: number, currencyCode: string): string => {
+// Formatear moneda (opcionalmente con conversión a otra moneda si está configurada)
+function formatMoneyWithSymbol(amount: number, currencyCode: string, decimals?: number): string {
     const currencies = getAllCurrencies();
     const currency = currencies.find(c => c.code === currencyCode);
-    
     if (!currency) return `${amount.toFixed(2)}`;
-    
-    const decimals = currencyCode === 'PYG' ? 0 : 2;
+    const dec = decimals ?? (currencyCode === 'PYG' ? 0 : 2);
     const formatted = amount.toLocaleString('es-PY', {
-        minimumFractionDigits: decimals,
-        maximumFractionDigits: decimals
+        minimumFractionDigits: dec,
+        maximumFractionDigits: dec
     });
-    
     if (currencyCode === 'ARS') return `${currency.symbol} ${formatted} ARS`;
     return `${currency.symbol} ${formatted}`;
+}
+
+export const formatMoney = (amount: number, currencyCode: string): string => {
+    const main = formatMoneyWithSymbol(amount, currencyCode);
+    const target = getConversionTarget();
+    if (!target || target === currencyCode) return main;
+    const data = getRates();
+    if (!data?.rates?.[target]) return main;
+    const converted = convert(amount, currencyCode, target);
+    if (converted == null) return main;
+    const targetFormatted = formatMoneyWithSymbol(converted, target);
+    return `${main} (≈ ${targetFormatted})`;
 };
 
 // Formatear número de factura
@@ -300,6 +311,16 @@ const Settings: React.FC = () => {
     const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>(getPaymentMethods());
     const [alerts, setAlerts] = useState<AlertsConfig>(getAlertsConfig());
     const [appearance, setAppearance] = useState<AppearanceConfig>(getAppearanceConfig());
+    const [conversionTargetState, setConversionTargetState] = useState<string | null>(getConversionTarget());
+    const [ratesUpdatedAt, setRatesUpdatedAt] = useState<string | null>(() => getRates()?.updatedAt ?? null);
+    const [ratesLoading, setRatesLoading] = useState(false);
+
+    useEffect(() => {
+        if (activeSection === 'currencies') {
+            const r = getRates();
+            if (r?.updatedAt) setRatesUpdatedAt(r.updatedAt);
+        }
+    }, [activeSection]);
 
     const showSaved = () => {
         setSaved(true);
@@ -563,6 +584,46 @@ const Settings: React.FC = () => {
                         </div>
                     </label>
                 ))}
+            </div>
+
+            <h2 style={{ fontSize: '18px', fontWeight: 600, color: '#1e293b', margin: '24px 0 8px 0' }}>
+                🔄 Conversión de monedas
+            </h2>
+            <p style={{ fontSize: '14px', color: '#64748b', margin: '0 0 12px 0' }}>
+                Mostrar importes también en otra moneda (tasas desde internet, actualización automática)
+            </p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                <label style={{ ...labelStyle, marginBottom: 0 }}>Mostrar también en</label>
+                <select
+                    value={conversionTargetState || ''}
+                    onChange={(e) => {
+                        const v = e.target.value || null;
+                        setConversionTarget(v);
+                        setConversionTargetState(v);
+                    }}
+                    style={inputStyle}
+                >
+                    <option value="">Ninguna</option>
+                    {currencies.filter(c => c.enabled).map(c => (
+                        <option key={c.code} value={c.code}>{c.code} ({c.symbol})</option>
+                    ))}
+                </select>
+                <span style={{ fontSize: '13px', color: '#64748b' }}>
+                    {ratesUpdatedAt ? `Actualizado: ${new Date(ratesUpdatedAt).toLocaleString('es-PY')}` : 'Cargando tasas…'}
+                </span>
+                <button
+                    type="button"
+                    onClick={async () => {
+                        setRatesLoading(true);
+                        const data = await fetchRates();
+                        if (data?.updatedAt) setRatesUpdatedAt(data.updatedAt);
+                        setRatesLoading(false);
+                    }}
+                    disabled={ratesLoading}
+                    style={{ ...buttonStyle, padding: '6px 12px' }}
+                >
+                    {ratesLoading ? 'Actualizando…' : 'Actualizar ahora'}
+                </button>
             </div>
         </div>
     );

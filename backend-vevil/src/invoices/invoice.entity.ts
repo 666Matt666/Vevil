@@ -19,6 +19,9 @@ export class Invoice {
     @Column('decimal', { precision: 10, scale: 2 })
     total: number;
 
+    @Column({ length: 3, default: 'PYG' })
+    currency: string;
+
     @OneToMany(() => InvoiceItem, (item) => item.invoice, { cascade: true })
     items: InvoiceItem[];
 }

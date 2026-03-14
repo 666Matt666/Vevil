@@ -26,6 +26,7 @@ export class InvoicesService {
             const customer = await this.customersService.findOne(createInvoiceDto.customerId);
             const invoice = new Invoice();
             invoice.customer = customer;
+            invoice.currency = createInvoiceDto.currency || 'PYG';
             invoice.items = [];
             let total = 0;
 

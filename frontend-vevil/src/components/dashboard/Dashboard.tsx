@@ -1,20 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { statsApi, productsApi, customersApi, invoicesApi } from '../../services/api';
+import { statsApi, metricsApi, productsApi, customersApi, invoicesApi } from '../../services/api';
+import type { DashboardMetrics } from '../../services/api';
 import { formatMoney } from '../settings/Settings';
+import { getRates, fetchRates } from '../../services/currencyRates';
+import type { CachedRates } from '../../services/currencyRates';
 
-interface DashboardStats {
-    totalProducts: number;
-    totalCustomers: number;
-    totalInvoices: number;
-    totalRevenue: number;
-}
+const USAGE_KEY = 'vevil_dashboard_usage';
 
 const menuItems = [
     { 
         label: 'Productos', 
         icon: '📦', 
         path: '/products', 
+        usageKey: 'products' as const,
         color: '#3b82f6', 
         description: 'Gestionar stock de combustible y productos' 
     },
@@ -22,6 +21,7 @@ const menuItems = [
         label: 'Clientes', 
         icon: '👥', 
         path: '/customers', 
+        usageKey: 'customers' as const,
         color: '#22c55e', 
         description: 'Gestionar base de datos de clientes' 
     },
@@ -29,40 +29,150 @@ const menuItems = [
         label: 'Facturas', 
         icon: '📄', 
         path: '/invoices', 
+        usageKey: 'invoices' as const,
         color: '#f97316', 
         description: 'Crear y ver facturas' 
     },
 ];
 
+function loadUsage(): Record<string, number> {
+    try {
+        const raw = localStorage.getItem(USAGE_KEY);
+        if (raw) {
+            const parsed = JSON.parse(raw) as Record<string, number>;
+            return { products: 0, customers: 0, invoices: 0, ...parsed };
+        }
+    } catch (_) {}
+    return { products: 0, customers: 0, invoices: 0 };
+}
+
+function saveUsage(usage: Record<string, number>) {
+    try {
+        localStorage.setItem(USAGE_KEY, JSON.stringify(usage));
+    } catch (_) {}
+}
+
+function getMostUsedItems(items: typeof menuItems, usage: Record<string, number>): typeof menuItems {
+    return [...items]
+        .sort((a, b) => (usage[b.usageKey] ?? 0) - (usage[a.usageKey] ?? 0))
+        .slice(0, 3);
+}
+
+const defaultMetrics: DashboardMetrics = {
+    totalProducts: 0,
+    totalCustomers: 0,
+    totalInvoices: 0,
+    totalRevenue: 0,
+    revenueLast7Days: 0,
+    invoicesLast7Days: 0,
+    revenueThisMonth: 0,
+    invoicesThisMonth: 0,
+    revenueLastMonth: 0,
+    invoicesLastMonth: 0,
+    lowStockProducts: 0,
+    lowStockList: [],
+    topProductsSold: [],
+    generatedAt: new Date().toISOString(),
+};
+
+type PeriodKey = '7' | 'month' | 'lastMonth' | '90' | 'custom';
+
+function getPeriodDates(period: PeriodKey, customFrom?: string, customTo?: string): { from: string; to: string } | null {
+    const today = new Date();
+    const y = today.getFullYear();
+    const m = today.getMonth();
+    const pad = (n: number) => String(n).padStart(2, '0');
+    const toStr = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+    if (period === '7') {
+        const from = new Date(today);
+        from.setDate(from.getDate() - 7);
+        return { from: toStr(from), to: toStr(today) };
+    }
+    if (period === 'month') {
+        const from = new Date(y, m, 1);
+        return { from: toStr(from), to: toStr(today) };
+    }
+    if (period === 'lastMonth') {
+        const from = new Date(y, m - 1, 1);
+        const to = new Date(y, m, 0);
+        return { from: toStr(from), to: toStr(to) };
+    }
+    if (period === '90') {
+        const from = new Date(today);
+        from.setDate(from.getDate() - 90);
+        return { from: toStr(from), to: toStr(today) };
+    }
+    if (period === 'custom' && customFrom && customTo) return { from: customFrom, to: customTo };
+    return null;
+}
+
 const Dashboard: React.FC = () => {
     const navigate = useNavigate();
-    const [stats, setStats] = useState<DashboardStats | null>(null);
+    const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
     const [loading, setLoading] = useState(true);
     const [seeding, setSeeding] = useState(false);
     const [seedMessage, setSeedMessage] = useState<string | null>(null);
+    const [period, setPeriod] = useState<PeriodKey | null>(null);
+    const [customFrom, setCustomFrom] = useState('');
+    const [customTo, setCustomTo] = useState('');
+    const [usage, setUsage] = useState<Record<string, number>>(() => loadUsage());
+    const [rates, setRates] = useState<CachedRates | null>(null);
 
     useEffect(() => {
-        loadStats();
+        loadMetrics(null);
     }, []);
 
-    const loadStats = async () => {
+    useEffect(() => {
+        setRates(getRates());
+        fetchRates().then(setRates);
+    }, []);
+
+    const loadMetrics = async (filters: { from: string; to: string } | null) => {
         try {
             setLoading(true);
-            const data = await statsApi.getDashboardStats();
-            setStats(data);
+            const data = await metricsApi.getMetrics(filters || undefined);
+            setMetrics(data);
         } catch (err) {
-            console.error('Error loading stats:', err);
-            // Si falla, mostramos valores en 0
-            setStats({
-                totalProducts: 0,
-                totalCustomers: 0,
-                totalInvoices: 0,
-                totalRevenue: 0,
-            });
+            console.error('Error loading metrics:', err);
+            try {
+                const fallback = await statsApi.getDashboardStats();
+                setMetrics({
+                    ...defaultMetrics,
+                    totalProducts: fallback.totalProducts,
+                    totalCustomers: fallback.totalCustomers,
+                    totalInvoices: fallback.totalInvoices,
+                    totalRevenue: fallback.totalRevenue,
+                    topProductsSold: [],
+                });
+            } catch {
+                setMetrics(defaultMetrics);
+            }
         } finally {
             setLoading(false);
         }
     };
+
+    const applyFilter = (p: PeriodKey) => {
+        setPeriod(p);
+        const dates = getPeriodDates(p, customFrom, customTo);
+        if (dates) loadMetrics(dates);
+    };
+
+    const applyCustomFilter = () => {
+        if (customFrom && customTo) {
+            setPeriod('custom');
+            loadMetrics({ from: customFrom, to: customTo });
+        }
+    };
+
+    const handleMenuClick = (item: typeof menuItems[0]) => {
+        const next = { ...usage, [item.usageKey]: (usage[item.usageKey] ?? 0) + 1 };
+        setUsage(next);
+        saveUsage(next);
+        navigate(item.path);
+    };
+
+    const displayedMenuItems = getMostUsedItems(menuItems, usage);
 
     const loadSeedData = async () => {
         setSeeding(true);
@@ -179,8 +289,8 @@ const Dashboard: React.FC = () => {
 
             setSeedMessage(`✅ Datos cargados: ${createdProducts.length} productos, ${createdCustomers.length} clientes`);
             
-            // Recargar estadísticas
-            await loadStats();
+            // Recargar métricas
+            await loadMetrics(null);
             
             // Ocultar mensaje después de 5 segundos
             setTimeout(() => setSeedMessage(null), 5000);
@@ -191,8 +301,88 @@ const Dashboard: React.FC = () => {
         }
     };
 
+    const pygPerUsd = rates?.rates?.PYG;
+    const arsPerUsd = rates?.rates?.ARS;
+    const brlPerUsd = rates?.rates?.BRL;
+    const ratesUpdated = rates?.updatedAt;
+
     return (
         <div className="responsive-padding" style={{ padding: '32px' }}>
+            {/* Barra de monedas: 1 USD (referencia) | PYG | ARS | BRL */}
+            <div style={{
+                display: 'flex',
+                alignItems: 'stretch',
+                justifyContent: 'center',
+                gap: '0',
+                marginBottom: '12px',
+                borderRadius: '8px',
+                overflow: 'hidden',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
+                border: '1px solid #e2e8f0',
+                flexWrap: 'wrap'
+            }}>
+                <div style={{
+                    minWidth: '80px',
+                    background: 'linear-gradient(135deg, #1e40af 0%, #3b82f6 100%)',
+                    color: '#fff',
+                    padding: '6px 16px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                }}>
+                    <div style={{ fontSize: '10px', opacity: 0.9, marginBottom: '2px' }}>Referencia</div>
+                    <div style={{ fontSize: 'clamp(13px, 1.8vw, 18px)', fontWeight: 700 }}>$ 1 USD</div>
+                </div>
+                <div style={{
+                    flex: '1',
+                    minWidth: '100px',
+                    background: 'linear-gradient(135deg, #0f766e 0%, #0d9488 100%)',
+                    color: '#fff',
+                    padding: '6px 12px',
+                    textAlign: 'center'
+                }}>
+                    <div style={{ fontSize: '10px', opacity: 0.9, marginBottom: '2px' }}>Guaraníes (PYG)</div>
+                    <div style={{ fontSize: 'clamp(12px, 1.8vw, 16px)', fontWeight: 700 }}>
+                        {pygPerUsd != null ? `₲ ${Number(pygPerUsd).toLocaleString('es-PY', { maximumFractionDigits: 0 })}` : '—'}
+                    </div>
+                    <div style={{ fontSize: '9px', opacity: 0.85, marginTop: '1px' }}>equiv. 1 USD</div>
+                </div>
+                <div style={{
+                    flex: '1',
+                    minWidth: '100px',
+                    background: 'linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)',
+                    color: '#fff',
+                    padding: '6px 12px',
+                    textAlign: 'center'
+                }}>
+                    <div style={{ fontSize: '10px', opacity: 0.9, marginBottom: '2px' }}>Pesos (ARS)</div>
+                    <div style={{ fontSize: 'clamp(12px, 1.8vw, 16px)', fontWeight: 700 }}>
+                        {arsPerUsd != null ? Number(arsPerUsd).toLocaleString('es-PY', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ARS' : '—'}
+                    </div>
+                    <div style={{ fontSize: '9px', opacity: 0.85, marginTop: '1px' }}>equiv. 1 USD</div>
+                </div>
+                <div style={{
+                    flex: '1',
+                    minWidth: '100px',
+                    background: 'linear-gradient(135deg, #14532d 0%, #166534 100%)',
+                    color: '#fff',
+                    padding: '6px 12px',
+                    textAlign: 'center'
+                }}>
+                    <div style={{ fontSize: '10px', opacity: 0.9, marginBottom: '2px' }}>Reales (BRL)</div>
+                    <div style={{ fontSize: 'clamp(12px, 1.8vw, 16px)', fontWeight: 700 }}>
+                        {brlPerUsd != null ? `R$ ${Number(brlPerUsd).toLocaleString('es-PY', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—'}
+                    </div>
+                    <div style={{ fontSize: '9px', opacity: 0.85, marginTop: '1px' }}>equiv. 1 USD</div>
+                </div>
+            </div>
+            {ratesUpdated && (
+                <p style={{ fontSize: '11px', color: '#94a3b8', margin: '2px 0 16px 0', textAlign: 'center' }}>
+                    Tasas del momento · Actualizado: {new Date(ratesUpdated).toLocaleString('es-PY')}
+                </p>
+            )}
+
             {/* Header */}
             <div style={{ marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px' }}>
                 <div>
@@ -214,7 +404,7 @@ const Dashboard: React.FC = () => {
                 </div>
                 
                 {/* Botón para cargar datos de ejemplo */}
-                {!loading && (stats?.totalProducts ?? 0) === 0 && (stats?.totalCustomers ?? 0) === 0 && (
+                {!loading && (metrics?.totalProducts ?? 0) === 0 && (metrics?.totalCustomers ?? 0) === 0 && (
                     <button
                         onClick={loadSeedData}
                         disabled={seeding}
@@ -250,59 +440,57 @@ const Dashboard: React.FC = () => {
                 </div>
             )}
 
-            {/* Cards Grid */}
+            {/* Accesos rápidos (solo los 3 más usados por el usuario) */}
             <div style={{ 
                 display: 'grid', 
-                gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', 
-                gap: '16px' 
+                gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', 
+                gap: '12px',
+                maxWidth: '520px'
             }}>
-                {menuItems.map((item) => (
+                {displayedMenuItems.map((item) => (
                     <div
                         key={item.path}
-                        onClick={() => navigate(item.path)}
+                        onClick={() => handleMenuClick(item)}
                         style={{
                             backgroundColor: 'white',
-                            borderRadius: '16px',
+                            borderRadius: '12px',
                             overflow: 'hidden',
-                            boxShadow: '0 4px 6px rgba(0,0,0,0.05)',
+                            boxShadow: '0 2px 4px rgba(0,0,0,0.06)',
                             cursor: 'pointer',
                             transition: 'transform 0.2s, box-shadow 0.2s'
                         }}
                         onMouseEnter={(e) => {
-                            e.currentTarget.style.transform = 'translateY(-4px)';
-                            e.currentTarget.style.boxShadow = '0 12px 24px rgba(0,0,0,0.1)';
+                            e.currentTarget.style.transform = 'translateY(-2px)';
+                            e.currentTarget.style.boxShadow = '0 6px 12px rgba(0,0,0,0.08)';
                         }}
                         onMouseLeave={(e) => {
                             e.currentTarget.style.transform = 'translateY(0)';
-                            e.currentTarget.style.boxShadow = '0 4px 6px rgba(0,0,0,0.05)';
+                            e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.06)';
                         }}
                     >
-                        {/* Icon Header */}
                         <div style={{
                             backgroundColor: item.color,
-                            padding: '40px',
+                            padding: '16px',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center'
                         }}>
-                            <span style={{ fontSize: '64px' }}>{item.icon}</span>
+                            <span style={{ fontSize: '32px' }}>{item.icon}</span>
                         </div>
-                        
-                        {/* Content */}
-                        <div style={{ padding: '24px' }}>
+                        <div style={{ padding: '12px 14px' }}>
                             <h3 style={{ 
-                                fontSize: '20px', 
+                                fontSize: '15px', 
                                 fontWeight: 600, 
                                 color: '#1e293b',
-                                margin: '0 0 8px 0'
+                                margin: '0 0 4px 0'
                             }}>
                                 {item.label}
                             </h3>
                             <p style={{ 
-                                fontSize: '14px', 
+                                fontSize: '12px', 
                                 color: '#64748b',
                                 margin: 0,
-                                lineHeight: 1.5
+                                lineHeight: 1.35
                             }}>
                                 {item.description}
                             </p>
@@ -336,7 +524,7 @@ const Dashboard: React.FC = () => {
                         }} />
                     ) : (
                         <p style={{ fontSize: '32px', fontWeight: 700, color: '#3b82f6', margin: '8px 0 0 0' }}>
-                            {stats?.totalProducts || 0}
+                            {metrics?.totalProducts || 0}
                         </p>
                     )}
                 </div>
@@ -358,7 +546,7 @@ const Dashboard: React.FC = () => {
                         }} />
                     ) : (
                         <p style={{ fontSize: '32px', fontWeight: 700, color: '#22c55e', margin: '8px 0 0 0' }}>
-                            {stats?.totalCustomers || 0}
+                            {metrics?.totalCustomers || 0}
                         </p>
                     )}
                 </div>
@@ -380,7 +568,7 @@ const Dashboard: React.FC = () => {
                         }} />
                     ) : (
                         <p style={{ fontSize: '32px', fontWeight: 700, color: '#f97316', margin: '8px 0 0 0' }}>
-                            {stats?.totalInvoices || 0}
+                            {metrics?.totalInvoices || 0}
                         </p>
                     )}
                 </div>
@@ -402,10 +590,289 @@ const Dashboard: React.FC = () => {
                         }} />
                     ) : (
                         <p style={{ fontSize: '32px', fontWeight: 700, color: '#8b5cf6', margin: '8px 0 0 0' }}>
-                            {formatMoney(stats?.totalRevenue || 0, 'PYG')}
+                            {formatMoney(metrics?.totalRevenue || 0, 'PYG')}
                         </p>
                     )}
                 </div>
+            </div>
+
+            {/* Métricas y controles - Filtros + métricas */}
+            <div style={{ marginTop: '32px' }}>
+                <h2 style={{ fontSize: '18px', fontWeight: 600, color: '#1e293b', marginBottom: '16px' }}>
+                    Métricas y controles
+                </h2>
+
+                {/* Filtros por período */}
+                <div style={{
+                    display: 'flex',
+                    flexWrap: 'wrap',
+                    gap: '8px',
+                    alignItems: 'center',
+                    marginBottom: '16px',
+                    padding: '12px',
+                    backgroundColor: '#f8fafc',
+                    borderRadius: '12px',
+                    border: '1px solid #e2e8f0'
+                }}>
+                    <span style={{ fontSize: '14px', color: '#64748b', marginRight: '8px' }}>Período:</span>
+                    {(['7', 'month', 'lastMonth', '90'] as const).map((p) => (
+                        <button
+                            key={p}
+                            type="button"
+                            onClick={() => applyFilter(p)}
+                            style={{
+                                padding: '8px 14px',
+                                fontSize: '13px',
+                                fontWeight: 500,
+                                color: period === p ? '#fff' : '#475569',
+                                backgroundColor: period === p ? '#3b82f6' : '#fff',
+                                border: '1px solid #e2e8f0',
+                                borderRadius: '8px',
+                                cursor: 'pointer'
+                            }}
+                        >
+                            {p === '7' && 'Últimos 7 días'}
+                            {p === 'month' && 'Este mes'}
+                            {p === 'lastMonth' && 'Mes pasado'}
+                            {p === '90' && 'Últimos 90 días'}
+                        </button>
+                    ))}
+                    {period !== null && (
+                        <button
+                            type="button"
+                            onClick={() => { setPeriod(null); loadMetrics(null); }}
+                            style={{
+                                padding: '8px 14px',
+                                fontSize: '13px',
+                                color: '#64748b',
+                                backgroundColor: '#fff',
+                                border: '1px solid #e2e8f0',
+                                borderRadius: '8px',
+                                cursor: 'pointer'
+                            }}
+                        >
+                            Limpiar filtro
+                        </button>
+                    )}
+                    <span style={{ fontSize: '13px', color: '#94a3b8', marginLeft: '8px', marginRight: '4px' }}>Personalizado:</span>
+                    <input
+                        type="date"
+                        value={customFrom}
+                        onChange={(e) => setCustomFrom(e.target.value)}
+                        style={{
+                            padding: '6px 10px',
+                            fontSize: '13px',
+                            border: '1px solid #e2e8f0',
+                            borderRadius: '6px'
+                        }}
+                    />
+                    <span style={{ color: '#94a3b8' }}>a</span>
+                    <input
+                        type="date"
+                        value={customTo}
+                        onChange={(e) => setCustomTo(e.target.value)}
+                        style={{
+                            padding: '6px 10px',
+                            fontSize: '13px',
+                            border: '1px solid #e2e8f0',
+                            borderRadius: '6px'
+                        }}
+                    />
+                    <button
+                        type="button"
+                        onClick={applyCustomFilter}
+                        disabled={!customFrom || !customTo}
+                        style={{
+                            padding: '8px 14px',
+                            fontSize: '13px',
+                            fontWeight: 500,
+                            color: customFrom && customTo ? '#fff' : '#94a3b8',
+                            backgroundColor: customFrom && customTo ? '#64748b' : '#e2e8f0',
+                            border: 'none',
+                            borderRadius: '8px',
+                            cursor: customFrom && customTo ? 'pointer' : 'not-allowed'
+                        }}
+                    >
+                        Aplicar
+                    </button>
+                </div>
+
+                {/* Resultado del período seleccionado (cuando hay filtro from/to) */}
+                {!loading && metrics?.periodFrom && metrics?.periodTo && (
+                    <div style={{
+                        marginBottom: '16px',
+                        padding: '16px',
+                        backgroundColor: '#eff6ff',
+                        borderRadius: '12px',
+                        border: '1px solid #bfdbfe'
+                    }}>
+                        <p style={{ fontSize: '14px', fontWeight: 600, color: '#1e40af', margin: '0 0 12px 0' }}>
+                            Resultado del período: {metrics.periodFrom} a {metrics.periodTo}
+                        </p>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px' }}>
+                            <div>
+                                <span style={{ fontSize: '12px', color: '#64748b' }}>Facturas: </span>
+                                <strong style={{ color: '#1e40af' }}>{metrics.periodInvoices ?? 0}</strong>
+                            </div>
+                            <div>
+                                <span style={{ fontSize: '12px', color: '#64748b' }}>Ingresos: </span>
+                                <strong style={{ color: '#1e40af' }}>{formatMoney(metrics.periodRevenue ?? 0, 'PYG')}</strong>
+                            </div>
+                        </div>
+                        {metrics.periodTopProducts && metrics.periodTopProducts.length > 0 && (
+                            <div style={{ marginTop: '12px' }}>
+                                <p style={{ fontSize: '12px', color: '#475569', margin: '0 0 6px 0' }}>Productos más vendidos en el período:</p>
+                                <ul style={{ margin: 0, paddingLeft: '20px', fontSize: '13px', color: '#475569' }}>
+                                    {metrics.periodTopProducts.slice(0, 5).map((p) => (
+                                        <li key={p.productId}><strong>{p.productName}</strong> — {p.quantitySold} u.</li>
+                                    ))}
+                                </ul>
+                            </div>
+                        )}
+                    </div>
+                )}
+
+                <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                    gap: '12px',
+                    marginBottom: metrics?.lowStockProducts ? '16px' : 0
+                }}>
+                    <div style={{
+                        backgroundColor: '#f0fdf4',
+                        padding: '16px 20px',
+                        borderRadius: '12px',
+                        border: '1px solid #bbf7d0'
+                    }}>
+                        <p style={{ fontSize: '13px', color: '#166534', margin: 0 }}>Facturas (últimos 7 días)</p>
+                        <p style={{ fontSize: '24px', fontWeight: 700, color: '#15803d', margin: '4px 0 0 0' }}>
+                            {loading ? '—' : (metrics?.invoicesLast7Days ?? 0)}
+                        </p>
+                    </div>
+                    <div style={{
+                        backgroundColor: '#f5f3ff',
+                        padding: '16px 20px',
+                        borderRadius: '12px',
+                        border: '1px solid #ddd6fe'
+                    }}>
+                        <p style={{ fontSize: '13px', color: '#5b21b6', margin: 0 }}>Ingresos (últimos 7 días)</p>
+                        <p style={{ fontSize: '24px', fontWeight: 700, color: '#6d28d9', margin: '4px 0 0 0' }}>
+                            {loading ? '—' : formatMoney(metrics?.revenueLast7Days ?? 0, 'PYG')}
+                        </p>
+                    </div>
+                    <div style={{
+                        backgroundColor: metrics?.lowStockProducts ? '#fef2f2' : '#f8fafc',
+                        padding: '16px 20px',
+                        borderRadius: '12px',
+                        border: metrics?.lowStockProducts ? '1px solid #fecaca' : '1px solid #e2e8f0'
+                    }}>
+                        <p style={{ fontSize: '13px', color: metrics?.lowStockProducts ? '#b91c1c' : '#64748b', margin: 0 }}>
+                            Productos con stock bajo
+                        </p>
+                        <p style={{
+                            fontSize: '24px',
+                            fontWeight: 700,
+                            color: metrics?.lowStockProducts ? '#dc2626' : '#64748b',
+                            margin: '4px 0 0 0'
+                        }}>
+                            {loading ? '—' : (metrics?.lowStockProducts ?? 0)}
+                        </p>
+                    </div>
+                </div>
+
+                {/* Este mes vs Mes pasado */}
+                <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+                    gap: '12px',
+                    marginBottom: '16px'
+                }}>
+                    <div style={{ backgroundColor: '#eff6ff', padding: '16px 20px', borderRadius: '12px', border: '1px solid #bfdbfe' }}>
+                        <p style={{ fontSize: '13px', color: '#1e40af', margin: 0 }}>Este mes — Facturas</p>
+                        <p style={{ fontSize: '22px', fontWeight: 700, color: '#2563eb', margin: '4px 0 0 0' }}>
+                            {loading ? '—' : (metrics?.invoicesThisMonth ?? 0)}
+                        </p>
+                    </div>
+                    <div style={{ backgroundColor: '#eff6ff', padding: '16px 20px', borderRadius: '12px', border: '1px solid #bfdbfe' }}>
+                        <p style={{ fontSize: '13px', color: '#1e40af', margin: 0 }}>Este mes — Ingresos</p>
+                        <p style={{ fontSize: '22px', fontWeight: 700, color: '#2563eb', margin: '4px 0 0 0' }}>
+                            {loading ? '—' : formatMoney(metrics?.revenueThisMonth ?? 0, 'PYG')}
+                        </p>
+                    </div>
+                    <div style={{ backgroundColor: '#f8fafc', padding: '16px 20px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                        <p style={{ fontSize: '13px', color: '#475569', margin: 0 }}>Mes pasado — Facturas</p>
+                        <p style={{ fontSize: '22px', fontWeight: 700, color: '#64748b', margin: '4px 0 0 0' }}>
+                            {loading ? '—' : (metrics?.invoicesLastMonth ?? 0)}
+                        </p>
+                    </div>
+                    <div style={{ backgroundColor: '#f8fafc', padding: '16px 20px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                        <p style={{ fontSize: '13px', color: '#475569', margin: 0 }}>Mes pasado — Ingresos</p>
+                        <p style={{ fontSize: '22px', fontWeight: 700, color: '#64748b', margin: '4px 0 0 0' }}>
+                            {loading ? '—' : formatMoney(metrics?.revenueLastMonth ?? 0, 'PYG')}
+                        </p>
+                    </div>
+                </div>
+
+                {/* Productos más vendidos (últimos 90 días) */}
+                {!loading && metrics?.topProductsSold && metrics.topProductsSold.length > 0 && (
+                    <div style={{
+                        backgroundColor: '#fff',
+                        padding: '16px',
+                        borderRadius: '12px',
+                        boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
+                        border: '1px solid #e2e8f0',
+                        marginBottom: '16px'
+                    }}>
+                        <p style={{ fontSize: '14px', fontWeight: 600, color: '#1e293b', margin: '0 0 12px 0' }}>
+                            Productos más vendidos (últimos 90 días)
+                        </p>
+                        <ul style={{ margin: 0, paddingLeft: '20px', color: '#475569', fontSize: '14px' }}>
+                            {metrics.topProductsSold.slice(0, 5).map((p, i) => (
+                                <li key={p.productId} style={{ marginBottom: '4px' }}>
+                                    <strong>{p.productName}</strong> — {p.quantitySold} unidades
+                                </li>
+                            ))}
+                        </ul>
+                    </div>
+                )}
+
+                {!loading && metrics?.lowStockList && metrics.lowStockList.length > 0 && (
+                    <div style={{
+                        backgroundColor: '#fff',
+                        padding: '16px',
+                        borderRadius: '12px',
+                        boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
+                        border: '1px solid #fecaca'
+                    }}>
+                        <p style={{ fontSize: '14px', fontWeight: 600, color: '#b91c1c', margin: '0 0 8px 0' }}>
+                            Revisar stock
+                        </p>
+                        <ul style={{ margin: 0, paddingLeft: '20px', color: '#64748b', fontSize: '14px' }}>
+                            {metrics.lowStockList.map((p) => (
+                                <li key={p.id}>
+                                    {p.name} — <strong style={{ color: '#dc2626' }}>{p.stock} unidades</strong>
+                                </li>
+                            ))}
+                        </ul>
+                        <button
+                            type="button"
+                            onClick={() => navigate('/products')}
+                            style={{
+                                marginTop: '12px',
+                                padding: '8px 16px',
+                                fontSize: '14px',
+                                fontWeight: 500,
+                                color: '#b91c1c',
+                                backgroundColor: '#fef2f2',
+                                border: '1px solid #fecaca',
+                                borderRadius: '8px',
+                                cursor: 'pointer'
+                            }}
+                        >
+                            Ir a Productos
+                        </button>
+                    </div>
+                )}
             </div>
             
             <style>{`

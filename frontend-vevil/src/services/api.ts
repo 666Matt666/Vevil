@@ -124,6 +124,7 @@ export interface Product {
     name: string;
     type: string;
     price: number;
+    currency?: string;
     stock: number;
     description?: string;
 }
@@ -235,6 +236,7 @@ export interface Invoice {
     customerId: number;
     date: string;
     total: number;
+    currency?: string;
     items: InvoiceItem[];
 }
 
@@ -276,6 +278,42 @@ export const statsApi = {
             totalInvoices: invoices.length,
             totalRevenue: invoices.reduce((sum, inv) => sum + Number(inv.total), 0),
         };
+    },
+};
+
+// ============ MÉTRICAS (CONTROLES) ============
+export interface DashboardMetrics {
+    totalProducts: number;
+    totalCustomers: number;
+    totalInvoices: number;
+    totalRevenue: number;
+    revenueLast7Days: number;
+    invoicesLast7Days: number;
+    revenueThisMonth: number;
+    invoicesThisMonth: number;
+    revenueLastMonth: number;
+    invoicesLastMonth: number;
+    lowStockProducts: number;
+    lowStockList: { id: number; name: string; stock: number }[];
+    topProductsSold: { productId: number; productName: string; quantitySold: number }[];
+    periodFrom?: string;
+    periodTo?: string;
+    periodRevenue?: number;
+    periodInvoices?: number;
+    periodTopProducts?: { productId: number; productName: string; quantitySold: number }[];
+    generatedAt: string;
+}
+
+export const metricsApi = {
+    getMetrics: async (filters?: { from?: string; to?: string }): Promise<DashboardMetrics> => {
+        const params = new URLSearchParams();
+        if (filters?.from) params.set('from', filters.from);
+        if (filters?.to) params.set('to', filters.to);
+        const qs = params.toString();
+        const url = qs ? `/metrics?${qs}` : '/metrics';
+        const response = await fetchWithAuth(url);
+        if (!response.ok) throw new Error('Error al obtener métricas');
+        return response.json();
     },
 };
 

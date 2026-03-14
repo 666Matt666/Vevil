@@ -6,6 +6,7 @@ import './assets/main.css'
 // Auth
 import Login from './components/auth/Login.tsx';
 import Register from './components/auth/Register.tsx';
+import ForgotPassword from './components/auth/ForgotPassword.tsx';
 
 // Layout
 import Layout from './components/layout/Layout.tsx';
@@ -27,6 +28,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
                 {/* Rutas públicas */}
                 <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<Register />} />
+                <Route path="/forgot-password" element={<ForgotPassword />} />
                 
                 {/* Rutas protegidas con Layout */}
                 <Route path="/" element={<Layout />}>

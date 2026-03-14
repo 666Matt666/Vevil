@@ -10,6 +10,10 @@ export class CreateProductDto {
     @IsNumber()
     price: number;
 
+    @IsOptional()
+    @IsString()
+    currency?: string;
+
     @IsNumber()
     stock: number;
 

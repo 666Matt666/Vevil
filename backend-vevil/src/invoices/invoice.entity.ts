@@ -1,6 +1,7 @@
 import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, OneToMany, CreateDateColumn } from 'typeorm';
 import { Customer } from '../customers/customer.entity';
 import { InvoiceItem } from './invoice-item.entity';
+import { Payment } from './payment.entity';
 
 @Entity()
 export class Invoice {
@@ -22,6 +23,13 @@ export class Invoice {
     @Column({ length: 3, default: 'PYG' })
     currency: string;
 
+    /** pending | paid | cancelled */
+    @Column({ length: 20, default: 'pending' })
+    status: string;
+
     @OneToMany(() => InvoiceItem, (item) => item.invoice, { cascade: true })
     items: InvoiceItem[];
+
+    @OneToMany(() => Payment, (p) => p.invoice)
+    payments: Payment[];
 }

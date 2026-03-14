@@ -1,7 +1,7 @@
 import {
+  BadRequestException,
   ConflictException,
   Injectable,
-  InternalServerErrorException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { UsersService } from '@/users/users.service';
@@ -9,9 +9,11 @@ import { JwtService } from '@nestjs/jwt';
 import { User } from '@/users/user.entity';
 import { UserRole } from '@/users/entities/user-role.enum';
 import * as bcrypt from 'bcrypt';
+import * as crypto from 'crypto';
 import { ConfigService } from '@nestjs/config';
 import { RegisterDto } from './dto/register.dto';
 import { CreateUserDto } from '@/users/dto/create-user.dto';
+import { MailService } from '@/mail/mail.service';
 
 @Injectable()
 export class AuthService {
@@ -19,6 +21,7 @@ export class AuthService {
     private usersService: UsersService,
     private jwtService: JwtService,
     private configService: ConfigService,
+    private mailService: MailService,
   ) {}
 
   /**
@@ -28,19 +31,13 @@ export class AuthService {
    * @returns El objeto de usuario si es válido, de lo contrario null.
    */
   async validateUser(email: string, pass: string): Promise<any> {
-    console.log('🔍 Validating user:', { email, passwordLength: pass?.length });
-    const user = await this.usersService.findOneByEmail(email); // Asegúrate que este método devuelve el usuario con su contraseña
-    console.log('👤 User found:', user ? { id: user.id, email: user.email, hasPassword: !!user.password } : 'NOT FOUND');
-    
+    const user = await this.usersService.findOneByEmail(email);
     if (user && user.password) {
       const passwordMatches = await bcrypt.compare(pass, user.password);
-      console.log('🔐 Password match:', passwordMatches);
       if (passwordMatches) {
         const { password, ...result } = user;
         return result;
       }
-    } else {
-      console.log('❌ User not found or no password');
     }
     return null;
   }
@@ -145,5 +142,30 @@ export class AuthService {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { password: _, ...result } = newUser;
     return result;
+  }
+
+  async forgotPassword(email: string): Promise<{ message: string }> {
+    const token = crypto.randomBytes(32).toString('hex');
+    const expires = new Date(Date.now() + 60 * 60 * 1000); // 1 hora
+    const found = await this.usersService.setResetPasswordToken(email.trim().toLowerCase(), token, expires);
+    if (!found) {
+      return { message: 'Si existe una cuenta con ese email, recibirás instrucciones para restablecer tu contraseña.' };
+    }
+    const frontendUrl =
+      this.configService.get<string>('FRONTEND_URL') || 'http://localhost:5173';
+    const resetLink = `${frontendUrl.replace(/\/$/, '')}/reset-password?token=${token}`;
+    await this.mailService.sendResetPasswordEmail(email.trim().toLowerCase(), resetLink);
+    return { message: 'Si existe una cuenta con ese email, recibirás instrucciones para restablecer tu contraseña.' };
+  }
+
+  async resetPassword(token: string, newPassword: string): Promise<{ message: string }> {
+    const user = await this.usersService.findOneByResetToken(token);
+    if (!user) {
+      throw new BadRequestException('El enlace de restablecimiento no es válido o ha expirado.');
+    }
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    await this.usersService.update(user.id, { password: hashedPassword });
+    await this.usersService.clearResetPasswordToken(user.id);
+    return { message: 'Contraseña actualizada correctamente.' };
   }
 }

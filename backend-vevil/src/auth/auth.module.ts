@@ -8,10 +8,12 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { LocalStrategy } from './strategies/local.strategy';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { JwtRefreshStrategy } from './strategies/jwt-refresh.strategy';
+import { MailModule } from '@/mail/mail.module';
 
 @Module({
   imports: [
     UsersModule, // Importamos UsersModule para poder usar UsersService
+    MailModule,
     PassportModule,
     ConfigModule, // Importamos ConfigModule para leer las variables de entorno
     JwtModule.registerAsync({

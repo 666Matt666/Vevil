@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Outlet, Link, useLocation, useNavigate, Navigate } from 'react-router-dom';
+import { getProfile } from '../../services/api';
+import CurrencyRatesBar from './CurrencyRatesBar';
 
 const menuItems = [
     { label: 'Inicio', icon: '🏠', path: '/dashboard' },
@@ -17,13 +19,16 @@ const Layout: React.FC = () => {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
     
-    // Verificar autenticación
     const token = localStorage.getItem('token');
-    
-    // Si no hay token, redirigir al login
-    if (!token) {
-        return <Navigate to="/login" replace />;
-    }
+    if (!token) return <Navigate to="/login" replace />;
+
+    useEffect(() => {
+        getProfile().catch(() => {
+            localStorage.removeItem('token');
+            localStorage.removeItem('refresh_token');
+            navigate('/login', { replace: true });
+        });
+    }, [navigate]);
 
     // Detectar cambio de tamaño de pantalla
     useEffect(() => {
@@ -46,12 +51,21 @@ const Layout: React.FC = () => {
 
     const handleLogout = () => {
         localStorage.removeItem('token');
+        localStorage.removeItem('refresh_token');
         navigate('/login');
     };
 
     const toggleMobileMenu = () => {
         setIsMobileMenuOpen(!isMobileMenuOpen);
     };
+
+    // Rutas donde se muestra la barra de tasas (pantallas que implican dinero)
+    const showCurrencyBar =
+        location.pathname === '/dashboard' ||
+        location.pathname.startsWith('/products') ||
+        location.pathname.startsWith('/invoices') ||
+        location.pathname.startsWith('/accounts') ||
+        location.pathname.startsWith('/reports');
 
     // Obtener título de la página actual
     const getCurrentPageTitle = () => {
@@ -280,7 +294,9 @@ const Layout: React.FC = () => {
                         </span>
                     </header>
                 )}
-                
+
+                {showCurrencyBar && <CurrencyRatesBar />}
+
                 <Outlet />
             </main>
 

@@ -5,8 +5,9 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
 async function bootstrap() {
   try {
-    console.log('🚀 Iniciando aplicación Vevil...');
-    
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('🚀 Iniciando aplicación Vevil...');
+    }
     const app = await NestFactory.create(AppModule);
 
     // Configuración de CORS - permitir acceso desde cualquier origen
@@ -54,10 +55,12 @@ async function bootstrap() {
     await app.listen(port, '0.0.0.0');
     
     console.log('✅ Aplicación iniciada correctamente');
-    console.log(`🚀 Servidor corriendo en puerto ${port}`);
-    console.log(`🌐 Accesible en http://localhost:${port}`);
-    console.log(`📚 Documentación disponible en http://localhost:${port}/api/docs`);
-    console.log('💡 Si hay problemas de conexión a la base de datos, revisa las variables de entorno');
+    if (process.env.NODE_ENV !== 'production') {
+      console.log(`🚀 Servidor en http://localhost:${port}`);
+      console.log(`📚 Swagger: http://localhost:${port}/api/docs`);
+    } else {
+      console.log(`🚀 Servidor en puerto ${port}`);
+    }
   } catch (error) {
     console.error('❌ Error al iniciar la aplicación:', error.message);
     

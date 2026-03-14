@@ -66,18 +66,12 @@ export class UsersService {
    * @returns El usuario encontrado, incluyendo la contraseña.
    */
   async findOneByEmail(email: string): Promise<User | undefined> {
-    // Normalizar el email: trim y lowercase para comparación
     const normalizedEmail = email.trim().toLowerCase();
-    console.log('🔎 Searching for user with email:', normalizedEmail);
-    
-    const user = await this.userRepository
+    return this.userRepository
       .createQueryBuilder('user')
       .where('LOWER(TRIM(user.email)) = :email', { email: normalizedEmail })
-      .addSelect('user.password') // ¡Importante! Seleccionamos explícitamente la contraseña.
+      .addSelect('user.password')
       .getOne();
-    
-    console.log('🔎 Query result:', user ? `Found user ${user.id}` : 'No user found');
-    return user;
   }
 
   /**
@@ -183,5 +177,34 @@ export class UsersService {
     } else {
       throw new UnauthorizedException('Acceso denegado');
     }
+  }
+
+  async setResetPasswordToken(email: string, token: string, expires: Date): Promise<boolean> {
+    const user = await this.findOneByEmail(email);
+    if (!user) return false;
+    await this.userRepository.update(user.id, {
+      resetPasswordToken: token,
+      resetPasswordExpires: expires,
+    });
+    return true;
+  }
+
+  async findOneByResetToken(token: string): Promise<User | null> {
+    const user = await this.userRepository
+      .createQueryBuilder('user')
+      .addSelect('user.resetPasswordToken')
+      .addSelect('user.resetPasswordExpires')
+      .addSelect('user.password')
+      .where('user.resetPasswordToken = :token', { token })
+      .getOne();
+    if (!user || !user.resetPasswordExpires || user.resetPasswordExpires < new Date()) return null;
+    return user;
+  }
+
+  async clearResetPasswordToken(userId: string): Promise<void> {
+    await this.userRepository.update(userId, {
+      resetPasswordToken: null as any,
+      resetPasswordExpires: null as any,
+    });
   }
 }

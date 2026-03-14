@@ -1,29 +1,34 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { UsersController } from './users.controller';
 import { UsersService } from './users.service';
 import { CreateUserDto } from '@/users/dto/create-user.dto';
-import { User, UserRole } from '@/users/user.entity';
+import { User } from '@/users/user.entity';
+import { UserRole } from '@/users/entities/user-role.enum';
 
 describe('UsersController', () => {
   let controller: UsersController;
   let service: UsersService;
 
-  // Mock del servicio para no depender de su lógica interna
   const mockUsersService = {
     create: jest.fn(),
     findAll: jest.fn(),
     findOne: jest.fn(),
     update: jest.fn(),
   };
+  const mockCacheManager = {
+    get: jest.fn(),
+    set: jest.fn(),
+    del: jest.fn(),
+    store: {},
+  };
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [UsersController],
       providers: [
-        {
-          provide: UsersService,
-          useValue: mockUsersService,
-        },
+        { provide: UsersService, useValue: mockUsersService },
+        { provide: CACHE_MANAGER, useValue: mockCacheManager },
       ],
     }).compile();
 

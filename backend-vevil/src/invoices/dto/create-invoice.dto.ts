@@ -17,6 +17,10 @@ export class CreateInvoiceDto {
     @IsString()
     currency?: string;
 
+    @IsOptional()
+    @IsString()
+    status?: string;
+
     @IsArray()
     @ValidateNested({ each: true })
     @Type(() => CreateInvoiceItemDto)

@@ -34,8 +34,16 @@ export class User {
   role: UserRole;
 
   @Column({ nullable: true })
-  @Exclude() // Excluir por defecto en las respuestas
+  @Exclude()
   hashedRefreshToken?: string;
+
+  @Column({ nullable: true })
+  @Exclude()
+  resetPasswordToken?: string;
+
+  @Column({ type: 'timestamp', nullable: true })
+  @Exclude()
+  resetPasswordExpires?: Date;
 
   @CreateDateColumn()
   createdAt: Date;

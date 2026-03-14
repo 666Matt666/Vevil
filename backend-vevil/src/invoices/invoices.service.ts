@@ -2,16 +2,20 @@ import { Injectable, BadRequestException, NotFoundException } from '@nestjs/comm
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
 import { Invoice } from './invoice.entity';
+import { InvoiceItem } from './invoice-item.entity';
+import { Payment } from './payment.entity';
 import { CreateInvoiceDto } from './dto/create-invoice.dto';
+import { CreatePaymentDto } from './dto/create-payment.dto';
 import { ProductsService } from '../products/products.service';
 import { CustomersService } from '../customers/customers.service';
-import { InvoiceItem } from './invoice-item.entity';
 
 @Injectable()
 export class InvoicesService {
     constructor(
         @InjectRepository(Invoice)
         private invoicesRepository: Repository<Invoice>,
+        @InjectRepository(Payment)
+        private paymentsRepository: Repository<Payment>,
         private productsService: ProductsService,
         private customersService: CustomersService,
         private dataSource: DataSource,
@@ -27,6 +31,7 @@ export class InvoicesService {
             const invoice = new Invoice();
             invoice.customer = customer;
             invoice.currency = createInvoiceDto.currency || 'PYG';
+            invoice.status = createInvoiceDto.status || 'pending';
             invoice.items = [];
             let total = 0;
 
@@ -67,18 +72,42 @@ export class InvoicesService {
 
     findAll() {
         return this.invoicesRepository.find({
-            relations: ['customer', 'items', 'items.product'],
+            relations: ['customer', 'items', 'items.product', 'payments'],
         });
     }
 
     async findOne(id: number) {
         const invoice = await this.invoicesRepository.findOne({
             where: { id },
-            relations: ['customer', 'items', 'items.product'],
+            relations: ['customer', 'items', 'items.product', 'payments'],
         });
         if (!invoice) {
             throw new NotFoundException(`Invoice with ID ${id} not found`);
         }
         return invoice;
+    }
+
+    async updateStatus(id: number, status: string) {
+        const invoice = await this.findOne(id);
+        invoice.status = status;
+        return this.invoicesRepository.save(invoice);
+    }
+
+    async getPayments(invoiceId: number) {
+        await this.findOne(invoiceId);
+        return this.paymentsRepository.find({
+            where: { invoiceId },
+            order: { date: 'DESC' },
+        });
+    }
+
+    async addPayment(invoiceId: number, dto: CreatePaymentDto) {
+        const invoice = await this.findOne(invoiceId);
+        const payment = this.paymentsRepository.create({
+            invoiceId,
+            amount: dto.amount,
+            method: dto.method,
+        });
+        return this.paymentsRepository.save(payment);
     }
 }

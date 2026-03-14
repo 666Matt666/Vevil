@@ -3,8 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { statsApi, metricsApi, productsApi, customersApi, invoicesApi } from '../../services/api';
 import type { DashboardMetrics } from '../../services/api';
 import { formatMoney } from '../settings/Settings';
-import { getRates, fetchRates } from '../../services/currencyRates';
-import type { CachedRates } from '../../services/currencyRates';
 
 const USAGE_KEY = 'vevil_dashboard_usage';
 
@@ -116,15 +114,9 @@ const Dashboard: React.FC = () => {
     const [customFrom, setCustomFrom] = useState('');
     const [customTo, setCustomTo] = useState('');
     const [usage, setUsage] = useState<Record<string, number>>(() => loadUsage());
-    const [rates, setRates] = useState<CachedRates | null>(null);
 
     useEffect(() => {
         loadMetrics(null);
-    }, []);
-
-    useEffect(() => {
-        setRates(getRates());
-        fetchRates().then(setRates);
     }, []);
 
     const loadMetrics = async (filters: { from: string; to: string } | null) => {
@@ -301,88 +293,8 @@ const Dashboard: React.FC = () => {
         }
     };
 
-    const pygPerUsd = rates?.rates?.PYG;
-    const arsPerUsd = rates?.rates?.ARS;
-    const brlPerUsd = rates?.rates?.BRL;
-    const ratesUpdated = rates?.updatedAt;
-
     return (
         <div className="responsive-padding" style={{ padding: '32px' }}>
-            {/* Barra de monedas: 1 USD (referencia) | PYG | ARS | BRL */}
-            <div style={{
-                display: 'flex',
-                alignItems: 'stretch',
-                justifyContent: 'center',
-                gap: '0',
-                marginBottom: '12px',
-                borderRadius: '8px',
-                overflow: 'hidden',
-                boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
-                border: '1px solid #e2e8f0',
-                flexWrap: 'wrap'
-            }}>
-                <div style={{
-                    minWidth: '80px',
-                    background: 'linear-gradient(135deg, #1e40af 0%, #3b82f6 100%)',
-                    color: '#fff',
-                    padding: '6px 16px',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    justifyContent: 'center'
-                }}>
-                    <div style={{ fontSize: '10px', opacity: 0.9, marginBottom: '2px' }}>Referencia</div>
-                    <div style={{ fontSize: 'clamp(13px, 1.8vw, 18px)', fontWeight: 700 }}>$ 1 USD</div>
-                </div>
-                <div style={{
-                    flex: '1',
-                    minWidth: '100px',
-                    background: 'linear-gradient(135deg, #0f766e 0%, #0d9488 100%)',
-                    color: '#fff',
-                    padding: '6px 12px',
-                    textAlign: 'center'
-                }}>
-                    <div style={{ fontSize: '10px', opacity: 0.9, marginBottom: '2px' }}>Guaraníes (PYG)</div>
-                    <div style={{ fontSize: 'clamp(12px, 1.8vw, 16px)', fontWeight: 700 }}>
-                        {pygPerUsd != null ? `₲ ${Number(pygPerUsd).toLocaleString('es-PY', { maximumFractionDigits: 0 })}` : '—'}
-                    </div>
-                    <div style={{ fontSize: '9px', opacity: 0.85, marginTop: '1px' }}>equiv. 1 USD</div>
-                </div>
-                <div style={{
-                    flex: '1',
-                    minWidth: '100px',
-                    background: 'linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)',
-                    color: '#fff',
-                    padding: '6px 12px',
-                    textAlign: 'center'
-                }}>
-                    <div style={{ fontSize: '10px', opacity: 0.9, marginBottom: '2px' }}>Pesos (ARS)</div>
-                    <div style={{ fontSize: 'clamp(12px, 1.8vw, 16px)', fontWeight: 700 }}>
-                        {arsPerUsd != null ? Number(arsPerUsd).toLocaleString('es-PY', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ARS' : '—'}
-                    </div>
-                    <div style={{ fontSize: '9px', opacity: 0.85, marginTop: '1px' }}>equiv. 1 USD</div>
-                </div>
-                <div style={{
-                    flex: '1',
-                    minWidth: '100px',
-                    background: 'linear-gradient(135deg, #14532d 0%, #166534 100%)',
-                    color: '#fff',
-                    padding: '6px 12px',
-                    textAlign: 'center'
-                }}>
-                    <div style={{ fontSize: '10px', opacity: 0.9, marginBottom: '2px' }}>Reales (BRL)</div>
-                    <div style={{ fontSize: 'clamp(12px, 1.8vw, 16px)', fontWeight: 700 }}>
-                        {brlPerUsd != null ? `R$ ${Number(brlPerUsd).toLocaleString('es-PY', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—'}
-                    </div>
-                    <div style={{ fontSize: '9px', opacity: 0.85, marginTop: '1px' }}>equiv. 1 USD</div>
-                </div>
-            </div>
-            {ratesUpdated && (
-                <p style={{ fontSize: '11px', color: '#94a3b8', margin: '2px 0 16px 0', textAlign: 'center' }}>
-                    Tasas del momento · Actualizado: {new Date(ratesUpdated).toLocaleString('es-PY')}
-                </p>
-            )}
-
             {/* Header */}
             <div style={{ marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px' }}>
                 <div>

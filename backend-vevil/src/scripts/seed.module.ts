@@ -14,16 +14,29 @@ import { ProductsModule } from '../products/products.module';
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
-      useFactory: (configService: ConfigService) => ({
-        type: 'postgres',
-        host: configService.get<string>('DB_HOST'),
-        port: configService.get<number>('DB_PORT'),
-        username: configService.get<string>('DB_USERNAME'),
-        password: configService.get<string>('DB_PASSWORD'),
-        database: configService.get<string>('DB_DATABASE'),
-        autoLoadEntities: true,
-        synchronize: false, // <-- CAMBIO CRÍTICO: No queremos que el seed borre la BD
-      }),
+      useFactory: (configService: ConfigService) => {
+        // Valores por defecto para desarrollo local (docker-compose)
+        const dbHost = configService.get<string>('DB_HOST') || 'localhost';
+        const dbPort = configService.get<number>('DB_PORT') || 5432;
+        const dbUsername = configService.get<string>('DB_USERNAME') || 'postgres';
+        const dbPassword = configService.get<string>('DB_PASSWORD') || 'admin';
+        const dbDatabase = configService.get<string>('DB_DATABASE') || 'vevil_db';
+
+        return {
+          type: 'postgres',
+          host: dbHost,
+          port: dbPort,
+          username: dbUsername,
+          password: dbPassword,
+          database: dbDatabase,
+          autoLoadEntities: true,
+          synchronize: false, // <-- CAMBIO CRÍTICO: No queremos que el seed borre la BD
+          // Configuración SSL necesaria para Supabase
+          ssl: dbHost.includes('supabase.co') ? {
+            rejectUnauthorized: false // Necesario para conexiones SSL de Supabase
+          } : false,
+        };
+      },
     }),
     // ProductsModule, // Ya no es necesario importarlo porque es global
     CustomersModule,

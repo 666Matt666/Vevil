@@ -2,7 +2,8 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { UsersService } from './users.service';
-import { User, UserRole } from '@/users/user.entity';
+import { User } from '@/users/user.entity';
+import { UserRole } from '@/users/entities/user-role.enum';
 import { ConflictException, NotFoundException } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 
@@ -15,6 +16,11 @@ describe('UsersService', () => {
   let service: UsersService;
   let repository: Repository<User>;
 
+  const createQueryBuilderMock = {
+    where: jest.fn().mockReturnThis(),
+    addSelect: jest.fn().mockReturnThis(),
+    getOne: jest.fn().mockResolvedValue(null),
+  };
   const mockUserRepository = {
     create: jest.fn(),
     save: jest.fn(),
@@ -22,6 +28,7 @@ describe('UsersService', () => {
     preload: jest.fn(),
     delete: jest.fn(),
     find: jest.fn(),
+    createQueryBuilder: jest.fn().mockReturnValue(createQueryBuilderMock),
   };
 
   beforeEach(async () => {
@@ -54,14 +61,14 @@ describe('UsersService', () => {
       const hashedPassword = 'hashedPassword';
       const savedUser = { id: 'some-uuid', ...createUserDto, password: hashedPassword };
 
-      mockUserRepository.findOne.mockResolvedValue(null); // No user exists
+      createQueryBuilderMock.getOne.mockResolvedValue(null); // No user exists
       (bcrypt.hash as jest.Mock).mockResolvedValue(hashedPassword);
       mockUserRepository.create.mockReturnValue(createUserDto);
       mockUserRepository.save.mockResolvedValue(savedUser);
 
       const result = await service.create(createUserDto);
 
-      expect(mockUserRepository.findOne).toHaveBeenCalledWith({ where: { email: createUserDto.email } });
+      expect(mockUserRepository.createQueryBuilder).toHaveBeenCalledWith('user');
       expect(bcrypt.hash).toHaveBeenCalledWith(createUserDto.password, 10);
       expect(mockUserRepository.create).toHaveBeenCalledWith({ ...createUserDto, password: hashedPassword });
       expect(mockUserRepository.save).toHaveBeenCalledWith(createUserDto);
@@ -75,8 +82,10 @@ describe('UsersService', () => {
         password: 'password123',
         role: UserRole.USER,
       };
-
-      mockUserRepository.findOne.mockResolvedValue(new User()); // User exists
+      const existingUser = new User();
+      existingUser.id = 'existing-id';
+      existingUser.email = createUserDto.email;
+      createQueryBuilderMock.getOne.mockResolvedValue(existingUser); // User exists
 
       await expect(service.create(createUserDto)).rejects.toThrow(ConflictException);
     });

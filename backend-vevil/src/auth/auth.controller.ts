@@ -15,7 +15,10 @@ import { JwtRefreshGuard } from '@/auth/guards/jwt-refresh.guard';
 import { Public } from '@/auth/decorators/public.decorator';
 import { CreateUserDto } from '@/users/dto/create-user.dto';
 import { LoginDto } from './dto/login.dto';
+import { ForgotPasswordDto } from './dto/forgot-password.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 
 @Controller('auth')
 @ApiTags('Authentication')
@@ -23,6 +26,7 @@ export class AuthController {
   constructor(private authService: AuthService) {}
 
   @Public() // Endpoint público
+  @Throttle({ short: { limit: 5, ttl: 60_000 } }) // 5 intentos por minuto por IP
   @UseGuards(AuthGuard('local'))
   @HttpCode(HttpStatus.OK)
   @Post('login')
@@ -36,6 +40,7 @@ export class AuthController {
   }
 
   @Public() // Endpoint público
+  @Throttle({ short: { limit: 5, ttl: 60_000 } }) // 5 registros por minuto por IP
   @Post('register')
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Registrar un nuevo usuario' })
@@ -72,5 +77,22 @@ export class AuthController {
   @ApiOperation({ summary: 'Refrescar tokens de autenticación' })
   async refreshTokens(@GetUser() user: User & { refreshToken: string }) {
     return this.authService.refreshTokens(user.id, user.refreshToken);
+  }
+
+  @Public()
+  @Throttle({ short: { limit: 3, ttl: 60_000 } }) // 3 solicitudes por minuto por IP
+  @Post('forgot-password')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Solicitar restablecimiento de contraseña' })
+  async forgotPassword(@Body() dto: ForgotPasswordDto) {
+    return this.authService.forgotPassword(dto.email);
+  }
+
+  @Public()
+  @Post('reset-password')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Restablecer contraseña con token' })
+  async resetPassword(@Body() dto: ResetPasswordDto) {
+    return this.authService.resetPassword(dto.token, dto.newPassword);
   }
 }

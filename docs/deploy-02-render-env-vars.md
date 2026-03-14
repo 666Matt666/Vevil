@@ -1,5 +1,7 @@
 # Variables de entorno para evil-backend en Render
 
+**Nota (bcryptjs):** El backend usa `bcryptjs` (JavaScript puro) en lugar de `bcrypt` (nativo) para evitar errores "invalid ELF header" en Render. Las contraseñas ya guardadas con `bcrypt` no son compatibles: los usuarios deben usar **"Olvidé mi contraseña"** una vez tras el deploy para obtener un hash nuevo.
+
 Si el deploy falla con **"Application exited early while running your code"**, casi siempre es por variables de entorno faltantes o incorrectas.
 
 ## Dónde configurarlas en Render

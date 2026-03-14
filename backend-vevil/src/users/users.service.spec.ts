@@ -5,10 +5,10 @@ import { UsersService } from './users.service';
 import { User } from '@/users/user.entity';
 import { UserRole } from '@/users/entities/user-role.enum';
 import { ConflictException, NotFoundException } from '@nestjs/common';
-import * as bcrypt from 'bcrypt';
+import * as bcrypt from 'bcryptjs';
 
-// Mock de la función bcrypt.hash para no realizar la encriptación real en los tests
-jest.mock('bcrypt', () => ({
+// Mock de bcryptjs para no realizar la encriptación real en los tests
+jest.mock('bcryptjs', () => ({
   hash: jest.fn(),
 }));
 

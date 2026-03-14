@@ -8,7 +8,7 @@ import { UsersService } from '@/users/users.service';
 import { JwtService } from '@nestjs/jwt';
 import { User } from '@/users/user.entity';
 import { UserRole } from '@/users/entities/user-role.enum';
-import * as bcrypt from 'bcrypt';
+import * as bcrypt from 'bcryptjs';
 import * as crypto from 'crypto';
 import { ConfigService } from '@nestjs/config';
 import { RegisterDto } from './dto/register.dto';

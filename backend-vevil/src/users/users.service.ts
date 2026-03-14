@@ -6,7 +6,7 @@ import { UserRole } from './entities/user-role.enum';
 import { CreateUserDto } from '@/users/dto/create-user.dto';
 import { UpdateUserDto } from '@/users/dto/update-user.dto';
 import { PaginationQueryDto } from '@/common/dto/pagination-query.dto';
-import * as bcrypt from 'bcrypt';
+import * as bcrypt from 'bcryptjs';
 
 @Injectable()
 export class UsersService {

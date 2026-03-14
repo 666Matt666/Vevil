@@ -2,14 +2,14 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { ConflictException, UnauthorizedException, BadRequestException } from '@nestjs/common';
-import * as bcrypt from 'bcrypt';
+import * as bcrypt from 'bcryptjs';
 import { AuthService } from './auth.service';
 import { UsersService } from '@/users/users.service';
 import { MailService } from '@/mail/mail.service';
 import { User } from '@/users/user.entity';
 import { UserRole } from '@/users/entities/user-role.enum';
 
-jest.mock('bcrypt', () => ({
+jest.mock('bcryptjs', () => ({
   compare: jest.fn(),
   hash: jest.fn(),
 }));

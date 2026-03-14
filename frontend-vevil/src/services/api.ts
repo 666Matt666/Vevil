@@ -20,10 +20,24 @@ export const clearTokens = () => {
     localStorage.removeItem('refresh_token');
 };
 
+// Reintento para cold start del backend (ej. Render free tier)
+const fetchWithRetry = async (url: string, options: RequestInit, retries = 1): Promise<Response> => {
+    try {
+        const res = await fetch(url, { ...options, signal: AbortSignal.timeout(25000) });
+        return res;
+    } catch (e: any) {
+        if (retries > 0 && (e?.message?.includes('fetch') || e?.name === 'TypeError' || e?.name === 'AbortError')) {
+            await new Promise((r) => setTimeout(r, 3000));
+            return fetchWithRetry(url, options, retries - 1);
+        }
+        throw e;
+    }
+};
+
 // ============ AUTENTICACIÓN ============
 export const login = async (email: string, password: string): Promise<{ access_token: string }> => {
     try {
-        const response = await fetch(`${API_BASE_URL}/auth/login`, {
+        const response = await fetchWithRetry(`${API_BASE_URL}/auth/login`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email, password }),
@@ -34,8 +48,8 @@ export const login = async (email: string, password: string): Promise<{ access_t
         }
         return response.json();
     } catch (error: any) {
-        if (error?.message?.includes('Failed to fetch') || error?.name === 'TypeError') {
-            throw new Error('Sin conexión. Revisá tu internet o que el servidor esté encendido.');
+        if (error?.message?.includes('Failed to fetch') || error?.name === 'TypeError' || error?.name === 'AbortError') {
+            throw new Error('No se pudo conectar al servidor. Si usás el plan gratis de Render, esperá ~1 minuto y probá de nuevo (el backend se “despierta” solo).');
         }
         throw error;
     }
@@ -116,8 +130,8 @@ const fetchWithAuth = async (endpoint: string, options: RequestInit = {}): Promi
     try {
         response = await fetch(`${API_BASE_URL}${endpoint}`, { ...options, headers });
     } catch (e: any) {
-        if (e?.message?.includes('Failed to fetch') || e?.name === 'TypeError') {
-            throw new Error('Sin conexión. Revisá tu internet o que el servidor esté encendido.');
+        if (e?.message?.includes('Failed to fetch') || e?.name === 'TypeError' || e?.name === 'AbortError') {
+            throw new Error('No se pudo conectar al servidor. Si usás el plan gratis de Render, esperá ~1 minuto y probá de nuevo.');
         }
         throw e;
     }

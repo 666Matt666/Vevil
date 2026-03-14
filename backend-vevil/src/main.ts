@@ -10,15 +10,17 @@ async function bootstrap() {
     }
     const app = await NestFactory.create(AppModule);
 
-    // Configuración de CORS - permitir acceso desde cualquier origen
-    const corsOrigins = process.env.CORS_ORIGINS
-      ? process.env.CORS_ORIGINS.split(',').map(origin => origin.trim())
-      : [
-          /^http:\/\/localhost(:\d+)?$/, // Cualquier puerto en localhost (5173, 5174, etc.)
-          'http://localhost:3000',
-          /\.vercel\.app$/, // Permite cualquier subdominio de Vercel
-          /\.vercel\.dev$/, // Permite preview deployments de Vercel
-        ];
+    // Configuración de CORS - siempre permitir Vercel y localhost; opcionalmente orígenes extra desde env
+    const defaultOrigins: (string | RegExp)[] = [
+      /^http:\/\/localhost(:\d+)?$/,
+      'http://localhost:3000',
+      /^https:\/\/[^.]+\.vercel\.app$/,  // https://vevil.vercel.app, etc.
+      /\.vercel\.dev$/,
+    ];
+    const envOrigins = process.env.CORS_ORIGINS
+      ? process.env.CORS_ORIGINS.split(',').map((o) => o.trim()).filter(Boolean)
+      : [];
+    const corsOrigins = [...envOrigins, ...defaultOrigins];
 
     app.enableCors({
       origin: corsOrigins,

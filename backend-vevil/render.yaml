@@ -1,11 +1,13 @@
-# Configuración para Render.com
-# Este archivo permite configurar el servicio automáticamente
+# Configuración para Render.com (Blueprint / New from Repo)
+# Para un servicio ya creado en el Dashboard, configurá Build y Start Command ahí.
 
 services:
   - type: web
     name: vevil-backend
-    env: docker
+    env: node
     plan: free
+    buildCommand: npm install && npm run build
+    startCommand: npm run start:prod
     healthCheckPath: /api
     envVars:
       - key: DB_HOST
@@ -22,4 +24,14 @@ services:
         generateValue: true
       - key: CORS_ORIGINS
         sync: false
+
+
+
+
+
+
+
+
+
+
 

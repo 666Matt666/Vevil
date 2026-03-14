@@ -6,7 +6,7 @@
   "private": true,
   "license": "UNLICENSED",
   "scripts": {
-    "build": "nest build",
+    "build": "npx nest build",
     "start": "node dist/src/main.js",
     "start:dev": "nest start --watch --preserveWatchOutput -r tsconfig-paths/register",
     "start:prod": "node dist/src/main.js",

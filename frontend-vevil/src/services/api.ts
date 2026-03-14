@@ -20,15 +20,20 @@ export const clearTokens = () => {
     localStorage.removeItem('refresh_token');
 };
 
-// Reintento para cold start del backend (ej. Render free tier)
-const fetchWithRetry = async (url: string, options: RequestInit, retries = 1): Promise<Response> => {
+// Reintentos para cold start del backend (Render free tier puede tardar ~1 min en despertar)
+const RETRY_DELAYS_MS = [5000, 15000, 30000]; // 5s, 15s, 30s entre intentos
+const REQUEST_TIMEOUT_MS = 50000; // 50 s por intento
+
+const fetchWithRetry = async (url: string, options: RequestInit, retriesLeft = RETRY_DELAYS_MS.length): Promise<Response> => {
     try {
-        const res = await fetch(url, { ...options, signal: AbortSignal.timeout(25000) });
+        const res = await fetch(url, { ...options, signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS) });
         return res;
     } catch (e: any) {
-        if (retries > 0 && (e?.message?.includes('fetch') || e?.name === 'TypeError' || e?.name === 'AbortError')) {
-            await new Promise((r) => setTimeout(r, 3000));
-            return fetchWithRetry(url, options, retries - 1);
+        const isRetryable = retriesLeft > 0 && (e?.message?.includes('fetch') || e?.name === 'TypeError' || e?.name === 'AbortError');
+        if (isRetryable) {
+            const delay = RETRY_DELAYS_MS[RETRY_DELAYS_MS.length - retriesLeft] ?? 5000;
+            await new Promise((r) => setTimeout(r, delay));
+            return fetchWithRetry(url, options, retriesLeft - 1);
         }
         throw e;
     }

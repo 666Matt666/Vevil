@@ -5,10 +5,10 @@ echo 🔍 Verificando estado del despliegue completo...
 echo ==========================================
 echo.
 
-REM 1. Verificar Backend (Fly.io)
-echo 1️⃣ BACKEND (Fly.io)
+REM 1. Verificar Backend (Render)
+echo 1️⃣ BACKEND (Render)
 echo ─────────────────────────────────
-set BACKEND_URL=https://vevil-dtt7ta.fly.dev/api
+set BACKEND_URL=https://evil-backend.onrender.com/api
 curl -s -o nul -w "%%{http_code}" %BACKEND_URL% --max-time 10 > temp_status.txt
 set /p BACKEND_STATUS=<temp_status.txt
 del temp_status.txt
@@ -19,13 +19,13 @@ if "%BACKEND_STATUS%"=="200" (
     echo    Status: %BACKEND_STATUS%
     
     REM Verificar API Docs
-    curl -s -o nul -w "%%{http_code}" https://vevil-dtt7ta.fly.dev/api/docs --max-time 10 > temp_docs.txt
+    curl -s -o nul -w "%%{http_code}" https://evil-backend.onrender.com/api/docs --max-time 10 > temp_docs.txt
     set /p DOCS_STATUS=<temp_docs.txt
     del temp_docs.txt
     
     if "%DOCS_STATUS%"=="200" (
         echo    ✅ API Docs accesible
-        echo    Docs: https://vevil-dtt7ta.fly.dev/api/docs
+        echo    Docs: https://evil-backend.onrender.com/api/docs
     ) else (
         echo    ⚠️  API Docs no accesible (Status: %DOCS_STATUS%)
     )
@@ -61,7 +61,7 @@ echo    2. Selecciona tu proyecto
 echo    3. Verifica que esté activo
 echo.
 echo    Para verificar desde el backend:
-echo    flyctl logs -a vevil-dtt7ta ^| findstr /i "error connection"
+echo    Revisa los logs del servicio evil-backend en Render Dashboard
 echo.
 
 REM Resumen
@@ -84,4 +84,14 @@ echo 📖 Para más detalles, revisa: VERIFICAR-ESTADO.md
 echo.
 
 pause
+
+
+
+
+
+
+
+
+
+
 

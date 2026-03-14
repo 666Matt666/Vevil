@@ -31,8 +31,8 @@ Bienvenido a la documentación completa del sistema Vevil. Esta carpeta contiene
 
 - **[../DEPLOY.md](../DEPLOY.md)** - Guía completa de despliegue
   - Configuración de Supabase
-  - Despliegue en Fly.io
-  - Despliegue en Vercel
+  - Despliegue en Render (backend)
+  - Despliegue en Vercel (frontend)
   - Variables de entorno
 
 - **[../CHECKLIST-DEPLOY.md](../CHECKLIST-DEPLOY.md)** - Checklist de despliegue
@@ -124,7 +124,7 @@ async create(createProductDto: CreateProductDto): Promise<Product> {
 
 ### Problemas Comunes
 
-- **Backend no responde**: [ESTADO-ACTUAL.md](../ESTADO-ACTUAL.md#backend-flyio)
+- **Backend no responde**: [deploy-02-render-env-vars.md](./deploy-02-render-env-vars.md) (variables en Render)
 - **Frontend no conecta**: [ESTADO-ACTUAL.md](../ESTADO-ACTUAL.md#frontend-vercel)
 - **Base de datos no conecta**: [ESTADO-ACTUAL.md](../ESTADO-ACTUAL.md#base-de-datos-supabase)
 - **Errores de CORS**: [DEPLOY.md](../DEPLOY.md#problemas-comunes)
@@ -148,4 +148,14 @@ Esta documentación se actualiza junto con el código. Si encuentras informació
 ---
 
 **Última actualización**: 2024
+
+
+
+
+
+
+
+
+
+
 

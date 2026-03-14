@@ -69,7 +69,7 @@ import { MailModule } from './mail/mail.module';
           if (missingVars.length > 0) {
             console.error('❌ ERROR: Variables de entorno faltantes o inválidas en producción:');
             missingVars.forEach(varName => console.error(`   - ${varName}`));
-            console.error('💡 Configura estas variables en tu plataforma de despliegue (Render/Fly.io)');
+            console.error('💡 Configura estas variables en tu plataforma de despliegue (Render)');
             throw new Error(`Variables de entorno faltantes: ${missingVars.join(', ')}`);
           }
         }

@@ -2,7 +2,7 @@
 // Ejecutar desde la consola del navegador cuando estés logueado
 
 (async function seedData() {
-    const API_URL = 'https://vevil-dtt7ta.fly.dev/api';
+    const API_URL = 'https://evil-backend.onrender.com/api';
     
     // Obtener token del localStorage
     const token = localStorage.getItem('token');
@@ -164,4 +164,14 @@
     console.log('✅ Carga de datos completada!');
     console.log(`📊 Resumen: ${createdProducts.length} productos, ${createdCustomers.length} clientes`);
 })();
+
+
+
+
+
+
+
+
+
+
 

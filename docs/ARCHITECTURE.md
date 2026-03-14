@@ -268,9 +268,9 @@ const getApiBaseUrl = (): string => {
     return import.meta.env.VITE_API_URL;
   }
   
-  // 2. Si está en Vercel, usa backend de producción
+  // 2. Si está en Vercel, usa backend de producción (Render)
   if (window.location.hostname.includes('vercel.app')) {
-    return 'https://vevil-dtt7ta.fly.dev/api';
+    return 'https://evil-backend.onrender.com/api';
   }
   
   // 3. Fallback a localhost
@@ -425,7 +425,7 @@ Configurado para permitir solo orígenes específicos:
          │ HTTPS
          │
 ┌────────▼────────┐
-│   Fly.io        │
+│   Render        │
 │   (Backend)     │
 │   App Server    │
 └────────┬────────┘
@@ -446,7 +446,7 @@ Configurado para permitir solo orígenes específicos:
 
 ### Variables de Entorno
 
-**Backend (Fly.io):**
+**Backend (Render):**
 - `DB_HOST`, `DB_PORT`, `DB_USERNAME`, `DB_PASSWORD`, `DB_DATABASE`
 - `JWT_SECRET`, `JWT_REFRESH_SECRET`
 - `CORS_ORIGINS`
@@ -479,7 +479,7 @@ Configurado para permitir solo orígenes específicos:
 ### Logs del Backend
 
 - Console logs en desarrollo
-- Logs estructurados en producción (Fly.io)
+- Logs estructurados en producción (Render)
 
 ### Métricas
 
@@ -494,4 +494,14 @@ Esta arquitectura está diseñada para ser:
 - ✅ **Escalable**: Preparada para crecimiento
 - ✅ **Segura**: Autenticación y validación robustas
 - ✅ **Mantenible**: Código organizado y documentado
+
+
+
+
+
+
+
+
+
+
 

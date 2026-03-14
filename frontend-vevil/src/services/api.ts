@@ -1,121 +1,145 @@
-// Obtener la URL del backend dinámicamente
 const getApiBaseUrl = (): string => {
-    // Debug: mostrar todas las variables de entorno disponibles
-    console.log('import.meta.env:', import.meta.env);
-    console.log('VITE_API_URL value:', import.meta.env.VITE_API_URL);
-    console.log('typeof VITE_API_URL:', typeof import.meta.env.VITE_API_URL);
-    
-    // Si hay variable de entorno, usarla
     const viteApiUrl = import.meta.env.VITE_API_URL;
-    if (viteApiUrl && viteApiUrl !== 'undefined' && viteApiUrl.trim() !== '') {
-        console.log('✅ Using VITE_API_URL:', viteApiUrl);
-        return viteApiUrl;
-    }
-    
-    // Si estamos en producción (Vercel), usar el backend de Render directamente
-    if (window.location.hostname.includes('vercel.app')) {
-        const productionUrl = 'https://vevil-backend.onrender.com/api';
-        console.log('✅ Using production backend:', productionUrl);
-        return productionUrl;
-    }
-    
-    // Si estamos en localhost, usar localhost
-    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-        console.log('Using localhost fallback');
-        return 'http://localhost:3000/api';
-    }
-    
-    // Si estamos accediendo por IP (desde celular), usar la misma IP con puerto 3000
-    const fallbackUrl = `http://${window.location.hostname}:3000/api`;
-    console.log('⚠️ Using hostname fallback:', fallbackUrl);
-    return fallbackUrl;
+    if (viteApiUrl && viteApiUrl !== 'undefined' && String(viteApiUrl).trim() !== '') return String(viteApiUrl).trim();
+    if (window.location.hostname.includes('vercel.app')) return 'https://evil-backend.onrender.com/api';
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') return 'http://localhost:3000/api';
+    return `http://${window.location.hostname}:3000/api`;
 };
 
 const API_BASE_URL = getApiBaseUrl();
-console.log('API_BASE_URL configured as:', API_BASE_URL);
 
-// Función helper para obtener el token
-const getToken = (): string | null => {
-    return localStorage.getItem('token');
+const getToken = (): string | null => localStorage.getItem('token');
+const getRefreshToken = (): string | null => localStorage.getItem('refresh_token');
+const setTokens = (access: string, refresh?: string) => {
+    localStorage.setItem('token', access);
+    if (refresh != null) localStorage.setItem('refresh_token', refresh);
+    else localStorage.removeItem('refresh_token');
+};
+export const clearTokens = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('refresh_token');
 };
 
 // ============ AUTENTICACIÓN ============
 export const login = async (email: string, password: string): Promise<{ access_token: string }> => {
-    const url = `${API_BASE_URL}/auth/login`;
-    console.log('Login request to:', url);
-    
     try {
-        const response = await fetch(url, {
+        const response = await fetch(`${API_BASE_URL}/auth/login`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email, password }),
         });
-
-        console.log('Login response status:', response.status);
-
         if (!response.ok) {
             const error = await response.json().catch(() => ({ message: 'Credenciales inválidas' }));
             throw new Error(error.message || 'Error al iniciar sesión');
         }
-
         return response.json();
     } catch (error: any) {
-        console.error('Login error:', error);
+        if (error?.message?.includes('Failed to fetch') || error?.name === 'TypeError') {
+            throw new Error('Sin conexión. Revisá tu internet o que el servidor esté encendido.');
+        }
         throw error;
     }
 };
 
 export const register = async (name: string, email: string, password: string): Promise<any> => {
-    const url = `${API_BASE_URL}/auth/register`;
-    console.log('Register request to:', url);
-    
     try {
-        const response = await fetch(url, {
+        const response = await fetch(`${API_BASE_URL}/auth/register`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ name, email, password }),
         });
-
-        console.log('Register response status:', response.status);
-
         if (!response.ok) {
             const error = await response.json().catch(() => ({ message: 'Error al registrar usuario' }));
             throw new Error(error.message || 'Error al registrar usuario');
         }
-
         return response.json();
     } catch (error: any) {
-        console.error('Register error:', error);
         throw error;
     }
 };
 
-// Función helper para hacer peticiones autenticadas
+export const forgotPassword = async (email: string): Promise<{ message: string }> => {
+    const url = `${API_BASE_URL}/auth/forgot-password`;
+    const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+    });
+    if (!response.ok) {
+        const err = await response.json().catch(() => ({ message: 'Error al enviar' }));
+        throw new Error(err.message || 'Error al enviar');
+    }
+    return response.json();
+};
+
+export const resetPassword = async (token: string, newPassword: string): Promise<{ message: string }> => {
+    const url = `${API_BASE_URL}/auth/reset-password`;
+    const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token, newPassword }),
+    });
+    if (!response.ok) {
+        const err = await response.json().catch(() => ({ message: 'Error al restablecer' }));
+        throw new Error(err.message || 'Error al restablecer');
+    }
+    return response.json();
+};
+
+const refreshAuth = async (): Promise<boolean> => {
+    const refresh = getRefreshToken();
+    if (!refresh) return false;
+    try {
+        const res = await fetch(`${API_BASE_URL}/auth/refresh`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ refresh_token: refresh }),
+        });
+        if (!res.ok) return false;
+        const data = await res.json();
+        setTokens(data.access_token, data.refresh_token);
+        return true;
+    } catch {
+        return false;
+    }
+};
+
 const fetchWithAuth = async (endpoint: string, options: RequestInit = {}): Promise<Response> => {
-    const token = getToken();
-    
+    let token = getToken();
     const headers: HeadersInit = {
         'Content-Type': 'application/json',
         ...options.headers,
     };
-    
-    if (token) {
-        (headers as Record<string, string>)['Authorization'] = `Bearer ${token}`;
+    if (token) (headers as Record<string, string>)['Authorization'] = `Bearer ${token}`;
+
+    let response: Response;
+    try {
+        response = await fetch(`${API_BASE_URL}${endpoint}`, { ...options, headers });
+    } catch (e: any) {
+        if (e?.message?.includes('Failed to fetch') || e?.name === 'TypeError') {
+            throw new Error('Sin conexión. Revisá tu internet o que el servidor esté encendido.');
+        }
+        throw e;
     }
-    
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-        ...options,
-        headers,
-    });
-    
-    // Si el token expiró, redirigir al login
+
+    if (response.status === 401 && (await refreshAuth())) {
+        token = getToken();
+        if (token) (headers as Record<string, string>)['Authorization'] = `Bearer ${token}`;
+        response = await fetch(`${API_BASE_URL}${endpoint}`, { ...options, headers });
+    }
+
     if (response.status === 401) {
-        localStorage.removeItem('token');
+        clearTokens();
         window.location.href = '/login';
         throw new Error('Sesión expirada');
     }
-    
     return response;
+};
+
+export const getProfile = async () => {
+    const r = await fetchWithAuth('/auth/profile');
+    if (!r.ok) throw new Error('No autorizado');
+    return r.json();
 };
 
 // ============ PRODUCTOS ============
@@ -230,6 +254,14 @@ export interface InvoiceItem {
     priceAtSale: number;
 }
 
+export interface Payment {
+    id: number;
+    invoiceId: number;
+    amount: number;
+    date: string;
+    method?: string;
+}
+
 export interface Invoice {
     id: number;
     customer: Customer;
@@ -237,7 +269,9 @@ export interface Invoice {
     date: string;
     total: number;
     currency?: string;
+    status?: string;
     items: InvoiceItem[];
+    payments?: Payment[];
 }
 
 export const invoicesApi = {
@@ -253,12 +287,36 @@ export const invoicesApi = {
         return response.json();
     },
     
-    create: async (invoice: { customerId: number; items: { productId: number; quantity: number }[] }): Promise<Invoice> => {
+    create: async (invoice: { customerId: number; currency?: string; status?: string; items: { productId: number; quantity: number }[] }): Promise<Invoice> => {
         const response = await fetchWithAuth('/invoices', {
             method: 'POST',
             body: JSON.stringify(invoice),
         });
         if (!response.ok) throw new Error('Error al crear factura');
+        return response.json();
+    },
+
+    updateStatus: async (id: number, status: string): Promise<Invoice> => {
+        const response = await fetchWithAuth(`/invoices/${id}/status`, {
+            method: 'PATCH',
+            body: JSON.stringify({ status }),
+        });
+        if (!response.ok) throw new Error('Error al actualizar estado');
+        return response.json();
+    },
+
+    getPayments: async (id: number): Promise<Payment[]> => {
+        const response = await fetchWithAuth(`/invoices/${id}/payments`);
+        if (!response.ok) throw new Error('Error al obtener pagos');
+        return response.json();
+    },
+
+    addPayment: async (id: number, body: { amount: number; method?: string }): Promise<Payment> => {
+        const response = await fetchWithAuth(`/invoices/${id}/payments`, {
+            method: 'POST',
+            body: JSON.stringify(body),
+        });
+        if (!response.ok) throw new Error('Error al registrar pago');
         return response.json();
     },
 };

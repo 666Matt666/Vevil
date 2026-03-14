@@ -1,7 +1,7 @@
 import { Logger } from '@nestjs/common';
 
 // Usar la URL del backend en producción o localhost según la variable de entorno
-const API_URL = process.env.API_URL || 'https://vevil-dtt7ta.fly.dev/api';
+const API_URL = process.env.API_URL || 'https://evil-backend.onrender.com/api';
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'mdibella@gmail.com';
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || '';
 

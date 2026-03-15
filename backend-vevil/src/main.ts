@@ -29,12 +29,14 @@ async function bootstrap() {
       allowedHeaders: ['Content-Type', 'Authorization'],
     });
 
-    // Log de todas las peticiones entrantes (para ver si llegan desde Vercel)
-    app.use((req: any, _res, next) => {
-      const origin = req.headers?.origin ?? req.headers?.Origin ?? '(none)';
-      console.log(`[Vevil] ${req.method} ${req.url} | Origin: ${origin}`);
-      next();
-    });
+    // Log de peticiones solo en desarrollo (en producción llenaría los logs de Render)
+    if (process.env.NODE_ENV !== 'production') {
+      app.use((req: any, _res, next) => {
+        const origin = req.headers?.origin ?? req.headers?.Origin ?? '(none)';
+        console.log(`[Vevil] ${req.method} ${req.url} | Origin: ${origin}`);
+        next();
+      });
+    }
 
     // Prefijo global para la API
     app.setGlobalPrefix('api');

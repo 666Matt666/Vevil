@@ -286,6 +286,11 @@ const Login: React.FC = () => {
                             >
                                 {isLoading ? 'Iniciando sesión...' : 'Iniciar sesión'}
                             </button>
+                            {typeof window !== 'undefined' && window.location.hostname.includes('vercel.app') && (
+                                <p style={{ fontSize: '12px', color: '#94a3b8', marginTop: '10px', textAlign: 'center' }}>
+                                    La primera vez puede tardar unos segundos.
+                                </p>
+                            )}
                         </form>
 
                         <p style={{ textAlign: 'center', marginTop: '24px', fontSize: '14px', color: '#64748b' }}>

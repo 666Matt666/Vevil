@@ -22,7 +22,8 @@ Con el backend en Render y la base de datos en Supabase, solo falta publicar el 
 3. **Variables de entorno (opcional)**
    - Si querés fijar la API por variable: **Environment Variables** → agregar:
      - `VITE_API_URL` = `https://evil-backend.onrender.com/api`
-   - Si no ponés nada, el frontend ya usa esa URL cuando el host es `*.vercel.app` (ver `frontend-vevil/src/services/api.ts`).
+   - **Importante:** No uses `VITE_API_URL` apuntando a Fly.io ni a otra URL vieja. El frontend en `*.vercel.app` usa siempre el backend en Render; si tenés una variable antigua, borrala o actualizala.
+   - Si en la consola del navegador (F12) ves peticiones a `vevil-dtt7ta.fly.dev`, hacé un **hard refresh** (Ctrl+Shift+R) o borrá `VITE_API_URL` en Vercel y volvé a desplegar.
 
 4. **Deploy**
    - **Deploy**. Vercel construye y publica; te da una URL tipo `tu-proyecto.vercel.app`.
@@ -42,3 +43,8 @@ Con el backend en Render y la base de datos en Supabase, solo falta publicar el 
 | Frontend (login, app) | Vercel → `https://tu-proyecto.vercel.app` |
 
 No hace falta correr backend ni frontend en tu PC; solo abrís la URL de Vercel en el navegador.
+
+## Notas
+
+- **Cold start (Render plan gratis):** La primera vez que entrás al login o después de unos minutos sin uso, el backend puede tardar ~1 minuto en responder. En la pantalla de login se muestra el mensaje "La primera vez puede tardar unos segundos." y el botón "Reintentar" espera a que el servidor despierte antes de intentar de nuevo.
+- **Si la consola muestra Fly.io:** Si en F12 → Console ves peticiones a `vevil-dtt7ta.fly.dev`, el front está usando una URL vieja. Solución: hard refresh (Ctrl+Shift+R), o en Vercel → Settings → Environment Variables borrá o actualizá `VITE_API_URL` y volvé a desplegar.

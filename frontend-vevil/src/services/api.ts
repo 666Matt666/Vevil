@@ -18,13 +18,13 @@ const getApiBaseUrl = (): string => {
 
 let API_BASE_URL = getApiBaseUrl();
 
-// Corrección en runtime: si por caché o build viejo quedó Fly.io, usar Render cuando estamos en Vercel
+// Red de seguridad: si por caché o build viejo quedó Fly.io, usar Render cuando estamos en Vercel
 if (typeof window !== 'undefined' && window.location.hostname.includes('vercel.app') && API_BASE_URL.includes('fly.dev')) {
-    console.warn('[Vevil] URL era Fly.io, usando Render:', RENDER_API_URL);
     API_BASE_URL = RENDER_API_URL;
+    if (import.meta.env.DEV) console.warn('[Vevil] URL era Fly.io, usando Render:', RENDER_API_URL);
 }
 
-if (typeof window !== 'undefined') {
+if (typeof window !== 'undefined' && import.meta.env.DEV) {
     console.log('[Vevil] API base URL:', API_BASE_URL);
 }
 
@@ -82,21 +82,21 @@ const fetchWithRetry = async (url: string, options: RequestInit, retriesLeft = R
 // ============ AUTENTICACIÓN ============
 export const login = async (email: string, password: string): Promise<{ access_token: string }> => {
     const loginUrl = `${API_BASE_URL}/auth/login`;
-    console.log('[Vevil] Login → POST', loginUrl);
+    if (import.meta.env.DEV) console.log('[Vevil] Login → POST', loginUrl);
     try {
         const response = await fetchWithRetry(loginUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email, password }),
         });
-        console.log('[Vevil] Login response status:', response.status, response.statusText);
+        if (import.meta.env.DEV) console.log('[Vevil] Login response status:', response.status, response.statusText);
         if (!response.ok) {
             const error = await response.json().catch(() => ({ message: 'Credenciales inválidas' }));
             throw new Error(error.message || 'Error al iniciar sesión');
         }
         return response.json();
     } catch (error: any) {
-        console.warn('[Vevil] Login error:', error?.name, error?.message);
+        if (import.meta.env.DEV) console.warn('[Vevil] Login error:', error?.name, error?.message);
         if (error?.message?.includes('Failed to fetch') || error?.name === 'TypeError' || error?.name === 'AbortError') {
             throw new Error('No se pudo conectar al servidor. Si usás el plan gratis de Render, esperá ~1 minuto y probá de nuevo (el backend se “despierta” solo).');
         }

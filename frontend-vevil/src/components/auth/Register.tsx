@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { requestRegistration } from '../../services/api';
+import { copy } from '../../copy';
 
 const Register: React.FC = () => {
     const [name, setName] = useState('');
@@ -23,11 +24,11 @@ const Register: React.FC = () => {
         setSuccess('');
 
         if (!email.trim()) {
-            setError('El correo es obligatorio');
+            setError(copy.register.requiredEmail);
             return;
         }
         if (!name.trim()) {
-            setError('El nombre es obligatorio');
+            setError(copy.register.requiredName);
             return;
         }
 
@@ -39,7 +40,7 @@ const Register: React.FC = () => {
                 lastName: lastName.trim() || undefined,
                 gender: gender === '' ? undefined : gender,
             });
-            setSuccess(res.message || 'Revisá tu correo y hacé clic en el enlace para confirmar. Luego un administrador revisará tu solicitud.');
+            setSuccess(res.message || copy.register.successMessage);
         } catch (err: any) {
             setError(err.message || 'Error al enviar la solicitud');
         } finally {
@@ -65,20 +66,20 @@ const Register: React.FC = () => {
                 maxWidth: '400px'
             }}>
                 <div style={{ textAlign: 'center', marginBottom: '32px' }}>
-                    <h1 style={{ fontSize: '32px', fontWeight: 700, color: '#4f46e5', margin: 0 }}>Vevil</h1>
-                    <p style={{ color: '#6b7280', marginTop: '8px' }}>Sistema de Gestión</p>
+                    <h1 style={{ fontSize: '32px', fontWeight: 700, color: '#4f46e5', margin: 0 }}>{copy.app.name}</h1>
+                    <p style={{ color: '#6b7280', marginTop: '8px' }}>{copy.app.subtitle}</p>
                 </div>
 
                 <h2 style={{ textAlign: 'center', fontSize: '24px', fontWeight: 600, color: '#111827', marginBottom: '24px' }}>
-                    Solicitar registro
+                    {copy.register.title}
                 </h2>
                 <p style={{ fontSize: '14px', color: '#6b7280', marginBottom: '24px', textAlign: 'center' }}>
-                    Ingresá tu correo y datos. Te enviaremos un enlace para confirmar. Después un administrador aprobará tu cuenta y te enviará un correo para crear tu contraseña.
+                    {copy.register.intro}
                 </p>
 
                 <form onSubmit={handleSubmit}>
                     <div style={{ marginBottom: '20px' }}>
-                        <label style={{ display: 'block', fontSize: '14px', fontWeight: 500, color: '#374151', marginBottom: '6px' }}>Nombre *</label>
+                        <label style={{ display: 'block', fontSize: '14px', fontWeight: 500, color: '#374151', marginBottom: '6px' }}>{copy.register.name} *</label>
                         <input
                             type="text"
                             value={name}
@@ -89,7 +90,7 @@ const Register: React.FC = () => {
                         />
                     </div>
                     <div style={{ marginBottom: '20px' }}>
-                        <label style={{ display: 'block', fontSize: '14px', fontWeight: 500, color: '#374151', marginBottom: '6px' }}>Apellido</label>
+                        <label style={{ display: 'block', fontSize: '14px', fontWeight: 500, color: '#374151', marginBottom: '6px' }}>{copy.register.lastName}</label>
                         <input
                             type="text"
                             value={lastName}
@@ -99,7 +100,7 @@ const Register: React.FC = () => {
                         />
                     </div>
                     <div style={{ marginBottom: '20px' }}>
-                        <label style={{ display: 'block', fontSize: '14px', fontWeight: 500, color: '#374151', marginBottom: '6px' }}>Correo electrónico *</label>
+                        <label style={{ display: 'block', fontSize: '14px', fontWeight: 500, color: '#374151', marginBottom: '6px' }}>{copy.auth.email} *</label>
                         <input
                             type="email"
                             value={email}
@@ -110,15 +111,15 @@ const Register: React.FC = () => {
                         />
                     </div>
                     <div style={{ marginBottom: '24px' }}>
-                        <label style={{ display: 'block', fontSize: '14px', fontWeight: 500, color: '#374151', marginBottom: '6px' }}>Género</label>
+                        <label style={{ display: 'block', fontSize: '14px', fontWeight: 500, color: '#374151', marginBottom: '6px' }}>{copy.register.gender}</label>
                         <select
                             value={gender}
                             onChange={(e) => setGender(e.target.value as 'male' | 'female' | '')}
                             style={{ width: '100%', padding: '12px 16px', fontSize: '16px', border: '1px solid #d1d5db', borderRadius: '8px', outline: 'none', boxSizing: 'border-box', background: 'white' }}
                         >
-                            <option value="">No especificar</option>
-                            <option value="female">Femenino</option>
-                            <option value="male">Masculino</option>
+                            <option value="">{copy.register.genderPlaceholder}</option>
+                            <option value="female">{copy.register.genderFemale}</option>
+                            <option value="male">{copy.register.genderMale}</option>
                         </select>
                     </div>
 
@@ -149,13 +150,13 @@ const Register: React.FC = () => {
                             transition: 'background-color 0.2s'
                         }}
                     >
-                        {isLoading ? 'Enviando...' : 'Enviar solicitud'}
+                        {isLoading ? copy.register.sending : copy.register.submit}
                     </button>
                 </form>
 
                 <p style={{ textAlign: 'center', marginTop: '24px', fontSize: '14px', color: '#6b7280' }}>
-                    ¿Ya tenés una cuenta?{' '}
-                    <Link to="/login" style={{ color: '#4f46e5', textDecoration: 'none', fontWeight: 500 }}>Iniciá sesión</Link>
+                    {copy.register.haveAccount}{' '}
+                    <Link to="/login" style={{ color: '#4f46e5', textDecoration: 'none', fontWeight: 500 }}>{copy.register.goLogin}</Link>
                 </p>
             </div>
         </div>

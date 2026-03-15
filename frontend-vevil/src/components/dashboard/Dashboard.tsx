@@ -3,15 +3,16 @@ import { useNavigate } from 'react-router-dom';
 import { statsApi, metricsApi, productsApi, customersApi, invoicesApi, getProfile } from '../../services/api';
 import type { DashboardMetrics } from '../../services/api';
 import { formatMoney } from '../settings/Settings';
+import { copy } from '../../copy';
 
 type ProfileUser = { name?: string; lastName?: string; gender?: 'male' | 'female' };
 
 function buildWelcomeMessage(user: ProfileUser | null): string {
-    if (!user?.name) return '¡Bienvenido!';
+    if (!user?.name) return copy.dashboard.welcome;
     const fullName = [user.name, user.lastName].filter(Boolean).join(' ').trim();
     const greeting =
-        user.gender === 'female' ? 'Bienvenida' :
-        user.gender === 'male' ? 'Bienvenido' : 'Bienvenido/a';
+        user.gender === 'female' ? copy.dashboard.welcomeFemale :
+        user.gender === 'male' ? copy.dashboard.welcomeMale : copy.dashboard.welcomeNeutral;
     return fullName ? `¡${greeting}, ${fullName}!` : `¡${greeting}!`;
 }
 
@@ -344,7 +345,7 @@ const Dashboard: React.FC = () => {
                             whiteSpace: 'nowrap'
                         }}
                     >
-                        {seeding ? '⏳ Cargando...' : '📦 Cargar Datos de Ejemplo'}
+                        {seeding ? `⏳ ${copy.dashboard.loadingData}` : `📦 ${copy.dashboard.loadExampleData}`}
                     </button>
                 )}
             </div>

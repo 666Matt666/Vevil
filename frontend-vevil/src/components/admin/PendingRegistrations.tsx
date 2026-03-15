@@ -5,6 +5,7 @@ import {
     pendingRegistrationsApi,
     type PendingRegistrationItem,
 } from '../../services/api';
+import { copy } from '../../copy';
 
 const PendingRegistrations: React.FC = () => {
     const navigate = useNavigate();
@@ -45,7 +46,7 @@ const PendingRegistrations: React.FC = () => {
     };
 
     const handleReject = async (id: string) => {
-        if (!window.confirm('¿Rechazar esta solicitud?')) return;
+        if (!window.confirm(copy.pendingRegistrations.rejectConfirm)) return;
         setActioning(id);
         setError('');
         try {
@@ -61,7 +62,7 @@ const PendingRegistrations: React.FC = () => {
     if (loading) {
         return (
             <div className="responsive-padding" style={{ padding: '32px' }}>
-                <p>Cargando solicitudes...</p>
+                <p>{copy.pendingRegistrations.loading}</p>
             </div>
         );
     }
@@ -69,10 +70,10 @@ const PendingRegistrations: React.FC = () => {
     return (
         <div className="responsive-padding" style={{ padding: '32px' }}>
             <h1 style={{ fontSize: 'clamp(24px, 5vw, 32px)', fontWeight: 700, color: '#1e293b', marginBottom: '24px' }}>
-                Solicitudes de registro
+                {copy.pendingRegistrations.title}
             </h1>
             <p style={{ color: '#64748b', marginBottom: '24px' }}>
-                Revisá los datos, asigná un perfil y aprobá para que el usuario reciba un correo para crear su contraseña.
+                {copy.pendingRegistrations.intro}
             </p>
 
             {error && (
@@ -83,7 +84,7 @@ const PendingRegistrations: React.FC = () => {
 
             {list.length === 0 ? (
                 <div style={{ padding: '32px', textAlign: 'center', color: '#64748b', backgroundColor: '#f8fafc', borderRadius: '12px' }}>
-                    No hay solicitudes pendientes de aprobación.
+                    {copy.pendingRegistrations.empty}
                 </div>
             ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
@@ -109,16 +110,16 @@ const PendingRegistrations: React.FC = () => {
                                 <div style={{ color: '#64748b', marginTop: '4px' }}>{item.email}</div>
                                 {item.gender && (
                                     <div style={{ fontSize: '14px', color: '#64748b', marginTop: '4px' }}>
-                                        Género: {item.gender === 'female' ? 'Femenino' : 'Masculino'}
+                                        {copy.register.gender}: {item.gender === 'female' ? copy.pendingRegistrations.genderFemale : copy.pendingRegistrations.genderMale}
                                     </div>
                                 )}
                                 <div style={{ fontSize: '12px', color: '#94a3b8', marginTop: '8px' }}>
-                                    Confirmado el correo · {new Date(item.createdAt).toLocaleString()}
+                                    {copy.pendingRegistrations.confirmedAt} · {new Date(item.createdAt).toLocaleString()}
                                 </div>
                             </div>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
                                 <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px' }}>
-                                    Perfil:
+                                    {copy.pendingRegistrations.profile}:
                                     <select
                                         value={approveRole[item.id] ?? 'user'}
                                         onChange={(e) =>
@@ -134,8 +135,8 @@ const PendingRegistrations: React.FC = () => {
                                             fontSize: '14px',
                                         }}
                                     >
-                                        <option value="user">Usuario</option>
-                                        <option value="admin">Administrador</option>
+                                        <option value="user">{copy.pendingRegistrations.profileRoleUser}</option>
+                                        <option value="admin">{copy.pendingRegistrations.profileRoleAdmin}</option>
                                     </select>
                                 </label>
                                 <button
@@ -152,7 +153,7 @@ const PendingRegistrations: React.FC = () => {
                                         cursor: actioning === item.id ? 'not-allowed' : 'pointer',
                                     }}
                                 >
-                                    {actioning === item.id ? '...' : 'Aprobar'}
+                                    {actioning === item.id ? '...' : copy.pendingRegistrations.approve}
                                 </button>
                                 <button
                                     type="button"
@@ -168,7 +169,7 @@ const PendingRegistrations: React.FC = () => {
                                         cursor: actioning === item.id ? 'not-allowed' : 'pointer',
                                     }}
                                 >
-                                    Rechazar
+                                    {copy.pendingRegistrations.reject}
                                 </button>
                             </div>
                         </div>

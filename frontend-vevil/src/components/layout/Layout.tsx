@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Outlet, Link, useLocation, useNavigate, Navigate } from 'react-router-dom';
 import { getProfile } from '../../services/api';
 import CurrencyRatesBar from './CurrencyRatesBar';
+import HelpPanel from '../help/HelpPanel';
 
 const menuItems = [
     { label: 'Inicio', icon: '🏠', path: '/dashboard' },
@@ -44,9 +45,10 @@ const Layout: React.FC = () => {
         return () => window.removeEventListener('resize', handleResize);
     }, []);
 
-    // Cerrar menú al cambiar de ruta
+    // Cerrar menú y ayuda al cambiar de ruta
     useEffect(() => {
         setIsMobileMenuOpen(false);
+        setIsHelpOpen(false);
     }, [location.pathname]);
 
     const handleLogout = () => {
@@ -183,6 +185,30 @@ const Layout: React.FC = () => {
                     })}
                 </nav>
 
+                {/* Ayuda */}
+                <div style={{ padding: '12px 24px', borderTop: '1px solid #334155' }}>
+                    <button
+                        onClick={() => { setIsHelpOpen(true); if (isMobile) setIsMobileMenuOpen(false); }}
+                        style={{
+                            width: '100%',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '8px',
+                            padding: '12px',
+                            backgroundColor: 'rgba(99, 102, 241, 0.15)',
+                            border: '1px solid #6366f1',
+                            borderRadius: '8px',
+                            color: '#a5b4fc',
+                            fontSize: '14px',
+                            cursor: 'pointer',
+                            transition: 'all 0.2s'
+                        }}
+                    >
+                        ❓ Ayuda
+                    </button>
+                </div>
+
                 {/* Logout */}
                 <div style={{ padding: '16px 24px', borderTop: '1px solid #334155' }}>
                     <button
@@ -299,6 +325,44 @@ const Layout: React.FC = () => {
 
                 <Outlet />
             </main>
+
+            {/* Botón flotante Ayuda (siempre visible) */}
+            <button
+                onClick={() => setIsHelpOpen(true)}
+                aria-label="Abrir ayuda"
+                style={{
+                    position: 'fixed',
+                    bottom: '24px',
+                    right: '24px',
+                    width: '48px',
+                    height: '48px',
+                    borderRadius: '50%',
+                    backgroundColor: '#6366f1',
+                    color: '#fff',
+                    border: 'none',
+                    fontSize: '22px',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    boxShadow: '0 4px 14px rgba(99, 102, 241, 0.45)',
+                    zIndex: 100,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    transition: 'transform 0.2s, box-shadow 0.2s',
+                }}
+                onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = 'scale(1.08)';
+                    e.currentTarget.style.boxShadow = '0 6px 20px rgba(99, 102, 241, 0.5)';
+                }}
+                onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = 'scale(1)';
+                    e.currentTarget.style.boxShadow = '0 4px 14px rgba(99, 102, 241, 0.45)';
+                }}
+            >
+                ?
+            </button>
+
+            <HelpPanel isOpen={isHelpOpen} onClose={() => setIsHelpOpen(false)} />
 
             {/* Estilos globales responsive */}
             <style>{`

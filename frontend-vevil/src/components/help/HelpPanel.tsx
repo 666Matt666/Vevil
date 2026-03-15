@@ -95,6 +95,18 @@ const helpItems: HelpItem[] = [
         ),
     },
     {
+        id: 'cargar-stock',
+        title: 'Cómo cargar stock (compras o ajustes)',
+        content: (
+            <>
+                <p style={{ margin: '0 0 8px 0' }}>En <strong>Mov. de stock</strong> podés registrar entradas (compra, ajuste) o salidas (ajuste). Las ventas se descuentan solas al facturar.</p>
+                <p style={{ margin: 0 }}>
+                    <Link to="/stock-movements" style={{ color: '#6366f1', fontWeight: 600 }}>Ir a Movimientos de stock →</Link>
+                </p>
+            </>
+        ),
+    },
+    {
         id: 'cuentas-cobros',
         title: 'Ver cuentas corrientes y cobros pendientes',
         content: (

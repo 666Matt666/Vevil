@@ -7,6 +7,8 @@ import './assets/main.css'
 import Login from './components/auth/Login.tsx';
 import Register from './components/auth/Register.tsx';
 import ForgotPassword from './components/auth/ForgotPassword.tsx';
+import ResetPassword from './components/auth/ResetPassword.tsx';
+import ConfirmRegistration from './components/auth/ConfirmRegistration.tsx';
 
 // Layout
 import Layout from './components/layout/Layout.tsx';
@@ -20,6 +22,8 @@ import InvoiceDetail from './components/invoices/InvoiceDetail.tsx';
 import Settings from './components/settings/Settings.tsx';
 import Reports from './components/reports/Reports.tsx';
 import AccountsReceivable from './components/accounts/AccountsReceivable.tsx';
+import StockMovements from './components/stock-movements/StockMovements.tsx';
+import PendingRegistrations from './components/admin/PendingRegistrations.tsx';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
     <React.StrictMode>
@@ -29,17 +33,21 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
                 <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<Register />} />
                 <Route path="/forgot-password" element={<ForgotPassword />} />
-                
+                <Route path="/reset-password" element={<ResetPassword />} />
+                <Route path="/confirm-registration" element={<ConfirmRegistration />} />
+
                 {/* Rutas protegidas con Layout */}
                 <Route path="/" element={<Layout />}>
                     <Route index element={<Navigate to="/dashboard" replace />} />
                     <Route path="dashboard" element={<Dashboard />} />
                     <Route path="products" element={<ProductList />} />
+                    <Route path="stock-movements" element={<StockMovements />} />
                     <Route path="customers" element={<CustomerList />} />
                     <Route path="invoices" element={<InvoiceList />} />
                     <Route path="invoices/:invoiceId" element={<InvoiceDetail />} />
                     <Route path="reports" element={<Reports />} />
                     <Route path="accounts" element={<AccountsReceivable />} />
+                    <Route path="pending-registrations" element={<PendingRegistrations />} />
                     <Route path="settings" element={<Settings />} />
                 </Route>
             </Routes>

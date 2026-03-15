@@ -13,6 +13,7 @@
     "seed:examples": "ts-node -r tsconfig-paths/register src/scripts/seed-example-data.ts",
     "seed:production": "ts-node -r tsconfig-paths/register src/scripts/seed.ts",
     "db:copy-local-to-supabase": "ts-node -r tsconfig-paths/register src/scripts/copy-local-to-supabase.ts",
+    "create:admin": "ts-node -r tsconfig-paths/register src/scripts/create-admin-user.ts",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",

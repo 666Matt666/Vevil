@@ -13,7 +13,9 @@ import { ProductsModule } from './products/products.module';
 import { CustomersModule } from './customers/customers.module';
 import { InvoicesModule } from './invoices/invoices.module';
 import { MetricsModule } from './metrics/metrics.module';
+import { StockMovementsModule } from './stock-movements/stock-movements.module';
 import { MailModule } from './mail/mail.module';
+import { PendingRegistrationsModule } from './pending-registrations/pending-registrations.module';
 // import { ProfileModule } from './profile/profile.module';
 
 @Module({
@@ -122,7 +124,11 @@ import { MailModule } from './mail/mail.module';
 
     MetricsModule,
 
+    StockMovementsModule,
+
     MailModule,
+
+    PendingRegistrationsModule,
 
     // ProfileModule,
   ],

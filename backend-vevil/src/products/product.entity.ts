@@ -15,11 +15,23 @@ export class Product {
   @Column('decimal', { precision: 10, scale: 2 })
   price: number;
 
+  /** Precio de costo (para calcular margen). Opcional. */
+  @Column('decimal', { precision: 10, scale: 2, nullable: true })
+  costPrice: number | null;
+
   @Column({ length: 3, default: 'PYG' })
   currency: string;
 
   @Column('int')
   stock: number;
+
+  /** Stock mínimo deseado; si stock < minStock se considera alerta. 0 = no usar. */
+  @Column('int', { default: 0 })
+  minStock: number;
+
+  /** Categoría del producto: fuel, lubricants, snacks, other, etc. */
+  @Column({ length: 50, nullable: true })
+  category: string | null;
 
   @Column({ nullable: true })
   description: string;

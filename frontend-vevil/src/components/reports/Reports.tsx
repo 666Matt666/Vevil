@@ -184,21 +184,22 @@ const Reports: React.FC = () => {
     const topCustomers = getTopCustomers();
     const maxSale = Math.max(...salesByDay.map(s => s.total), 1);
 
-    // Exportar a CSV
     const exportToCSV = () => {
+        const BOM = '\uFEFF';
         let csv = 'Fecha,N° Factura,Cliente,Total\n';
         filteredInvoices.forEach(inv => {
             const date = new Date(inv.date).toLocaleDateString('es-PY');
-            const customerName = inv.customer?.name || 'N/A';
-            csv += `${date},${inv.id},"${customerName}",${inv.total}\n`;
+            const customerName = (inv.customer?.name || 'N/A').replace(/"/g, '""');
+            csv += `${date},${inv.id},"${customerName}",${Number(inv.total)}\n`;
         });
-
-        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const filename = `reporte_ventas_${new Date().toISOString().split('T')[0]}.csv`;
+        const blob = new Blob([BOM + csv], { type: 'text/csv;charset=utf-8;' });
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = url;
-        link.download = `reporte_ventas_${new Date().toISOString().split('T')[0]}.csv`;
+        link.download = filename;
         link.click();
+        URL.revokeObjectURL(url);
     };
 
     // Imprimir reporte
@@ -559,7 +560,9 @@ const Reports: React.FC = () => {
                             {topProducts.map((tp, index) => {
                                 const maxRevenue = topProducts[0]?.revenue || 1;
                                 const percentage = (tp.revenue / maxRevenue) * 100;
-                                
+                                const cost = tp.product.costPrice != null ? Number(tp.product.costPrice) * tp.quantity : null;
+                                const margin = cost != null ? tp.revenue - cost : null;
+                                const marginPct = cost != null && cost > 0 ? (margin! / cost) * 100 : null;
                                 return (
                                     <div key={tp.product.id} style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
                                         <span style={{ 
@@ -581,6 +584,11 @@ const Reports: React.FC = () => {
                                                 <span style={{ fontWeight: 500, color: '#1e293b' }}>{tp.product.name}</span>
                                                 <span style={{ color: '#64748b', fontSize: '14px' }}>{tp.quantity} vendidos</span>
                                             </div>
+                                            {margin != null && marginPct != null && (
+                                                <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '4px' }}>
+                                                    Margen: {formatMoney(margin, 'PYG')} ({marginPct.toFixed(0)}%)
+                                                </div>
+                                            )}
                                             <div style={{ 
                                                 height: '8px', 
                                                 backgroundColor: '#e2e8f0', 
@@ -681,4 +689,15 @@ const Reports: React.FC = () => {
 };
 
 export default Reports;
+
+
+
+
+
+
+
+
+
+
+
 

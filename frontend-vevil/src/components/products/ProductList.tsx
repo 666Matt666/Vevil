@@ -30,12 +30,23 @@ const labelStyle: React.CSSProperties = {
     marginBottom: '6px'
 };
 
+const CATEGORY_OPTIONS = [
+    { value: '', label: 'Sin categoría' },
+    { value: 'fuel', label: 'Combustible' },
+    { value: 'lubricants', label: 'Lubricantes' },
+    { value: 'snacks', label: 'Snacks / Kiosco' },
+    { value: 'other', label: 'Otro' },
+];
+
 interface ProductFormData {
     name: string;
     type: string;
     price: string;
+    costPrice: string;
     currency: string;
     stock: string;
+    minStock: string;
+    category: string;
     description: string;
 }
 
@@ -43,8 +54,11 @@ const emptyForm: ProductFormData = {
     name: '',
     type: 'fuel',
     price: '',
+    costPrice: '',
     currency: 'PYG',
     stock: '',
+    minStock: '0',
+    category: '',
     description: ''
 };
 
@@ -60,12 +74,14 @@ const ProductList: React.FC = () => {
     // Filtros
     const [searchName, setSearchName] = useState('');
     const [filterType, setFilterType] = useState('all');
+    const [filterCategory, setFilterCategory] = useState('all');
 
     // Productos filtrados
     const filteredProducts = products.filter(product => {
         const matchesName = product.name.toLowerCase().includes(searchName.toLowerCase());
         const matchesType = filterType === 'all' || product.type === filterType;
-        return matchesName && matchesType;
+        const matchesCategory = filterCategory === 'all' || (product.category || '') === filterCategory;
+        return matchesName && matchesType && matchesCategory;
     });
 
     useEffect(() => {
@@ -97,8 +113,11 @@ const ProductList: React.FC = () => {
             name: product.name,
             type: product.type,
             price: String(product.price),
+            costPrice: product.costPrice != null ? String(product.costPrice) : '',
             currency: (product as any).currency || 'PYG',
             stock: String(product.stock),
+            minStock: product.minStock != null ? String(product.minStock) : '0',
+            category: product.category || '',
             description: product.description || ''
         });
         setShowModal(true);
@@ -119,8 +138,11 @@ const ProductList: React.FC = () => {
                 name: formData.name,
                 type: formData.type,
                 price: parseFloat(formData.price),
+                costPrice: formData.costPrice ? parseFloat(formData.costPrice) : undefined,
                 currency: formData.currency,
                 stock: parseInt(formData.stock),
+                minStock: parseInt(formData.minStock, 10) || 0,
+                category: formData.category || undefined,
                 description: formData.description || undefined
             };
 
@@ -280,13 +302,31 @@ const ProductList: React.FC = () => {
                                 minWidth: '120px'
                             }}
                         >
-                            <option value="all">Todos</option>
+                            <option value="all">Todos los tipos</option>
                             <option value="fuel">Combustible</option>
                             <option value="other">Otro</option>
                         </select>
-                        {(searchName || filterType !== 'all') && (
+                        <select
+                            value={filterCategory}
+                            onChange={(e) => setFilterCategory(e.target.value)}
+                            style={{
+                                padding: '10px 12px',
+                                border: '1px solid #e2e8f0',
+                                borderRadius: '8px',
+                                fontSize: '14px',
+                                backgroundColor: 'white',
+                                cursor: 'pointer',
+                                minWidth: '140px'
+                            }}
+                        >
+                            <option value="all">Todas las categorías</option>
+                            {CATEGORY_OPTIONS.filter(o => o.value).map(o => (
+                                <option key={o.value} value={o.value}>{o.label}</option>
+                            ))}
+                        </select>
+                        {(searchName || filterType !== 'all' || filterCategory !== 'all') && (
                             <button
-                                onClick={() => { setSearchName(''); setFilterType('all'); }}
+                                onClick={() => { setSearchName(''); setFilterType('all'); setFilterCategory('all'); }}
                                 style={{
                                     ...buttonStyle,
                                     backgroundColor: '#f1f5f9',
@@ -328,13 +368,15 @@ const ProductList: React.FC = () => {
                     overflowX: 'auto',
                     WebkitOverflowScrolling: 'touch'
                 }}>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '700px' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '900px' }}>
                         <thead>
                             <tr style={{ backgroundColor: '#f8fafc' }}>
                                 <th style={{ padding: '16px', textAlign: 'left', fontWeight: 600, color: '#475569', fontSize: '14px' }}>ID</th>
                                 <th style={{ padding: '16px', textAlign: 'left', fontWeight: 600, color: '#475569', fontSize: '14px' }}>Nombre</th>
                                 <th style={{ padding: '16px', textAlign: 'left', fontWeight: 600, color: '#475569', fontSize: '14px' }}>Tipo</th>
+                                <th style={{ padding: '16px', textAlign: 'left', fontWeight: 600, color: '#475569', fontSize: '14px' }}>Categoría</th>
                                 <th style={{ padding: '16px', textAlign: 'right', fontWeight: 600, color: '#475569', fontSize: '14px' }}>Precio</th>
+                                <th style={{ padding: '16px', textAlign: 'right', fontWeight: 600, color: '#475569', fontSize: '14px' }}>Costo</th>
                                 <th style={{ padding: '16px', textAlign: 'right', fontWeight: 600, color: '#475569', fontSize: '14px' }}>Stock</th>
                                 <th style={{ padding: '16px', textAlign: 'center', fontWeight: 600, color: '#475569', fontSize: '14px' }}>Acciones</th>
                             </tr>
@@ -364,16 +406,25 @@ const ProductList: React.FC = () => {
                                             {getTypeLabel(product.type)}
                                         </span>
                                     </td>
+                                    <td style={{ padding: '16px', fontSize: '13px', color: '#64748b' }}>
+                                        {CATEGORY_OPTIONS.find(c => c.value === (product.category || ''))?.label || product.category || '—'}
+                                    </td>
                                     <td style={{ padding: '16px', textAlign: 'right', fontWeight: 600, color: '#1e293b' }}>
                                         {formatMoney(Number(product.price), (product as any).currency || 'PYG')}
+                                    </td>
+                                    <td style={{ padding: '16px', textAlign: 'right', fontSize: '13px', color: '#64748b' }}>
+                                        {product.costPrice != null ? formatMoney(Number(product.costPrice), (product as any).currency || 'PYG') : '—'}
                                     </td>
                                     <td style={{ 
                                         padding: '16px', 
                                         textAlign: 'right', 
-                                        color: product.stock < 100 ? '#dc2626' : '#64748b',
-                                        fontWeight: product.stock < 100 ? 600 : 400
+                                        color: (product.minStock != null && product.minStock > 0 && product.stock < product.minStock) ? '#dc2626' : product.stock < 100 ? '#b45309' : '#64748b',
+                                        fontWeight: (product.minStock != null && product.minStock > 0 && product.stock < product.minStock) ? 600 : 400
                                     }}>
                                         {product.stock.toLocaleString()} un.
+                                        {(product.minStock != null && product.minStock > 0 && product.stock < product.minStock) && (
+                                            <span style={{ display: 'block', fontSize: '11px', color: '#dc2626' }}>Mín: {product.minStock}</span>
+                                        )}
                                     </td>
                                     <td style={{ padding: '16px', textAlign: 'center' }}>
                                         <button
@@ -462,7 +513,7 @@ const ProductList: React.FC = () => {
 
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px', marginBottom: '20px' }}>
                                 <div>
-                                    <label style={labelStyle}>Precio *</label>
+                                    <label style={labelStyle}>Precio venta *</label>
                                     <input
                                         type="number"
                                         step="0.01"
@@ -472,6 +523,18 @@ const ProductList: React.FC = () => {
                                         required
                                         style={inputStyle}
                                         placeholder="0.00"
+                                    />
+                                </div>
+                                <div>
+                                    <label style={labelStyle}>Costo (opcional)</label>
+                                    <input
+                                        type="number"
+                                        step="0.01"
+                                        min="0"
+                                        value={formData.costPrice}
+                                        onChange={(e) => setFormData({ ...formData, costPrice: e.target.value })}
+                                        style={inputStyle}
+                                        placeholder="Para margen"
                                     />
                                 </div>
                                 <div>
@@ -489,8 +552,10 @@ const ProductList: React.FC = () => {
                                         ))}
                                     </select>
                                 </div>
+                            </div>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px', marginBottom: '20px' }}>
                                 <div>
-                                    <label style={labelStyle}>Stock *</label>
+                                    <label style={labelStyle}>Stock actual *</label>
                                     <input
                                         type="number"
                                         min="0"
@@ -500,6 +565,29 @@ const ProductList: React.FC = () => {
                                         style={inputStyle}
                                         placeholder="0"
                                     />
+                                </div>
+                                <div>
+                                    <label style={labelStyle}>Stock mínimo</label>
+                                    <input
+                                        type="number"
+                                        min="0"
+                                        value={formData.minStock}
+                                        onChange={(e) => setFormData({ ...formData, minStock: e.target.value })}
+                                        style={inputStyle}
+                                        placeholder="0"
+                                    />
+                                </div>
+                                <div>
+                                    <label style={labelStyle}>Categoría</label>
+                                    <select
+                                        value={formData.category}
+                                        onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                                        style={inputStyle}
+                                    >
+                                        {CATEGORY_OPTIONS.map(o => (
+                                            <option key={o.value || 'none'} value={o.value}>{o.label}</option>
+                                        ))}
+                                    </select>
                                 </div>
                             </div>
 

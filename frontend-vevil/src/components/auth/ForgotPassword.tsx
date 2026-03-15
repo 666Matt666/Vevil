@@ -1,14 +1,21 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { forgotPassword } from '../../services/api';
 
 const ForgotPassword: React.FC = () => {
     const [email, setEmail] = useState('');
     const [sent, setSent] = useState(false);
+    const [error, setError] = useState('');
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        // Por ahora solo mostramos mensaje; cuando el backend tenga endpoint de reset se puede llamar aquí
-        setSent(true);
+        setError('');
+        try {
+            const res = await forgotPassword(email);
+            setSent(true);
+        } catch (err: any) {
+            setError(err.message || 'Error al enviar');
+        }
     };
 
     return (
@@ -39,6 +46,11 @@ const ForgotPassword: React.FC = () => {
                             Ingresá tu email y te enviaremos un enlace para restablecer tu contraseña.
                         </p>
                         <form onSubmit={handleSubmit}>
+                            {error && (
+                                <div style={{ marginBottom: '16px', padding: '12px', backgroundColor: '#fef2f2', color: '#b91c1c', borderRadius: '8px', fontSize: '14px' }}>
+                                    {error}
+                                </div>
+                            )}
                             <div style={{ marginBottom: '20px' }}>
                                 <label style={{ display: 'block', fontSize: '14px', fontWeight: 500, color: '#374151', marginBottom: '6px' }}>
                                     Email

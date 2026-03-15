@@ -26,6 +26,15 @@ export class CreateUserDto {
   @IsNotEmpty()
   name: string;
 
+  @ApiProperty({ example: 'Pérez', required: false })
+  @IsString()
+  @IsOptional()
+  lastName?: string;
+
+  @ApiProperty({ enum: ['male', 'female'], example: 'male', required: false })
+  @IsOptional()
+  gender?: 'male' | 'female';
+
   @ApiProperty({ enum: UserRole, example: UserRole.USER, required: false })
   @IsEnum(UserRole)
   @IsOptional()

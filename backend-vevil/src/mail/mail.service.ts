@@ -48,4 +48,65 @@ export class MailService {
       `,
     });
   }
+
+  /**
+   * Envía el email para confirmar la solicitud de registro (link/botón).
+   */
+  async sendRegistrationConfirmationEmail(to: string, confirmationLink: string): Promise<void> {
+    if (!this.isConfigured()) {
+      if (this.configService.get<string>('NODE_ENV') === 'development') {
+        console.log('[Mail] Confirm registration link:', confirmationLink);
+      }
+      return;
+    }
+    const from =
+      this.configService.get<string>('MAIL_FROM') ||
+      this.configService.get<string>('MAIL_USER') ||
+      'noreply@vevil.com';
+    await this.mailerService.sendMail({
+      to,
+      from,
+      subject: 'Confirmá tu solicitud de registro - Vevil',
+      html: `
+        <p>Hola,</p>
+        <p>Recibimos tu solicitud para registrarte en Vevil.</p>
+        <p>Para confirmar que estás de acuerdo, hacé clic en el siguiente enlace (válido por 24 horas):</p>
+        <p><a href="${confirmationLink}" style="display:inline-block; padding:10px 20px; background:#4f46e5; color:white; text-decoration:none; border-radius:6px;">Confirmar mi registro</a></p>
+        <p>O copiá este enlace en tu navegador:</p>
+        <p><a href="${confirmationLink}">${confirmationLink}</a></p>
+        <p>Si no solicitaste el registro, podés ignorar este correo.</p>
+        <p>Saludos,<br/>El equipo de Vevil</p>
+      `,
+    });
+  }
+
+  /**
+   * Envía el email para que el usuario cree su contraseña (tras aprobación de admin).
+   */
+  async sendSetPasswordEmail(to: string, setPasswordLink: string): Promise<void> {
+    if (!this.isConfigured()) {
+      if (this.configService.get<string>('NODE_ENV') === 'development') {
+        console.log('[Mail] Set password link:', setPasswordLink);
+      }
+      return;
+    }
+    const from =
+      this.configService.get<string>('MAIL_FROM') ||
+      this.configService.get<string>('MAIL_USER') ||
+      'noreply@vevil.com';
+    await this.mailerService.sendMail({
+      to,
+      from,
+      subject: 'Creá tu contraseña - Vevil',
+      html: `
+        <p>Hola,</p>
+        <p>Tu solicitud de registro en Vevil fue aprobada.</p>
+        <p>Hacé clic en el siguiente enlace para crear tu contraseña e ingresar (válido por 7 días):</p>
+        <p><a href="${setPasswordLink}" style="display:inline-block; padding:10px 20px; background:#4f46e5; color:white; text-decoration:none; border-radius:6px;">Crear mi contraseña</a></p>
+        <p>O copiá este enlace en tu navegador:</p>
+        <p><a href="${setPasswordLink}">${setPasswordLink}</a></p>
+        <p>Saludos,<br/>El equipo de Vevil</p>
+      `,
+    });
+  }
 }

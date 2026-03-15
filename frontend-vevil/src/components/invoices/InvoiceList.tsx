@@ -73,35 +73,21 @@ const InvoiceList: React.FC = () => {
     const [filterDateFrom, setFilterDateFrom] = useState('');
     const [filterDateTo, setFilterDateTo] = useState('');
 
-    // Estado local de facturas (para simular estados de pago)
-    const [invoiceStatuses, setInvoiceStatuses] = useState<Record<number, PaymentStatus>>({});
-
     const invoiceConfig = getInvoiceConfig();
     const companyConfig = getCompanyConfig();
 
-    // Cargar estados guardados
-    useEffect(() => {
-        const saved = localStorage.getItem('invoice_statuses');
-        if (saved) {
-            setInvoiceStatuses(JSON.parse(saved));
+    const getInvoiceStatus = (invoice: Invoice): PaymentStatus => {
+        const s = (invoice as any).status;
+        return (s === 'pending' || s === 'paid' || s === 'cancelled' ? s : 'paid') as PaymentStatus;
+    };
+
+    const changeInvoiceStatus = async (invoiceId: number, status: PaymentStatus) => {
+        try {
+            await invoicesApi.updateStatus(invoiceId, status);
+            setInvoices(prev => prev.map(inv => inv.id === invoiceId ? { ...inv, status } : inv));
+        } catch (err: any) {
+            alert(err.message || 'Error al actualizar estado');
         }
-    }, []);
-
-    // Guardar estados
-    const saveStatuses = (statuses: Record<number, PaymentStatus>) => {
-        localStorage.setItem('invoice_statuses', JSON.stringify(statuses));
-        setInvoiceStatuses(statuses);
-    };
-
-    // Obtener estado de una factura
-    const getInvoiceStatus = (invoiceId: number): PaymentStatus => {
-        return invoiceStatuses[invoiceId] || 'paid';
-    };
-
-    // Cambiar estado de factura
-    const changeInvoiceStatus = (invoiceId: number, status: PaymentStatus) => {
-        const newStatuses = { ...invoiceStatuses, [invoiceId]: status };
-        saveStatuses(newStatuses);
     };
 
     // Facturas filtradas
@@ -112,7 +98,7 @@ const InvoiceList: React.FC = () => {
             formatInvoiceNumber(invoice.id).toLowerCase().includes(searchLower) ||
             (invoice.customer?.name && invoice.customer.name.toLowerCase().includes(searchLower));
         const matchesCustomer = filterCustomerId === 'all' || String(invoice.customerId) === filterCustomerId;
-        const matchesStatus = filterStatus === 'all' || getInvoiceStatus(invoice.id) === filterStatus;
+        const matchesStatus = filterStatus === 'all' || getInvoiceStatus(invoice) === filterStatus;
         
         // Filtro de fecha
         let matchesDate = true;
@@ -216,19 +202,13 @@ const InvoiceList: React.FC = () => {
         setSaving(true);
 
         try {
-            const newInvoice = await invoicesApi.create({
+            const status = selectedPaymentMethod === 'credit' ? 'pending' : 'paid';
+            await invoicesApi.create({
                 customerId: parseInt(selectedCustomerId),
                 currency: selectedCurrency,
+                status,
                 items: validItems
             });
-            
-            // Establecer estado según método de pago
-            if (selectedPaymentMethod === 'credit') {
-                changeInvoiceStatus(newInvoice.id, 'pending');
-            } else {
-                changeInvoiceStatus(newInvoice.id, 'paid');
-            }
-            
             closeModal();
             loadData();
         } catch (err: any) {
@@ -240,7 +220,7 @@ const InvoiceList: React.FC = () => {
 
     // Imprimir factura
     const printInvoice = (invoice: Invoice) => {
-        const status = getInvoiceStatus(invoice.id);
+        const status = getInvoiceStatus(invoice);
         const subtotal = Number(invoice.total) / 1.10;
         const iva = Number(invoice.total) - subtotal;
         
@@ -585,7 +565,7 @@ const InvoiceList: React.FC = () => {
                         </thead>
                         <tbody>
                             {filteredInvoices.map((invoice) => {
-                                const status = getInvoiceStatus(invoice.id);
+                                const status = getInvoiceStatus(invoice);
                                 const isCancelled = status === 'cancelled';
                                 
                                 return (

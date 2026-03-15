@@ -121,6 +121,83 @@ export const register = async (name: string, email: string, password: string): P
     }
 };
 
+/** Solicitar registro: envía email al usuario para que confirme; luego un admin debe aprobar. */
+export const requestRegistration = async (data: {
+    email: string;
+    name: string;
+    lastName?: string;
+    gender?: 'male' | 'female';
+}): Promise<{ message: string }> => {
+    const response = await fetch(`${API_BASE_URL}/auth/request-registration`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+    });
+    if (!response.ok) {
+        const err = await response.json().catch(() => ({ message: 'Error al enviar la solicitud' }));
+        throw new Error(err.message || 'Error al enviar la solicitud');
+    }
+    return response.json();
+};
+
+/** Confirmar correo desde el link del email (token en query). */
+export const confirmRegistration = async (token: string): Promise<{ message: string }> => {
+    const response = await fetch(`${API_BASE_URL}/auth/confirm-registration?token=${encodeURIComponent(token)}`);
+    if (!response.ok) {
+        const err = await response.json().catch(() => ({ message: 'Enlace inválido o expirado' }));
+        throw new Error(err.message || 'Enlace inválido o expirado');
+    }
+    return response.json();
+};
+
+// ============ SOLICITUDES DE REGISTRO (admin) ============
+export interface PendingRegistrationItem {
+    id: string;
+    email: string;
+    name: string;
+    lastName?: string;
+    gender?: string;
+    status: string;
+    emailConfirmedAt?: string;
+    createdAt: string;
+}
+
+export const pendingRegistrationsApi = {
+    getCount: async (): Promise<number> => {
+        const r = await fetchWithAuth(`${API_BASE_URL}/pending-registrations/count`);
+        if (!r.ok) return 0;
+        const data = await r.json();
+        return data.count ?? 0;
+    },
+    getList: async (): Promise<PendingRegistrationItem[]> => {
+        const r = await fetchWithAuth(`${API_BASE_URL}/pending-registrations`);
+        if (!r.ok) throw new Error('Error al cargar solicitudes');
+        return r.json();
+    },
+    approve: async (id: string, role: 'admin' | 'user'): Promise<{ message: string }> => {
+        const r = await fetchWithAuth(`${API_BASE_URL}/pending-registrations/${id}/approve`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ role }),
+        });
+        if (!r.ok) {
+            const err = await r.json().catch(() => ({}));
+            throw new Error(err.message || 'Error al aprobar');
+        }
+        return r.json();
+    },
+    reject: async (id: string): Promise<{ message: string }> => {
+        const r = await fetchWithAuth(`${API_BASE_URL}/pending-registrations/${id}/reject`, {
+            method: 'POST',
+        });
+        if (!r.ok) {
+            const err = await r.json().catch(() => ({}));
+            throw new Error(err.message || 'Error al rechazar');
+        }
+        return r.json();
+    },
+};
+
 export const forgotPassword = async (email: string): Promise<{ message: string }> => {
     const url = `${API_BASE_URL}/auth/forgot-password`;
     const response = await fetch(url, {
@@ -211,8 +288,11 @@ export interface Product {
     name: string;
     type: string;
     price: number;
+    costPrice?: number | null;
     currency?: string;
     stock: number;
+    minStock?: number;
+    category?: string | null;
     description?: string;
 }
 
@@ -252,6 +332,40 @@ export const productsApi = {
             method: 'DELETE',
         });
         if (!response.ok) throw new Error('Error al eliminar producto');
+    },
+};
+
+// ============ MOVIMIENTOS DE STOCK ============
+export interface StockMovement {
+    id: number;
+    productId: number;
+    product: Product;
+    type: 'in' | 'out';
+    quantity: number;
+    reason: string;
+    note: string | null;
+    invoiceId: number | null;
+    createdAt: string;
+}
+
+export const stockMovementsApi = {
+    getAll: async (productId?: number): Promise<StockMovement[]> => {
+        const url = productId != null ? `/stock-movements?productId=${productId}` : '/stock-movements';
+        const response = await fetchWithAuth(url);
+        if (!response.ok) throw new Error('Error al obtener movimientos');
+        return response.json();
+    },
+    create: async (data: { productId: number; type: 'in' | 'out'; quantity: number; reason: string; note?: string }): Promise<StockMovement> => {
+        const response = await fetchWithAuth('/stock-movements', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data),
+        });
+        if (!response.ok) {
+            const err = await response.json().catch(() => ({}));
+            throw new Error(err.message || 'Error al registrar movimiento');
+        }
+        return response.json();
     },
 };
 
@@ -415,7 +529,7 @@ export interface DashboardMetrics {
     revenueLastMonth: number;
     invoicesLastMonth: number;
     lowStockProducts: number;
-    lowStockList: { id: number; name: string; stock: number }[];
+    lowStockList: { id: number; name: string; stock: number; minStock: number }[];
     topProductsSold: { productId: number; productName: string; quantitySold: number }[];
     periodFrom?: string;
     periodTo?: string;

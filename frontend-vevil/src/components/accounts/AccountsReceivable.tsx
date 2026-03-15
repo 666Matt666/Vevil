@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { customersApi, Customer, invoicesApi, Invoice } from '../../services/api';
+import { customersApi, Customer, invoicesApi, Invoice, Payment as ApiPayment } from '../../services/api';
 import { formatMoney } from '../settings/Settings';
 
 const buttonStyle: React.CSSProperties = {
@@ -28,44 +28,27 @@ const cardStyle: React.CSSProperties = {
     boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
 };
 
-// Tipos
-interface Payment {
-    id: string;
-    customerId: number;
-    invoiceId?: number;
-    amount: number;
-    date: string;
-    method: string;
-    notes: string;
-}
-
 interface CustomerAccount {
     customer: Customer;
     pendingInvoices: Invoice[];
     totalDebt: number;
-    payments: Payment[];
+    payments: (ApiPayment & { invoiceId: number })[];
     totalPaid: number;
 }
 
 const AccountsReceivable: React.FC = () => {
     const [customers, setCustomers] = useState<Customer[]>([]);
     const [invoices, setInvoices] = useState<Invoice[]>([]);
-    const [payments, setPayments] = useState<Payment[]>([]);
     const [loading, setLoading] = useState(true);
     const [selectedCustomerId, setSelectedCustomerId] = useState<number | null>(null);
     const [showPaymentModal, setShowPaymentModal] = useState(false);
     const [paymentForm, setPaymentForm] = useState({
+        invoiceId: '' as string,
         amount: '',
-        method: 'cash',
-        notes: ''
+        method: 'cash'
     });
 
-    // Cargar pagos guardados
     useEffect(() => {
-        const saved = localStorage.getItem('account_payments');
-        if (saved) {
-            setPayments(JSON.parse(saved));
-        }
         loadData();
     }, []);
 
@@ -85,37 +68,27 @@ const AccountsReceivable: React.FC = () => {
         }
     };
 
-    // Obtener estado de facturas (desde localStorage)
-    const getInvoiceStatus = (invoiceId: number): string => {
-        const saved = localStorage.getItem('invoice_statuses');
-        if (saved) {
-            const statuses = JSON.parse(saved);
-            return statuses[invoiceId] || 'paid';
-        }
-        return 'paid';
-    };
-
-    // Calcular cuentas por cliente
     const getCustomerAccounts = (): CustomerAccount[] => {
         return customers.map(customer => {
-            // Facturas pendientes de este cliente
-            const pendingInvoices = invoices.filter(inv => 
-                inv.customerId === customer.id && 
-                getInvoiceStatus(inv.id) === 'pending'
+            const pendingInvoices = invoices.filter(inv =>
+                inv.customerId === customer.id && (inv as any).status === 'pending'
             );
-            
-            // Total de deuda
             const totalDebt = pendingInvoices.reduce((sum, inv) => sum + Number(inv.total), 0);
-            
-            // Pagos de este cliente
-            const customerPayments = payments.filter(p => p.customerId === customer.id);
-            const totalPaid = customerPayments.reduce((sum, p) => sum + p.amount, 0);
-
+            const customerInvoices = invoices.filter(inv => inv.customerId === customer.id);
+            const payments: (ApiPayment & { invoiceId: number })[] = [];
+            let totalPaid = 0;
+            customerInvoices.forEach(inv => {
+                (inv.payments || []).forEach((p: ApiPayment) => {
+                    payments.push({ ...p, invoiceId: inv.id });
+                    totalPaid += Number(p.amount);
+                });
+            });
+            payments.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
             return {
                 customer,
                 pendingInvoices,
                 totalDebt,
-                payments: customerPayments,
+                payments,
                 totalPaid
             };
         }).filter(acc => acc.totalDebt > 0 || acc.payments.length > 0)
@@ -126,43 +99,33 @@ const AccountsReceivable: React.FC = () => {
     const totalPending = customerAccounts.reduce((sum, acc) => sum + acc.totalDebt, 0);
     const selectedAccount = customerAccounts.find(acc => acc.customer.id === selectedCustomerId);
 
-    // Guardar pago
-    const savePayment = (payment: Payment) => {
-        const newPayments = [...payments, payment];
-        localStorage.setItem('account_payments', JSON.stringify(newPayments));
-        setPayments(newPayments);
-    };
-
-    // Registrar pago
-    const handlePayment = (e: React.FormEvent) => {
+    const handlePayment = async (e: React.FormEvent) => {
         e.preventDefault();
-        
-        if (!selectedCustomerId || !paymentForm.amount) {
-            alert('Completa todos los campos');
+        const invoiceId = paymentForm.invoiceId ? parseInt(paymentForm.invoiceId, 10) : 0;
+        if (!invoiceId || !paymentForm.amount) {
+            alert('Seleccioná una factura e ingresá el monto');
             return;
         }
-
-        const payment: Payment = {
-            id: `pay_${Date.now()}`,
-            customerId: selectedCustomerId,
-            amount: parseFloat(paymentForm.amount),
-            date: new Date().toISOString(),
-            method: paymentForm.method,
-            notes: paymentForm.notes
-        };
-
-        savePayment(payment);
-        setShowPaymentModal(false);
-        setPaymentForm({ amount: '', method: 'cash', notes: '' });
+        try {
+            await invoicesApi.addPayment(invoiceId, {
+                amount: parseFloat(paymentForm.amount),
+                method: paymentForm.method
+            });
+            setShowPaymentModal(false);
+            setPaymentForm({ invoiceId: '', amount: '', method: 'cash' });
+            loadData();
+        } catch (err: any) {
+            alert(err.message || 'Error al registrar pago');
+        }
     };
 
-    // Marcar factura como pagada
-    const markInvoiceAsPaid = (invoiceId: number) => {
-        const saved = localStorage.getItem('invoice_statuses');
-        const statuses = saved ? JSON.parse(saved) : {};
-        statuses[invoiceId] = 'paid';
-        localStorage.setItem('invoice_statuses', JSON.stringify(statuses));
-        loadData(); // Recargar para actualizar vista
+    const markInvoiceAsPaid = async (invoiceId: number) => {
+        try {
+            await invoicesApi.updateStatus(invoiceId, 'paid');
+            loadData();
+        } catch (err: any) {
+            alert(err.message || 'Error al actualizar');
+        }
     };
 
     const formatDate = (dateString: string) => {
@@ -321,7 +284,15 @@ const AccountsReceivable: React.FC = () => {
                                     )}
                                 </div>
                                 <button
-                                    onClick={() => setShowPaymentModal(true)}
+                                    onClick={() => {
+                                        const firstId = selectedAccount.pendingInvoices[0]?.id;
+                                        setPaymentForm({
+                                            invoiceId: firstId ? String(firstId) : '',
+                                            amount: '',
+                                            method: 'cash'
+                                        });
+                                        setShowPaymentModal(true);
+                                    }}
                                     style={{
                                         ...buttonStyle,
                                         backgroundColor: '#22c55e',
@@ -433,15 +404,10 @@ const AccountsReceivable: React.FC = () => {
                                                     {formatDate(payment.date)}
                                                 </span>
                                                 <span style={{ marginLeft: '12px', fontSize: '12px', color: '#94a3b8' }}>
-                                                    {payment.method === 'cash' && '💵 Efectivo'}
+                                                    Factura #{payment.invoiceId} · {payment.method === 'cash' && '💵 Efectivo'}
                                                     {payment.method === 'card' && '💳 Tarjeta'}
                                                     {payment.method === 'transfer' && '🏦 Transferencia'}
                                                 </span>
-                                                {payment.notes && (
-                                                    <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: '#64748b' }}>
-                                                        📝 {payment.notes}
-                                                    </p>
-                                                )}
                                             </div>
                                             <span style={{ fontWeight: 700, color: '#22c55e' }}>
                                                 + {formatMoney(payment.amount, 'PYG')}
@@ -486,6 +452,24 @@ const AccountsReceivable: React.FC = () => {
                         <form onSubmit={handlePayment}>
                             <div style={{ marginBottom: '20px' }}>
                                 <label style={{ display: 'block', fontSize: '14px', fontWeight: 500, color: '#374151', marginBottom: '6px' }}>
+                                    Aplicar a factura *
+                                </label>
+                                <select
+                                    value={paymentForm.invoiceId}
+                                    onChange={(e) => setPaymentForm({ ...paymentForm, invoiceId: e.target.value })}
+                                    required
+                                    style={inputStyle}
+                                >
+                                    <option value="">Seleccionar factura</option>
+                                    {selectedAccount.pendingInvoices.map(inv => (
+                                        <option key={inv.id} value={inv.id}>
+                                            #{inv.id} – {formatMoney(Number(inv.total), (inv as any).currency || 'PYG')} ({formatDate(inv.date)})
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div style={{ marginBottom: '20px' }}>
+                                <label style={{ display: 'block', fontSize: '14px', fontWeight: 500, color: '#374151', marginBottom: '6px' }}>
                                     Monto *
                                 </label>
                                 <input
@@ -493,18 +477,18 @@ const AccountsReceivable: React.FC = () => {
                                     value={paymentForm.amount}
                                     onChange={(e) => setPaymentForm({ ...paymentForm, amount: e.target.value })}
                                     required
-                                    min="1"
+                                    min="0.01"
+                                    step="0.01"
                                     style={inputStyle}
                                     placeholder="0"
                                 />
                                 <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: '#64748b' }}>
-                                    Deuda actual: {formatMoney(selectedAccount.totalDebt, 'PYG')}
+                                    Deuda total del cliente: {formatMoney(selectedAccount.totalDebt, 'PYG')}
                                 </p>
                             </div>
-
-                            <div style={{ marginBottom: '20px' }}>
+                            <div style={{ marginBottom: '24px' }}>
                                 <label style={{ display: 'block', fontSize: '14px', fontWeight: 500, color: '#374151', marginBottom: '6px' }}>
-                                    Método de Pago
+                                    Método de pago
                                 </label>
                                 <select
                                     value={paymentForm.method}
@@ -515,19 +499,6 @@ const AccountsReceivable: React.FC = () => {
                                     <option value="card">💳 Tarjeta</option>
                                     <option value="transfer">🏦 Transferencia</option>
                                 </select>
-                            </div>
-
-                            <div style={{ marginBottom: '24px' }}>
-                                <label style={{ display: 'block', fontSize: '14px', fontWeight: 500, color: '#374151', marginBottom: '6px' }}>
-                                    Notas (opcional)
-                                </label>
-                                <input
-                                    type="text"
-                                    value={paymentForm.notes}
-                                    onChange={(e) => setPaymentForm({ ...paymentForm, notes: e.target.value })}
-                                    style={inputStyle}
-                                    placeholder="Ej: Pago parcial, N° recibo..."
-                                />
                             </div>
 
                             <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
@@ -564,4 +535,15 @@ const AccountsReceivable: React.FC = () => {
 };
 
 export default AccountsReceivable;
+
+
+
+
+
+
+
+
+
+
+
 

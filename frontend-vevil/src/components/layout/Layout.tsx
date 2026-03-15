@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Outlet, Link, useLocation, useNavigate, Navigate } from 'react-router-dom';
-import { getProfile } from '../../services/api';
+import { getProfile, pendingRegistrationsApi } from '../../services/api';
 import CurrencyRatesBar from './CurrencyRatesBar';
 import HelpPanel from '../help/HelpPanel';
 
 const menuItems = [
     { label: 'Inicio', icon: '🏠', path: '/dashboard' },
     { label: 'Productos', icon: '📦', path: '/products' },
+    { label: 'Mov. de stock', icon: '📥', path: '/stock-movements' },
     { label: 'Clientes', icon: '👥', path: '/customers' },
     { label: 'Facturas', icon: '📄', path: '/invoices' },
     { label: 'Cuentas Corrientes', icon: '💳', path: '/accounts' },
@@ -14,22 +15,44 @@ const menuItems = [
     { label: 'Configuración', icon: '⚙️', path: '/settings' },
 ];
 
+type MenuItem = { label: string; icon: string; path: string; badge?: number };
+
 const Layout: React.FC = () => {
     const location = useLocation();
     const navigate = useNavigate();
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
-    
+    const [profile, setProfile] = useState<{ role?: string } | null>(null);
+    const [pendingCount, setPendingCount] = useState(0);
+
     const token = localStorage.getItem('token');
     if (!token) return <Navigate to="/login" replace />;
 
     useEffect(() => {
-        getProfile().catch(() => {
-            localStorage.removeItem('token');
-            localStorage.removeItem('refresh_token');
-            navigate('/login', { replace: true });
-        });
+        getProfile()
+            .then((user) => {
+                setProfile(user);
+                if ((user as any)?.role === 'admin') {
+                    return pendingRegistrationsApi.getCount();
+                }
+            })
+            .then((count) => {
+                if (typeof count === 'number') setPendingCount(count);
+            })
+            .catch(() => {
+                localStorage.removeItem('token');
+                localStorage.removeItem('refresh_token');
+                navigate('/login', { replace: true });
+            });
     }, [navigate]);
+
+    useEffect(() => {
+        if (profile?.role !== 'admin') return;
+        const interval = setInterval(() => {
+            pendingRegistrationsApi.getCount().then(setPendingCount);
+        }, 60000);
+        return () => clearInterval(interval);
+    }, [profile?.role]);
 
     // Detectar cambio de tamaño de pantalla
     useEffect(() => {
@@ -69,11 +92,21 @@ const Layout: React.FC = () => {
         location.pathname.startsWith('/accounts') ||
         location.pathname.startsWith('/reports');
 
-    // Obtener título de la página actual
+    const adminMenuItems: MenuItem[] =
+        profile?.role === 'admin'
+            ? [
+                  ...menuItems.slice(0, 7),
+                  { label: 'Solicitudes de registro', icon: '📩', path: '/pending-registrations', badge: pendingCount },
+                  ...menuItems.slice(7),
+              ]
+            : menuItems;
+
     const getCurrentPageTitle = () => {
-        const current = menuItems.find(item => 
-            location.pathname === item.path || 
-            (item.path !== '/dashboard' && location.pathname.startsWith(item.path))
+        const items = adminMenuItems as { label: string; icon: string; path: string }[];
+        const current = items.find(
+            (item) =>
+                location.pathname === item.path ||
+                (item.path !== '/dashboard' && location.pathname.startsWith(item.path))
         );
         return current ? `${current.icon} ${current.label}` : '📱 Vevil';
     };
@@ -158,9 +191,11 @@ const Layout: React.FC = () => {
 
                 {/* Navigation */}
                 <nav style={{ flex: 1, padding: '16px 0', overflowY: 'auto' }}>
-                    {menuItems.map((item) => {
-                        const isActive = location.pathname === item.path || 
-                                        (item.path !== '/dashboard' && location.pathname.startsWith(item.path));
+                    {adminMenuItems.map((item) => {
+                        const isActive =
+                            location.pathname === item.path ||
+                            (item.path !== '/dashboard' && location.pathname.startsWith(item.path));
+                        const badge = 'badge' in item ? (item as MenuItem).badge : undefined;
                         return (
                             <Link
                                 key={item.path}
@@ -175,11 +210,31 @@ const Layout: React.FC = () => {
                                     backgroundColor: isActive ? '#4f46e5' : 'transparent',
                                     borderLeft: isActive ? '4px solid #818cf8' : '4px solid transparent',
                                     transition: 'all 0.2s',
-                                    fontSize: '15px'
+                                    fontSize: '15px',
                                 }}
                             >
                                 <span style={{ fontSize: '20px' }}>{item.icon}</span>
                                 {item.label}
+                                {badge != null && badge > 0 && (
+                                    <span
+                                        style={{
+                                            marginLeft: 'auto',
+                                            backgroundColor: '#ef4444',
+                                            color: 'white',
+                                            fontSize: '12px',
+                                            fontWeight: 700,
+                                            minWidth: '20px',
+                                            height: '20px',
+                                            borderRadius: '10px',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            padding: '0 6px',
+                                        }}
+                                    >
+                                        {badge}
+                                    </span>
+                                )}
                             </Link>
                         );
                     })}

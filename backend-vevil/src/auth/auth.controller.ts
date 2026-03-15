@@ -1,7 +1,9 @@
 import {
+  BadRequestException,
   Controller,
   Post,
   Get,
+  Query,
   UseGuards,
   Body,
   HttpCode,
@@ -17,13 +19,18 @@ import { CreateUserDto } from '@/users/dto/create-user.dto';
 import { LoginDto } from './dto/login.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
+import { RequestRegistrationDto } from './dto/request-registration.dto';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
+import { PendingRegistrationsService } from '@/pending-registrations/pending-registrations.service';
 
 @Controller('auth')
 @ApiTags('Authentication')
 export class AuthController {
-  constructor(private authService: AuthService) {}
+  constructor(
+    private authService: AuthService,
+    private pendingRegistrationsService: PendingRegistrationsService,
+  ) {}
 
   @Public() // Endpoint público
   @Throttle({ short: { limit: 5, ttl: 60_000 } }) // 5 intentos por minuto por IP
@@ -39,11 +46,32 @@ export class AuthController {
     return this.authService.login(user);
   }
 
-  @Public() // Endpoint público
-  @Throttle({ short: { limit: 5, ttl: 60_000 } }) // 5 registros por minuto por IP
+  @Public()
+  @Throttle({ short: { limit: 5, ttl: 60_000 } })
+  @Post('request-registration')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Solicitar registro (envía email para confirmar correo)' })
+  @ApiResponse({ status: 200, description: 'Se envió un correo para confirmar.' })
+  @ApiResponse({ status: 409, description: 'El email ya existe.' })
+  async requestRegistration(@Body() dto: RequestRegistrationDto) {
+    return this.pendingRegistrationsService.createRequest(dto);
+  }
+
+  @Public()
+  @Throttle({ short: { limit: 10, ttl: 60_000 } })
+  @Get('confirm-registration')
+  @ApiOperation({ summary: 'Confirmar correo desde el link del email' })
+  @ApiResponse({ status: 200, description: 'Correo confirmado, pendiente de aprobación de un admin.' })
+  async confirmRegistration(@Query('token') token: string | undefined) {
+    if (!token) throw new BadRequestException('Falta el token.');
+    return this.pendingRegistrationsService.confirmEmail(token);
+  }
+
+  @Public() // Mantener por compatibilidad; se recomienda usar request-registration + flujo de aprobación
+  @Throttle({ short: { limit: 5, ttl: 60_000 } })
   @Post('register')
   @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'Registrar un nuevo usuario' })
+  @ApiOperation({ summary: 'Registrar un nuevo usuario (registro directo, sin aprobación)' })
   @ApiResponse({ status: 201, description: 'Usuario registrado exitosamente.' })
   @ApiResponse({ status: 409, description: 'El email ya existe.' })
   async register(@Body() createUserDto: CreateUserDto) {

@@ -7,12 +7,14 @@ import { InvoiceItem } from './invoice-item.entity';
 import { Payment } from './payment.entity';
 import { ProductsModule } from '../products/products.module';
 import { CustomersModule } from '../customers/customers.module';
+import { StockMovementsModule } from '../stock-movements/stock-movements.module';
 
 @Module({
     imports: [
         TypeOrmModule.forFeature([Invoice, InvoiceItem, Payment]),
         ProductsModule,
         CustomersModule,
+        StockMovementsModule,
     ],
     controllers: [InvoicesController],
     providers: [InvoicesService],

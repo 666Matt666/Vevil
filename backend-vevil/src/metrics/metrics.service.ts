@@ -18,7 +18,7 @@ export interface DashboardMetrics {
   revenueLastMonth: number;
   invoicesLastMonth: number;
   lowStockProducts: number;
-  lowStockList: { id: number; name: string; stock: number }[];
+  lowStockList: { id: number; name: string; stock: number; minStock: number }[];
   topProductsSold: { productId: number; productName: string; quantitySold: number }[];
   /** Si se envió filtro from/to */
   periodFrom?: string;
@@ -190,14 +190,17 @@ export class MetricsService {
   }
 
   private async getLowStockProducts(): Promise<
-    { id: number; name: string; stock: number }[]
+    { id: number; name: string; stock: number; minStock: number }[]
   > {
     const products = await this.productRepo.find({
       where: {},
-      select: ['id', 'name', 'stock'],
+      select: ['id', 'name', 'stock', 'minStock'],
     });
     return products
-      .filter((p) => p.stock < this.lowStockThreshold)
-      .map((p) => ({ id: p.id, name: p.name, stock: p.stock }));
+      .filter((p) => {
+        const threshold = p.minStock != null && p.minStock > 0 ? p.minStock : this.lowStockThreshold;
+        return p.stock < threshold;
+      })
+      .map((p) => ({ id: p.id, name: p.name, stock: p.stock, minStock: p.minStock ?? 0 }));
   }
 }

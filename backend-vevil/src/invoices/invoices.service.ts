@@ -8,6 +8,7 @@ import { CreateInvoiceDto } from './dto/create-invoice.dto';
 import { CreatePaymentDto } from './dto/create-payment.dto';
 import { ProductsService } from '../products/products.service';
 import { CustomersService } from '../customers/customers.service';
+import { StockMovementsService } from '../stock-movements/stock-movements.service';
 
 @Injectable()
 export class InvoicesService {
@@ -18,6 +19,7 @@ export class InvoicesService {
         private paymentsRepository: Repository<Payment>,
         private productsService: ProductsService,
         private customersService: CustomersService,
+        private stockMovementsService: StockMovementsService,
         private dataSource: DataSource,
     ) { }
 
@@ -60,6 +62,15 @@ export class InvoicesService {
 
             const savedInvoice = await queryRunner.manager.save(Invoice, invoice);
             await queryRunner.commitTransaction();
+
+            // Registrar movimientos de stock por venta (historial)
+            for (const itemDto of createInvoiceDto.items) {
+                await this.stockMovementsService.recordSale(
+                    itemDto.productId,
+                    itemDto.quantity,
+                    savedInvoice.id,
+                ).catch(() => { /* no fallar la respuesta si falla el log */ });
+            }
 
             return savedInvoice;
         } catch (err) {

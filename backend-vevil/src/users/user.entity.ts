@@ -20,6 +20,12 @@ export class User {
   name: string;
 
   @Column({ nullable: true })
+  lastName?: string;
+
+  @Column({ type: 'varchar', length: 10, nullable: true })
+  gender?: 'male' | 'female';
+
+  @Column({ nullable: true })
   @Exclude() // Excluir por defecto en las respuestas
   password?: string;
 

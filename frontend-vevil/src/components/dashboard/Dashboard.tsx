@@ -1,8 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { statsApi, metricsApi, productsApi, customersApi, invoicesApi } from '../../services/api';
+import { statsApi, metricsApi, productsApi, customersApi, invoicesApi, getProfile } from '../../services/api';
 import type { DashboardMetrics } from '../../services/api';
 import { formatMoney } from '../settings/Settings';
+
+type ProfileUser = { name?: string; lastName?: string; gender?: 'male' | 'female' };
+
+function buildWelcomeMessage(user: ProfileUser | null): string {
+    if (!user?.name) return '¡Bienvenido!';
+    const fullName = [user.name, user.lastName].filter(Boolean).join(' ').trim();
+    const greeting =
+        user.gender === 'female' ? 'Bienvenida' :
+        user.gender === 'male' ? 'Bienvenido' : 'Bienvenido/a';
+    return fullName ? `¡${greeting}, ${fullName}!` : `¡${greeting}!`;
+}
 
 const USAGE_KEY = 'vevil_dashboard_usage';
 
@@ -106,6 +117,7 @@ function getPeriodDates(period: PeriodKey, customFrom?: string, customTo?: strin
 
 const Dashboard: React.FC = () => {
     const navigate = useNavigate();
+    const [profile, setProfile] = useState<ProfileUser | null>(null);
     const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
     const [loading, setLoading] = useState(true);
     const [seeding, setSeeding] = useState(false);
@@ -114,6 +126,12 @@ const Dashboard: React.FC = () => {
     const [customFrom, setCustomFrom] = useState('');
     const [customTo, setCustomTo] = useState('');
     const [usage, setUsage] = useState<Record<string, number>>(() => loadUsage());
+
+    useEffect(() => {
+        getProfile()
+            .then((data: ProfileUser) => setProfile(data))
+            .catch(() => setProfile(null));
+    }, []);
 
     useEffect(() => {
         loadMetrics(null);
@@ -302,17 +320,10 @@ const Dashboard: React.FC = () => {
                         fontSize: 'clamp(24px, 5vw, 32px)', 
                         fontWeight: 700, 
                         color: '#1e293b',
-                        margin: '0 0 8px 0'
-                    }}>
-                        ¡Bienvenido!
-                    </h1>
-                    <p style={{ 
-                        fontSize: 'clamp(14px, 3vw, 18px)', 
-                        color: '#64748b',
                         margin: 0
                     }}>
-                        ¿Qué te gustaría hacer hoy?
-                    </p>
+                        {buildWelcomeMessage(profile)}
+                    </h1>
                 </div>
                 
                 {/* Botón para cargar datos de ejemplo */}
@@ -763,6 +774,7 @@ const Dashboard: React.FC = () => {
                             {metrics.lowStockList.map((p) => (
                                 <li key={p.id}>
                                     {p.name} — <strong style={{ color: '#dc2626' }}>{p.stock} unidades</strong>
+                                    {p.minStock > 0 && <span style={{ color: '#94a3b8', fontSize: '13px' }}> (mín: {p.minStock})</span>}
                                 </li>
                             ))}
                         </ul>

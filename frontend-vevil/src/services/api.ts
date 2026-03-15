@@ -1,7 +1,9 @@
+const RENDER_API_URL = 'https://evil-backend.onrender.com/api';
+
 const getApiBaseUrl = (): string => {
     // En producción (Vercel) SIEMPRE usar Render; ignorar VITE_API_URL por si quedó apuntando a Fly.io
     if (typeof window !== 'undefined' && window.location.hostname.includes('vercel.app')) {
-        return 'https://evil-backend.onrender.com/api';
+        return RENDER_API_URL;
     }
     const viteApiUrl = import.meta.env.VITE_API_URL;
     if (viteApiUrl && viteApiUrl !== 'undefined' && String(viteApiUrl).trim() !== '' && !String(viteApiUrl).includes('fly.dev')) {
@@ -11,10 +13,16 @@ const getApiBaseUrl = (): string => {
         return 'http://localhost:3000/api';
     }
     if (typeof window !== 'undefined') return `http://${window.location.hostname}:3000/api`;
-    return 'https://evil-backend.onrender.com/api';
+    return RENDER_API_URL;
 };
 
-const API_BASE_URL = getApiBaseUrl();
+let API_BASE_URL = getApiBaseUrl();
+
+// Corrección en runtime: si por caché o build viejo quedó Fly.io, usar Render cuando estamos en Vercel
+if (typeof window !== 'undefined' && window.location.hostname.includes('vercel.app') && API_BASE_URL.includes('fly.dev')) {
+    console.warn('[Vevil] URL era Fly.io, usando Render:', RENDER_API_URL);
+    API_BASE_URL = RENDER_API_URL;
+}
 
 if (typeof window !== 'undefined') {
     console.log('[Vevil] API base URL:', API_BASE_URL);

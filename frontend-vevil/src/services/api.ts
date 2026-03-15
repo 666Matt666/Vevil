@@ -1,9 +1,17 @@
 const getApiBaseUrl = (): string => {
+    // En producción (Vercel) SIEMPRE usar Render; ignorar VITE_API_URL por si quedó apuntando a Fly.io
+    if (typeof window !== 'undefined' && window.location.hostname.includes('vercel.app')) {
+        return 'https://evil-backend.onrender.com/api';
+    }
     const viteApiUrl = import.meta.env.VITE_API_URL;
-    if (viteApiUrl && viteApiUrl !== 'undefined' && String(viteApiUrl).trim() !== '') return String(viteApiUrl).trim();
-    if (window.location.hostname.includes('vercel.app')) return 'https://evil-backend.onrender.com/api';
-    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') return 'http://localhost:3000/api';
-    return `http://${window.location.hostname}:3000/api`;
+    if (viteApiUrl && viteApiUrl !== 'undefined' && String(viteApiUrl).trim() !== '' && !String(viteApiUrl).includes('fly.dev')) {
+        return String(viteApiUrl).trim();
+    }
+    if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
+        return 'http://localhost:3000/api';
+    }
+    if (typeof window !== 'undefined') return `http://${window.location.hostname}:3000/api`;
+    return 'https://evil-backend.onrender.com/api';
 };
 
 const API_BASE_URL = getApiBaseUrl();

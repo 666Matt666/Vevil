@@ -8,6 +8,13 @@ const getApiBaseUrl = (): string => {
 
 const API_BASE_URL = getApiBaseUrl();
 
+/** Llama al backend en frío para que Render lo despierte (sin esperar resultado). */
+export function wakeBackend(): void {
+    try {
+        fetch(API_BASE_URL, { method: 'GET', signal: AbortSignal.timeout(12000) }).catch(() => {});
+    } catch (_) {}
+}
+
 const getToken = (): string | null => localStorage.getItem('token');
 const getRefreshToken = (): string | null => localStorage.getItem('refresh_token');
 const setTokens = (access: string, refresh?: string) => {

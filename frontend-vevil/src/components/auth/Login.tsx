@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { login } from '../../services/api';
+import { login, wakeBackend } from '../../services/api';
 
 const Login: React.FC = () => {
     const [email, setEmail] = useState('');
@@ -15,6 +15,11 @@ const Login: React.FC = () => {
         if (token) navigate('/dashboard');
     }, [navigate]);
 
+    // Despertar el backend en producción (Render free tier) al cargar la página
+    useEffect(() => {
+        if (window.location.hostname.includes('vercel.app')) wakeBackend();
+    }, []);
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
@@ -22,6 +27,7 @@ const Login: React.FC = () => {
         try {
             const data = await login(email, password);
             localStorage.setItem('token', data.access_token);
+            if (data.refresh_token) localStorage.setItem('refresh_token', data.refresh_token);
             navigate('/dashboard');
         } catch (err: any) {
             setError(err.message || 'Error al iniciar sesión');

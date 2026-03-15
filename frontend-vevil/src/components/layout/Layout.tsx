@@ -22,6 +22,7 @@ const Layout: React.FC = () => {
     const navigate = useNavigate();
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+    const [isHelpOpen, setIsHelpOpen] = useState(false);
     const [profile, setProfile] = useState<{ role?: string } | null>(null);
     const [pendingCount, setPendingCount] = useState(0);
 

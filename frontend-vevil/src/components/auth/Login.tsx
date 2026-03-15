@@ -20,8 +20,7 @@ const Login: React.FC = () => {
         if (window.location.hostname.includes('vercel.app')) wakeBackend();
     }, []);
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
+    const doLogin = async () => {
         setError('');
         setIsLoading(true);
         try {
@@ -35,6 +34,13 @@ const Login: React.FC = () => {
             setIsLoading(false);
         }
     };
+
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        doLogin();
+    };
+
+    const isConnectionError = Boolean(error && (error.includes('conectar') || error.includes('servidor') || error.includes('Render')));
 
     return (
         <>
@@ -225,7 +231,26 @@ const Login: React.FC = () => {
                                     fontSize: '14px',
                                     border: '1px solid #fecaca'
                                 }}>
-                                    {error}
+                                    <div style={{ marginBottom: isConnectionError ? '10px' : 0 }}>{error}</div>
+                                    {isConnectionError && (
+                                        <button
+                                            type="button"
+                                            onClick={() => doLogin()}
+                                            disabled={isLoading}
+                                            style={{
+                                                padding: '8px 14px',
+                                                fontSize: '13px',
+                                                fontWeight: 600,
+                                                color: '#b91c1c',
+                                                background: '#fff',
+                                                border: '1px solid #fecaca',
+                                                borderRadius: '8px',
+                                                cursor: isLoading ? 'not-allowed' : 'pointer'
+                                            }}
+                                        >
+                                            Reintentar
+                                        </button>
+                                    )}
                                 </div>
                             )}
 

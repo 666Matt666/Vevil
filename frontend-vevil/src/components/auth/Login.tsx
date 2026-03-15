@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { login, wakeBackend } from '../../services/api';
+import { login, wakeBackend, wakeBackendAndWait } from '../../services/api';
 
 const Login: React.FC = () => {
     const [email, setEmail] = useState('');
@@ -8,6 +8,7 @@ const Login: React.FC = () => {
     const [showPassword, setShowPassword] = useState(false);
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const [isWakingUp, setIsWakingUp] = useState(false);
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -41,6 +42,18 @@ const Login: React.FC = () => {
     };
 
     const isConnectionError = Boolean(error && (error.includes('conectar') || error.includes('servidor') || error.includes('Render')));
+
+    const handleRetry = async () => {
+        if (!isConnectionError || !window.location.hostname.includes('vercel.app')) {
+            doLogin();
+            return;
+        }
+        setError('');
+        setIsWakingUp(true);
+        await wakeBackendAndWait(65000);
+        setIsWakingUp(false);
+        doLogin();
+    };
 
     return (
         <>
@@ -235,8 +248,8 @@ const Login: React.FC = () => {
                                     {isConnectionError && (
                                         <button
                                             type="button"
-                                            onClick={() => doLogin()}
-                                            disabled={isLoading}
+                                            onClick={handleRetry}
+                                            disabled={isLoading || isWakingUp}
                                             style={{
                                                 padding: '8px 14px',
                                                 fontSize: '13px',
@@ -248,7 +261,7 @@ const Login: React.FC = () => {
                                                 cursor: isLoading ? 'not-allowed' : 'pointer'
                                             }}
                                         >
-                                            Reintentar
+                                            {isWakingUp ? 'Despertando servidor... (hasta ~1 min)' : 'Reintentar'}
                                         </button>
                                     )}
                                 </div>

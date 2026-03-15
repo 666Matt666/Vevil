@@ -15,6 +15,19 @@ export function wakeBackend(): void {
     } catch (_) {}
 }
 
+/** Espera a que el backend responda (para “despertarlo” antes de login). Resuelve cuando responde o tras timeoutMs. */
+export function wakeBackendAndWait(timeoutMs: number = 65000): Promise<void> {
+    return new Promise((resolve) => {
+        const t = setTimeout(resolve, timeoutMs);
+        fetch(API_BASE_URL, { method: 'GET', signal: AbortSignal.timeout(timeoutMs) })
+            .catch(() => {})
+            .finally(() => {
+                clearTimeout(t);
+                resolve();
+            });
+    });
+}
+
 const getToken = (): string | null => localStorage.getItem('token');
 const getRefreshToken = (): string | null => localStorage.getItem('refresh_token');
 const setTokens = (access: string, refresh?: string) => {

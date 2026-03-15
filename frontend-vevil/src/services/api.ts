@@ -8,6 +8,10 @@ const getApiBaseUrl = (): string => {
 
 const API_BASE_URL = getApiBaseUrl();
 
+if (typeof window !== 'undefined') {
+    console.log('[Vevil] API base URL:', API_BASE_URL);
+}
+
 /** Llama al backend en frío para que Render lo despierte (sin esperar resultado). */
 export function wakeBackend(): void {
     try {
@@ -61,18 +65,22 @@ const fetchWithRetry = async (url: string, options: RequestInit, retriesLeft = R
 
 // ============ AUTENTICACIÓN ============
 export const login = async (email: string, password: string): Promise<{ access_token: string }> => {
+    const loginUrl = `${API_BASE_URL}/auth/login`;
+    console.log('[Vevil] Login → POST', loginUrl);
     try {
-        const response = await fetchWithRetry(`${API_BASE_URL}/auth/login`, {
+        const response = await fetchWithRetry(loginUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email, password }),
         });
+        console.log('[Vevil] Login response status:', response.status, response.statusText);
         if (!response.ok) {
             const error = await response.json().catch(() => ({ message: 'Credenciales inválidas' }));
             throw new Error(error.message || 'Error al iniciar sesión');
         }
         return response.json();
     } catch (error: any) {
+        console.warn('[Vevil] Login error:', error?.name, error?.message);
         if (error?.message?.includes('Failed to fetch') || error?.name === 'TypeError' || error?.name === 'AbortError') {
             throw new Error('No se pudo conectar al servidor. Si usás el plan gratis de Render, esperá ~1 minuto y probá de nuevo (el backend se “despierta” solo).');
         }

@@ -7,29 +7,46 @@
     "node": ">=18.0.0"
   },
   "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
     "dev": "vite --force",
+    "dev:e2e": "vite --force --port 5173 --strictPort",
     "build": "vite build",
     "build-only": "vite build",
     "preview": "vite preview",
     "lint": "eslint .",
     "format": "prettier --write src/",
     "e2e": "playwright test",
-    "e2e:ui": "playwright test --ui"
+    "e2e:ui": "playwright test --ui",
+    "e2e:wait-api": "node -e \"require('wait-on')({resources:['http://localhost:3001/api'],timeout:60000}).then(()=>require('child_process').execSync('npx playwright test --workers=1',{stdio:'inherit'})).catch(e=>{console.error(e);process.exit(1)})\"",
+    "e2e:full": "npx kill-port 5173 3001 3000 2>nul & npm run build --prefix ../backend-vevil && concurrently -k -n be,fe -c blue,green \"cross-env PORT=3001 SEED_E2E_ADMIN=true npm run start --prefix ../backend-vevil\" \"cross-env VITE_API_URL=http://localhost:3001/api start-server-and-test dev:e2e http://localhost:5173 e2e:wait-api\"",
+    "e2e:full:local": "npx kill-port 5173 3001 3000 2>nul & docker-compose -f ../docker-compose.yml up -d && npx wait-on -d 2000 -t 30000 tcp:localhost:5432 && npm run build --prefix ../backend-vevil && concurrently -k -n be,fe -c blue,green \"cross-env PORT=3001 SEED_E2E_ADMIN=true DB_HOST=localhost DB_PORT=5432 DB_USERNAME=postgres DB_PASSWORD=admin DB_DATABASE=vevil_db npm run start --prefix ../backend-vevil\" \"cross-env VITE_API_URL=http://localhost:3001/api start-server-and-test dev:e2e http://localhost:5173 e2e:wait-api\""
   },
   "dependencies": {
+    "@simplewebauthn/browser": "^13.3.0",
     "axios": "^1.7.2",
+    "jspdf": "^4.2.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-router-dom": "^6.26.0"
   },
   "devDependencies": {
     "@playwright/test": "^1.58.2",
+    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/react": "^16.0.1",
+    "@vitest/ui": "^2.1.8",
+    "jsdom": "^25.0.1",
+    "vitest": "^2.1.8",
     "@types/node": "^18.19.33",
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
     "@vitejs/plugin-react": "^4.3.1",
+    "concurrently": "^9.2.1",
+    "cross-env": "^10.1.0",
     "eslint": "^8.57.0",
+    "kill-port": "^2.0.1",
     "prettier": "^3.3.0",
+    "start-server-and-test": "^2.1.5",
     "typescript": "~5.4.5",
     "vite": "^5.2.12"
   }

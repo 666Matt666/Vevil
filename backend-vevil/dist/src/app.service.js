@@ -12,6 +12,9 @@ let AppService = class AppService {
     getHello() {
         return 'Welcome to Vevil System API!';
     }
+    getHealth() {
+        return { status: 'ok' };
+    }
 };
 exports.AppService = AppService;
 exports.AppService = AppService = __decorate([

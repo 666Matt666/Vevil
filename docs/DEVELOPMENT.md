@@ -128,7 +128,9 @@ frontend-vevil/src/
 
 ## 🧪 Testing
 
-### Backend
+### Backend (unit tests)
+
+Los módulos **auth**, **users**, **invoices**, **customers**, **products** y **audit** tienen tests unitarios (Jest) en archivos `*.spec.ts`. El endpoint de consulta de auditoría (`GET /api/audit`) también está cubierto.
 
 ```bash
 cd backend-vevil
@@ -142,7 +144,8 @@ npm run test:watch
 # Tests con cobertura
 npm run test:cov
 
-# Test específico
+# Test específico (ej. solo audit o solo products.controller)
+npm run test -- --testPathPattern=audit
 npm run test -- products.service.spec.ts
 ```
 
@@ -156,6 +159,31 @@ npm run lint
 
 # Formateo
 npm run format
+```
+
+### E2E (Playwright)
+
+Los tests E2E están en `frontend-vevil/e2e/` y cubren login, registro, solicitudes pendientes y configuración.
+
+**Requisitos:** frontend en `http://localhost:5173` y backend en `http://localhost:3000/api`. Usuario de prueba: `admin@vevil.com` / `admin123`.
+
+El backend, al arrancar en desarrollo (o con `SEED_E2E_ADMIN=true`), crea automáticamente el usuario `admin@vevil.com` / `admin123` si no existe, para que los E2E puedan hacer login.
+
+```bash
+cd frontend-vevil
+
+# Instalar navegadores de Playwright (solo la primera vez o tras actualizar)
+npx playwright install
+
+# Ejecutar E2E (requiere backend y frontend ya levantados)
+npm run e2e
+
+# Levantar backend + frontend y ejecutar E2E (desde frontend-vevil; requiere PostgreSQL y .env en backend).
+# Cierra cualquier instancia previa de backend (puerto 3000) y frontend (puerto 5173) para evitar conflictos.
+npm run e2e:full
+
+# Interfaz interactiva
+npm run e2e:ui
 ```
 
 ## 📝 Convenciones de Código

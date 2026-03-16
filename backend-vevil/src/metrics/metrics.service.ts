@@ -175,17 +175,17 @@ export class MetricsService {
       .innerJoin('item.product', 'p')
       .select('item.productId', 'productId')
       .addSelect('p.name', 'productName')
-      .addSelect('SUM(item.quantity)', 'quantitySold')
+      .addSelect('SUM(item.quantity)', 'quantity_sold')
       .where('inv.date >= :from AND inv.date <= :to', { from, to })
       .groupBy('item.productId')
       .addGroupBy('p.name')
-      .orderBy('quantitySold', 'DESC')
+      .orderBy('quantity_sold', 'DESC')
       .limit(10)
-      .getRawMany<{ productId: number; productName: string; quantitySold: string }>();
+      .getRawMany<{ productId: number; productName: string; quantity_sold: string }>();
     return rows.map((r) => ({
       productId: r.productId,
       productName: r.productName,
-      quantitySold: parseInt(r.quantitySold || '0', 10),
+      quantitySold: parseInt(r.quantity_sold || '0', 10),
     }));
   }
 

@@ -41,7 +41,7 @@ const typeorm_1 = require("@nestjs/typeorm");
 const typeorm_2 = require("typeorm");
 const user_entity_1 = require("./user.entity");
 const user_role_enum_1 = require("./entities/user-role.enum");
-const bcrypt = __importStar(require("bcrypt"));
+const bcrypt = __importStar(require("bcryptjs"));
 let UsersService = class UsersService {
     constructor(userRepository) {
         this.userRepository = userRepository;
@@ -71,14 +71,11 @@ let UsersService = class UsersService {
     }
     async findOneByEmail(email) {
         const normalizedEmail = email.trim().toLowerCase();
-        console.log('🔎 Searching for user with email:', normalizedEmail);
-        const user = await this.userRepository
+        return this.userRepository
             .createQueryBuilder('user')
             .where('LOWER(TRIM(user.email)) = :email', { email: normalizedEmail })
             .addSelect('user.password')
             .getOne();
-        console.log('🔎 Query result:', user ? `Found user ${user.id}` : 'No user found');
-        return user;
     }
     async update(id, updateUserDto) {
         if (updateUserDto.password) {
@@ -128,6 +125,34 @@ let UsersService = class UsersService {
         else {
             throw new common_1.UnauthorizedException('Acceso denegado');
         }
+    }
+    async setResetPasswordToken(email, token, expires) {
+        const user = await this.findOneByEmail(email);
+        if (!user)
+            return false;
+        await this.userRepository.update(user.id, {
+            resetPasswordToken: token,
+            resetPasswordExpires: expires,
+        });
+        return true;
+    }
+    async findOneByResetToken(token) {
+        const user = await this.userRepository
+            .createQueryBuilder('user')
+            .addSelect('user.resetPasswordToken')
+            .addSelect('user.resetPasswordExpires')
+            .addSelect('user.password')
+            .where('user.resetPasswordToken = :token', { token })
+            .getOne();
+        if (!user || !user.resetPasswordExpires || user.resetPasswordExpires < new Date())
+            return null;
+        return user;
+    }
+    async clearResetPasswordToken(userId) {
+        await this.userRepository.update(userId, {
+            resetPasswordToken: null,
+            resetPasswordExpires: null,
+        });
     }
 };
 exports.UsersService = UsersService;

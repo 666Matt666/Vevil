@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from 'react';
+import { startRegistration, browserSupportsWebAuthn } from '@simplewebauthn/browser';
 import { getConversionTarget, getRates, convert, fetchRates, setConversionTarget } from '../../services/currencyRates';
+import { webauthnRegisterOptions, webauthnRegisterVerify } from '../../services/api';
+import { copy } from '../../copy';
 
 // ============== TIPOS ==============
 
@@ -281,9 +284,10 @@ const cardStyle: React.CSSProperties = {
 
 // ============== SECCIONES DEL MENÚ ==============
 
-type Section = 'company' | 'invoice' | 'currencies' | 'tax' | 'productTypes' | 'units' | 'payments' | 'alerts' | 'appearance';
+type Section = 'account' | 'company' | 'invoice' | 'currencies' | 'tax' | 'productTypes' | 'units' | 'payments' | 'alerts' | 'appearance';
 
 const menuSections = [
+    { id: 'account' as Section, label: 'Cuenta', icon: '👤' },
     { id: 'company' as Section, label: 'Datos de Empresa', icon: '🏢' },
     { id: 'invoice' as Section, label: 'Facturación', icon: '🧾' },
     { id: 'currencies' as Section, label: 'Monedas', icon: '💰' },
@@ -300,6 +304,9 @@ const menuSections = [
 const Settings: React.FC = () => {
     const [activeSection, setActiveSection] = useState<Section>('company');
     const [saved, setSaved] = useState(false);
+    const [supportsWebAuthn, setSupportsWebAuthn] = useState(false);
+    const [webauthnAdding, setWebauthnAdding] = useState(false);
+    const [webauthnMessage, setWebauthnMessage] = useState<string | null>(null);
 
     // Estados para cada sección
     const [currencies, setCurrencies] = useState<CurrencyConfig[]>(getAllCurrencies());
@@ -316,11 +323,34 @@ const Settings: React.FC = () => {
     const [ratesLoading, setRatesLoading] = useState(false);
 
     useEffect(() => {
+        setSupportsWebAuthn(typeof window !== 'undefined' && browserSupportsWebAuthn());
+    }, []);
+
+    useEffect(() => {
         if (activeSection === 'currencies') {
             const r = getRates();
             if (r?.updatedAt) setRatesUpdatedAt(r.updatedAt);
         }
     }, [activeSection]);
+
+    const handleAddFingerprint = async () => {
+        setWebauthnMessage(null);
+        setWebauthnAdding(true);
+        try {
+            const options = await webauthnRegisterOptions();
+            const credential = await startRegistration({ optionsJSON: options });
+            const result = await webauthnRegisterVerify(
+                credential as unknown as Record<string, unknown>,
+                options.challenge
+            );
+            if (result.verified) setWebauthnMessage(copy.webauthn.addFingerprintDone);
+            else setWebauthnMessage(copy.errors.generic);
+        } catch (e: unknown) {
+            setWebauthnMessage(e instanceof Error ? e.message : copy.errors.generic);
+        } finally {
+            setWebauthnAdding(false);
+        }
+    };
 
     const showSaved = () => {
         setSaved(true);
@@ -341,6 +371,46 @@ const Settings: React.FC = () => {
     };
 
     // ============== RENDER SECCIONES ==============
+
+    const renderAccountSection = () => (
+        <div>
+            <h2 style={{ fontSize: '20px', fontWeight: 600, color: '#1e293b', margin: '0 0 8px 0' }}>
+                👤 Cuenta y acceso
+            </h2>
+            <p style={{ fontSize: '14px', color: '#64748b', margin: '0 0 24px 0' }}>
+                Podés agregar inicio de sesión con huella digital si tu dispositivo lo permite.
+            </p>
+            {supportsWebAuthn ? (
+                <div style={{ padding: '20px', backgroundColor: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                    <p style={{ margin: '0 0 16px 0', fontSize: '14px', color: '#475569' }}>
+                        Después de agregar la huella, podrás iniciar sesión desde esta cuenta usando solo tu correo y la huella.
+                    </p>
+                    <button
+                        type="button"
+                        onClick={handleAddFingerprint}
+                        disabled={webauthnAdding}
+                        style={{
+                            ...buttonStyle,
+                            backgroundColor: webauthnAdding ? '#94a3b8' : '#4f46e5',
+                            color: 'white',
+                            padding: '12px 20px'
+                        }}
+                    >
+                        {webauthnAdding ? copy.webauthn.addingFingerprint : copy.webauthn.addFingerprint}
+                    </button>
+                    {webauthnMessage && (
+                        <p style={{ margin: '12px 0 0 0', fontSize: '14px', color: webauthnMessage.includes('correctamente') ? '#16a34a' : '#dc2626' }}>
+                            {webauthnMessage}
+                        </p>
+                    )}
+                </div>
+            ) : (
+                <p style={{ fontSize: '14px', color: '#64748b' }}>
+                    Tu navegador o dispositivo no soporta inicio de sesión con huella en esta página.
+                </p>
+            )}
+        </div>
+    );
 
     const renderCompanySection = () => (
         <div>
@@ -1054,6 +1124,7 @@ const Settings: React.FC = () => {
 
     const renderContent = () => {
         switch (activeSection) {
+            case 'account': return renderAccountSection();
             case 'company': return renderCompanySection();
             case 'invoice': return renderInvoiceSection();
             case 'currencies': return renderCurrenciesSection();
@@ -1086,10 +1157,11 @@ const Settings: React.FC = () => {
                 }}>
                     ⚙️ Configuración
                 </h1>
-                <nav style={{ padding: '16px 12px' }}>
+                <nav data-testid="settings-sections" style={{ padding: '16px 12px' }}>
                     {menuSections.map(section => (
                         <button
                             key={section.id}
+                            data-testid={section.id === 'account' ? 'settings-section-cuenta' : undefined}
                             onClick={() => setActiveSection(section.id)}
                             style={{
                                 display: 'flex',

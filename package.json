@@ -1,0 +1,20 @@
+{
+  "name": "vevil-system",
+  "private": true,
+  "description": "Vevil: backend NestJS + frontend React. Desarrollo en PC con Postgres local; push → nube (Render + Vercel + Supabase).",
+  "scripts": {
+    "dev": "docker-compose up -d && npx wait-on -d 2000 -t 30000 tcp:localhost:5432 && concurrently -k -n be,fe \"npx cross-env DB_HOST=localhost DB_PORT=5432 DB_USERNAME=postgres DB_PASSWORD=admin DB_DATABASE=vevil_db npm run start:dev --prefix backend-vevil\" \"npx cross-env VITE_API_URL=http://localhost:3000/api npm run dev --prefix frontend-vevil\"",
+    "dev:up": "docker-compose up -d",
+    "dev:down": "docker-compose down",
+    "dev:backend": "npx cross-env DB_HOST=localhost DB_PORT=5432 DB_USERNAME=postgres DB_PASSWORD=admin DB_DATABASE=vevil_db npm run start:dev --prefix backend-vevil",
+    "dev:frontend": "npx cross-env VITE_API_URL=http://localhost:3000/api npm run dev --prefix frontend-vevil",
+    "db:migrate": "npm run migration:run --prefix backend-vevil",
+    "pre-deploy:local": "npm run dev:up && npx wait-on -d 2000 -t 30000 tcp:localhost:5432 && npm run db:migrate && echo Listo. Ejecuta npm run dev y abre http://localhost:5173. Checklist en docs/PRE_DEPLOY_LOCAL_CHECK.md",
+    "e2e:local": "npm run e2e:full:local --prefix frontend-vevil"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1",
+    "cross-env": "^10.1.0",
+    "wait-on": "^8.0.1"
+  }
+}

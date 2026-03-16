@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { invoicesApi, Invoice, productsApi, Product, customersApi, Customer } from '../../services/api';
 import { formatMoney, getCompanyConfig } from '../settings/Settings';
+import { LoadingSpinner } from '../ui/LoadingSpinner';
 
 // Estilos
 const buttonStyle: React.CSSProperties = {
@@ -294,27 +295,11 @@ const Reports: React.FC = () => {
     };
 
     if (loading) {
-        return (
-            <div style={{ padding: '32px', display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '400px' }}>
-                <div style={{ textAlign: 'center' }}>
-                    <div style={{ 
-                        width: '48px', 
-                        height: '48px', 
-                        border: '4px solid #e2e8f0',
-                        borderTopColor: '#8b5cf6',
-                        borderRadius: '50%',
-                        animation: 'spin 1s linear infinite',
-                        margin: '0 auto 16px'
-                    }} />
-                    <p style={{ color: '#64748b' }}>Cargando datos...</p>
-                    <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-                </div>
-            </div>
-        );
+        return <LoadingSpinner message="Cargando datos..." color="#8b5cf6" />;
     }
 
     return (
-        <div style={{ padding: '32px' }}>
+        <div className="responsive-padding" style={{ padding: '32px' }}>
             {/* Header */}
             <div style={{ 
                 display: 'flex', 
@@ -418,7 +403,7 @@ const Reports: React.FC = () => {
                 ].map(tab => (
                     <button
                         key={tab.id}
-                        onClick={() => setActiveTab(tab.id as any)}
+                        onClick={() => setActiveTab(tab.id as 'overview' | 'products' | 'customers')}
                         style={{
                             padding: '12px 24px',
                             border: 'none',

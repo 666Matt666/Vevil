@@ -1,5 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { customersApi, Customer } from '../../services/api';
+import { customersApi, Customer, getErrorMessage } from '../../services/api';
+import { TableSkeleton } from '../ui/TableSkeleton';
+import { ErrorMessage } from '../ui/ErrorMessage';
+import { SuccessMessage } from '../ui/SuccessMessage';
+import { exportCustomersToCsv } from '../../utils/exportCsv';
 
 const buttonStyle: React.CSSProperties = {
     padding: '8px 16px',
@@ -80,6 +84,7 @@ const CustomerList: React.FC = () => {
     const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
     const [formData, setFormData] = useState<CustomerFormData>(emptyForm);
     const [saving, setSaving] = useState(false);
+    const [successMessage, setSuccessMessage] = useState<string | null>(null);
     
     // Filtros
     const [searchText, setSearchText] = useState('');
@@ -109,8 +114,8 @@ const CustomerList: React.FC = () => {
             setError(null);
             const data = await customersApi.getAll();
             setCustomers(data);
-        } catch (err: any) {
-            setError(err.message || 'Error al cargar clientes');
+        } catch (err) {
+            setError(getErrorMessage(err, 'Error al cargar clientes'));
         } finally {
             setLoading(false);
         }
@@ -165,14 +170,16 @@ const CustomerList: React.FC = () => {
 
             if (editingCustomer) {
                 await customersApi.update(editingCustomer.id, customerData);
+                setSuccessMessage('Cliente actualizado');
             } else {
                 await customersApi.create(customerData);
+                setSuccessMessage('Cliente creado');
             }
 
             closeModal();
             loadCustomers();
-        } catch (err: any) {
-            alert(err.message || 'Error al guardar');
+        } catch (err) {
+            setError(getErrorMessage(err, 'Error al guardar'));
         } finally {
             setSaving(false);
         }
@@ -183,9 +190,10 @@ const CustomerList: React.FC = () => {
 
         try {
             await customersApi.delete(customer.id);
+            setSuccessMessage('Cliente eliminado');
             loadCustomers();
-        } catch (err: any) {
-            alert(err.message || 'Error al eliminar');
+        } catch (err) {
+            setError(getErrorMessage(err, 'Error al eliminar'));
         }
     };
 
@@ -196,20 +204,11 @@ const CustomerList: React.FC = () => {
 
     if (loading) {
         return (
-            <div style={{ padding: '32px', display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '400px' }}>
-                <div style={{ textAlign: 'center' }}>
-                    <div style={{ 
-                        width: '48px', 
-                        height: '48px', 
-                        border: '4px solid #e2e8f0',
-                        borderTopColor: '#22c55e',
-                        borderRadius: '50%',
-                        animation: 'spin 1s linear infinite',
-                        margin: '0 auto 16px'
-                    }} />
-                    <p style={{ color: '#64748b' }}>Cargando clientes...</p>
-                    <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+            <div className="responsive-padding" style={{ padding: '32px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
+                    <h1 style={{ fontSize: '28px', fontWeight: 700, color: '#1e293b', margin: 0 }}>👥 Clientes</h1>
                 </div>
+                <TableSkeleton rows={6} cols={5} message="Cargando clientes..." />
             </div>
         );
     }
@@ -233,36 +232,49 @@ const CustomerList: React.FC = () => {
                         {customers.length} clientes registrados
                     </p>
                 </div>
-                <button 
-                    onClick={openCreateModal}
-                    style={{
-                        ...buttonStyle,
-                        padding: '12px 20px',
-                        backgroundColor: '#22c55e',
-                        color: 'white',
-                        whiteSpace: 'nowrap'
-                    }}
-                >
-                    + Nuevo Cliente
-                </button>
-            </div>
-
-            {error && (
-                <div style={{
-                    backgroundColor: '#fee2e2',
-                    border: '1px solid #fecaca',
-                    borderRadius: '12px',
-                    padding: '16px',
-                    marginBottom: '24px',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center'
-                }}>
-                    <p style={{ color: '#991b1b', margin: 0 }}>❌ {error}</p>
-                    <button onClick={loadCustomers} style={{ ...buttonStyle, backgroundColor: '#22c55e', color: 'white' }}>
-                        Reintentar
+                <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+                    <button
+                        type="button"
+                        onClick={() => exportCustomersToCsv(filteredCustomers, getMainPhone)}
+                        style={{
+                            ...buttonStyle,
+                            padding: '10px 18px',
+                            backgroundColor: 'white',
+                            color: '#64748b',
+                            border: '1px solid #e2e8f0',
+                        }}
+                        title="Descargar listado en CSV (Excel)"
+                    >
+                        📥 Exportar CSV
+                    </button>
+                    <button 
+                        onClick={openCreateModal}
+                        style={{
+                            ...buttonStyle,
+                            padding: '12px 20px',
+                            backgroundColor: '#22c55e',
+                            color: 'white',
+                            whiteSpace: 'nowrap'
+                        }}
+                    >
+                        + Nuevo Cliente
                     </button>
                 </div>
+            </div>
+
+            {successMessage && (
+                <SuccessMessage
+                    message={successMessage}
+                    onDismiss={() => setSuccessMessage(null)}
+                    autoDismissMs={4000}
+                />
+            )}
+            {error && (
+                <ErrorMessage
+                    message={error}
+                    onRetry={loadCustomers}
+                    onDismiss={() => setError(null)}
+                />
             )}
 
             {/* Barra de Filtros */}
@@ -346,7 +358,8 @@ const CustomerList: React.FC = () => {
                     boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
                 }}>
                     <p style={{ fontSize: '48px', margin: '0 0 16px 0' }}>👥</p>
-                    <p style={{ color: '#64748b', margin: '0 0 16px 0' }}>No hay clientes registrados</p>
+                    <p style={{ color: '#1e293b', fontSize: '18px', fontWeight: 600, margin: '0 0 8px 0' }}>No hay clientes registrados</p>
+                    <p style={{ color: '#64748b', margin: '0 0 16px 0' }}>Agregá clientes para facturar y gestionar cuentas corrientes.</p>
                     <button onClick={openCreateModal} style={{ ...buttonStyle, backgroundColor: '#22c55e', color: 'white' }}>
                         Crear primer cliente
                     </button>

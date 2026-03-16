@@ -6,6 +6,7 @@ import {
   Query,
   UseGuards,
   Body,
+  Request,
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
@@ -23,6 +24,8 @@ import { RequestRegistrationDto } from './dto/request-registration.dto';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { PendingRegistrationsService } from '@/pending-registrations/pending-registrations.service';
+import { UsersService } from '@/users/users.service';
+import { AuditService } from '@/audit/audit.service';
 
 @Controller('auth')
 @ApiTags('Authentication')
@@ -30,6 +33,8 @@ export class AuthController {
   constructor(
     private authService: AuthService,
     private pendingRegistrationsService: PendingRegistrationsService,
+    private usersService: UsersService,
+    private auditService: AuditService,
   ) {}
 
   @Public() // Endpoint público
@@ -40,10 +45,17 @@ export class AuthController {
   @ApiOperation({ summary: 'Iniciar sesión de usuario' })
   @ApiResponse({ status: 200, description: 'Login exitoso, devuelve tokens.' })
   @ApiResponse({ status: 401, description: 'Credenciales inválidas.' })
-  async login(@GetUser() user: User, @Body() _loginDto: LoginDto) {
-    // loginDto solo se usa para la validación y la documentación de Swagger.
-    // El usuario validado viene de LocalStrategy a través de @GetUser().
-    return this.authService.login(user);
+  async login(@GetUser() user: User, @Body() _loginDto: LoginDto, @Request() req: any) {
+    const result = await this.authService.login(user);
+    await this.auditService.log({
+      userId: user?.id ?? null,
+      userEmail: user?.email ?? null,
+      action: 'auth.login',
+      entityType: 'auth',
+      entityId: user?.id ?? '',
+      ip: req?.ip ?? req?.headers?.['x-forwarded-for'] ?? null,
+    }).catch(() => {});
+    return result;
   }
 
   @Public()
@@ -83,19 +95,19 @@ export class AuthController {
   @ApiOperation({ summary: 'Obtener el perfil del usuario actual' })
   @ApiResponse({ status: 200, description: 'Perfil del usuario.', type: User })
   @ApiResponse({ status: 401, description: 'No autorizado.' })
-  getProfile(@GetUser() user: User) {
-    // El decorador @GetUser() extrae el usuario del payload del token JWT.
-    // Por seguridad, no devolvemos la contraseña.
-    delete user.password;
-    return user;
+  async getProfile(@GetUser() user: User & { userId?: string }) {
+    const id = user.id ?? (user as any).userId;
+    const full = await this.usersService.findOne(id);
+    const { password, hashedRefreshToken, resetPasswordToken, resetPasswordExpires, ...profile } = full;
+    return { ...profile, role: full.role != null ? String(full.role) : undefined };
   }
 
   @UseGuards(AuthGuard('jwt'))
   @Post('logout')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Cerrar sesión del usuario' })
-  async logout(@GetUser() user: User) {
-    const userId = user.id;
+  async logout(@GetUser() user: User & { userId?: string }) {
+    const userId = user.id ?? (user as any).userId;
     return this.authService.logout(userId);
   }
 

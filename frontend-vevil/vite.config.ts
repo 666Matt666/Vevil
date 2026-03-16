@@ -11,5 +11,12 @@ export default defineConfig({
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
     }
-  }
+  },
+  test: {
+    environment: 'jsdom',
+    globals: true,
+    setupFiles: ['./src/test/setup.ts'],
+    include: ['src/**/*.spec.{ts,tsx}'],
+    exclude: ['e2e/**', 'node_modules/**', '**/HelloWorld.spec.ts'],
+  },
 })

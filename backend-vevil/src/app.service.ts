@@ -5,4 +5,8 @@ export class AppService {
   getHello(): string {
     return 'Welcome to Vevil System API!';
   }
+
+  getHealth(): { status: string } {
+    return { status: 'ok' };
+  }
 }

@@ -8,6 +8,7 @@ import { Payment } from './payment.entity';
 import { ProductsModule } from '../products/products.module';
 import { CustomersModule } from '../customers/customers.module';
 import { StockMovementsModule } from '../stock-movements/stock-movements.module';
+import { MailModule } from '../mail/mail.module';
 
 @Module({
     imports: [
@@ -15,6 +16,7 @@ import { StockMovementsModule } from '../stock-movements/stock-movements.module'
         ProductsModule,
         CustomersModule,
         StockMovementsModule,
+        MailModule,
     ],
     controllers: [InvoicesController],
     providers: [InvoicesService],

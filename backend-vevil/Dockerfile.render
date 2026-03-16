@@ -1,0 +1,36 @@
+# Dockerfile para Render.com
+# Este Dockerfile asume que el Root Directory en Render es: vevil-system/backend-vevil
+
+FROM node:20-slim
+RUN apt-get update && apt-get install -y python3 make g++ && rm -rf /var/lib/apt/lists/*
+WORKDIR /app
+
+# Copiar package.json
+COPY package*.json ./
+
+# Instalar dependencias
+RUN npm install
+
+# Copiar código fuente
+COPY src ./src
+COPY tsconfig*.json ./
+COPY nest-cli.json ./
+
+# Compilar con NestJS
+RUN npm run build
+
+# Verificar
+RUN ls -la dist/
+
+EXPOSE 3000
+CMD ["node", "dist/main.js"]
+
+
+
+
+
+
+
+
+
+

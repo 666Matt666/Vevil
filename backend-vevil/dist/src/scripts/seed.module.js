@@ -25,16 +25,26 @@ exports.SeedModule = SeedModule = __decorate([
             typeorm_1.TypeOrmModule.forRootAsync({
                 imports: [config_1.ConfigModule],
                 inject: [config_1.ConfigService],
-                useFactory: (configService) => ({
-                    type: 'postgres',
-                    host: configService.get('DB_HOST'),
-                    port: configService.get('DB_PORT'),
-                    username: configService.get('DB_USERNAME'),
-                    password: configService.get('DB_PASSWORD'),
-                    database: configService.get('DB_DATABASE'),
-                    autoLoadEntities: true,
-                    synchronize: false,
-                }),
+                useFactory: (configService) => {
+                    const dbHost = configService.get('DB_HOST') || 'localhost';
+                    const dbPort = configService.get('DB_PORT') || 5432;
+                    const dbUsername = configService.get('DB_USERNAME') || 'postgres';
+                    const dbPassword = configService.get('DB_PASSWORD') || 'admin';
+                    const dbDatabase = configService.get('DB_DATABASE') || 'vevil_db';
+                    return {
+                        type: 'postgres',
+                        host: dbHost,
+                        port: dbPort,
+                        username: dbUsername,
+                        password: dbPassword,
+                        database: dbDatabase,
+                        autoLoadEntities: true,
+                        synchronize: false,
+                        ssl: dbHost.includes('supabase.co') ? {
+                            rejectUnauthorized: false
+                        } : false,
+                    };
+                },
             }),
             customers_module_1.CustomersModule,
             invoices_module_1.InvoicesModule,

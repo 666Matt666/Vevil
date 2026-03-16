@@ -4,5 +4,7 @@ export declare class CreateInvoiceItemDto {
 }
 export declare class CreateInvoiceDto {
     customerId: number;
+    currency?: string;
+    status?: string;
     items: CreateInvoiceItemDto[];
 }

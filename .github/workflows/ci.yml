@@ -1,0 +1,53 @@
+# CI: tests del backend y frontend en cada push/PR a main.
+# El deploy lo siguen haciendo Render y Vercel; este workflow solo valida que los tests pasen.
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  backend-tests:
+    name: Backend tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: backend-vevil/package-lock.json
+
+      - name: Install backend dependencies
+        run: npm ci
+        working-directory: backend-vevil
+
+      - name: Run backend tests
+        run: npm test -- --passWithNoTests
+        working-directory: backend-vevil
+
+  frontend-tests:
+    name: Frontend tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: frontend-vevil/package-lock.json
+
+      - name: Install frontend dependencies
+        run: npm ci
+        working-directory: frontend-vevil
+
+      - name: Run frontend tests
+        run: npm test
+        working-directory: frontend-vevil

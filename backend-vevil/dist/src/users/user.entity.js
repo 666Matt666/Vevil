@@ -30,6 +30,14 @@ __decorate([
 ], User.prototype, "name", void 0);
 __decorate([
     (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", String)
+], User.prototype, "lastName", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'varchar', length: 10, nullable: true }),
+    __metadata("design:type", String)
+], User.prototype, "gender", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
     (0, class_transformer_1.Exclude)(),
     __metadata("design:type", String)
 ], User.prototype, "password", void 0);
@@ -50,6 +58,16 @@ __decorate([
     (0, class_transformer_1.Exclude)(),
     __metadata("design:type", String)
 ], User.prototype, "hashedRefreshToken", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    (0, class_transformer_1.Exclude)(),
+    __metadata("design:type", String)
+], User.prototype, "resetPasswordToken", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'timestamp', nullable: true }),
+    (0, class_transformer_1.Exclude)(),
+    __metadata("design:type", Date)
+], User.prototype, "resetPasswordExpires", void 0);
 __decorate([
     (0, typeorm_1.CreateDateColumn)(),
     __metadata("design:type", Date)

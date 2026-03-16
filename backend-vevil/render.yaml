@@ -8,7 +8,9 @@ services:
     plan: free
     buildCommand: npm install && npm run build
     startCommand: npm run start:prod
-    healthCheckPath: /api
+    # Migraciones automáticas antes de cada deploy (plan pago). Si fallan, el deploy se cancela.
+    preDeployCommand: npm run migration:run:prod
+    healthCheckPath: /api/health
     envVars:
       - key: DB_HOST
         sync: false

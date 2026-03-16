@@ -36,6 +36,17 @@ __decorate([
     __metadata("design:type", String)
 ], CreateUserDto.prototype, "name", void 0);
 __decorate([
+    (0, swagger_1.ApiProperty)({ example: 'Pérez', required: false }),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", String)
+], CreateUserDto.prototype, "lastName", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ enum: ['male', 'female'], example: 'male', required: false }),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", String)
+], CreateUserDto.prototype, "gender", void 0);
+__decorate([
     (0, swagger_1.ApiProperty)({ enum: user_role_enum_1.UserRole, example: user_role_enum_1.UserRole.USER, required: false }),
     (0, class_validator_1.IsEnum)(user_role_enum_1.UserRole),
     (0, class_validator_1.IsOptional)(),

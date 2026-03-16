@@ -32,9 +32,25 @@ __decorate([
     __metadata("design:type", Number)
 ], Product.prototype, "price", void 0);
 __decorate([
+    (0, typeorm_1.Column)('decimal', { precision: 10, scale: 2, nullable: true }),
+    __metadata("design:type", Number)
+], Product.prototype, "costPrice", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ length: 3, default: 'PYG' }),
+    __metadata("design:type", String)
+], Product.prototype, "currency", void 0);
+__decorate([
     (0, typeorm_1.Column)('int'),
     __metadata("design:type", Number)
 ], Product.prototype, "stock", void 0);
+__decorate([
+    (0, typeorm_1.Column)('int', { default: 0 }),
+    __metadata("design:type", Number)
+], Product.prototype, "minStock", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ length: 50, nullable: true }),
+    __metadata("design:type", String)
+], Product.prototype, "category", void 0);
 __decorate([
     (0, typeorm_1.Column)({ nullable: true }),
     __metadata("design:type", String)

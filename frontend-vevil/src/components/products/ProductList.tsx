@@ -1,6 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { productsApi, Product } from '../../services/api';
+import { productsApi, Product, getErrorMessage } from '../../services/api';
 import { getEnabledCurrencies, formatMoney } from '../settings/Settings';
+import { LoadingSpinner } from '../ui/LoadingSpinner';
+import { TableSkeleton } from '../ui/TableSkeleton';
+import { ErrorMessage } from '../ui/ErrorMessage';
+import { SuccessMessage } from '../ui/SuccessMessage';
+import { exportProductsToCsv } from '../../utils/exportCsv';
 
 // Estilos comunes
 const buttonStyle: React.CSSProperties = {
@@ -70,6 +75,7 @@ const ProductList: React.FC = () => {
     const [editingProduct, setEditingProduct] = useState<Product | null>(null);
     const [formData, setFormData] = useState<ProductFormData>(emptyForm);
     const [saving, setSaving] = useState(false);
+    const [successMessage, setSuccessMessage] = useState<string | null>(null);
     
     // Filtros
     const [searchName, setSearchName] = useState('');
@@ -94,8 +100,8 @@ const ProductList: React.FC = () => {
             setError(null);
             const data = await productsApi.getAll();
             setProducts(data);
-        } catch (err: any) {
-            setError(err.message || 'Error al cargar productos');
+        } catch (err) {
+            setError(getErrorMessage(err, 'Error al cargar productos'));
         } finally {
             setLoading(false);
         }
@@ -114,7 +120,7 @@ const ProductList: React.FC = () => {
             type: product.type,
             price: String(product.price),
             costPrice: product.costPrice != null ? String(product.costPrice) : '',
-            currency: (product as any).currency || 'PYG',
+            currency: product.currency ?? 'PYG',
             stock: String(product.stock),
             minStock: product.minStock != null ? String(product.minStock) : '0',
             category: product.category || '',
@@ -148,14 +154,16 @@ const ProductList: React.FC = () => {
 
             if (editingProduct) {
                 await productsApi.update(editingProduct.id, productData);
+                setSuccessMessage('Producto actualizado');
             } else {
                 await productsApi.create(productData);
+                setSuccessMessage('Producto creado');
             }
 
             closeModal();
             loadProducts();
-        } catch (err: any) {
-            alert(err.message || 'Error al guardar');
+        } catch (err) {
+            setError(getErrorMessage(err, 'Error al guardar'));
         } finally {
             setSaving(false);
         }
@@ -166,9 +174,10 @@ const ProductList: React.FC = () => {
 
         try {
             await productsApi.delete(product.id);
+            setSuccessMessage('Producto eliminado');
             loadProducts();
-        } catch (err: any) {
-            alert(err.message || 'Error al eliminar');
+        } catch (err) {
+            setError(getErrorMessage(err, 'Error al eliminar'));
         }
     };
 
@@ -188,20 +197,11 @@ const ProductList: React.FC = () => {
 
     if (loading) {
         return (
-            <div style={{ padding: '32px', display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '400px' }}>
-                <div style={{ textAlign: 'center' }}>
-                    <div style={{ 
-                        width: '48px', 
-                        height: '48px', 
-                        border: '4px solid #e2e8f0',
-                        borderTopColor: '#4f46e5',
-                        borderRadius: '50%',
-                        animation: 'spin 1s linear infinite',
-                        margin: '0 auto 16px'
-                    }} />
-                    <p style={{ color: '#64748b' }}>Cargando productos...</p>
-                    <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+            <div className="responsive-padding" style={{ padding: '32px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
+                    <h1 style={{ fontSize: '28px', fontWeight: 700, color: '#1e293b', margin: 0 }}>📦 Productos</h1>
                 </div>
+                <TableSkeleton rows={6} cols={6} message="Cargando productos..." />
             </div>
         );
     }
@@ -225,36 +225,49 @@ const ProductList: React.FC = () => {
                         {products.length} productos en inventario
                     </p>
                 </div>
-                <button 
-                    onClick={openCreateModal}
-                    style={{
-                        ...buttonStyle,
-                        padding: '12px 20px',
-                        backgroundColor: '#4f46e5',
-                        color: 'white',
-                        whiteSpace: 'nowrap'
-                    }}
-                >
-                    + Nuevo Producto
-                </button>
-            </div>
-
-            {error && (
-                <div style={{
-                    backgroundColor: '#fee2e2',
-                    border: '1px solid #fecaca',
-                    borderRadius: '12px',
-                    padding: '16px',
-                    marginBottom: '24px',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center'
-                }}>
-                    <p style={{ color: '#991b1b', margin: 0 }}>❌ {error}</p>
-                    <button onClick={loadProducts} style={{ ...buttonStyle, backgroundColor: '#4f46e5', color: 'white' }}>
-                        Reintentar
+                <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+                    <button
+                        type="button"
+                        onClick={() => exportProductsToCsv(filteredProducts, getTypeLabel, (cat) => CATEGORY_OPTIONS.find((o) => o.value === cat)?.label ?? cat)}
+                        style={{
+                            ...buttonStyle,
+                            padding: '10px 18px',
+                            backgroundColor: 'white',
+                            color: '#64748b',
+                            border: '1px solid #e2e8f0',
+                        }}
+                        title="Descargar listado en CSV (Excel)"
+                    >
+                        📥 Exportar CSV
+                    </button>
+                    <button 
+                        onClick={openCreateModal}
+                        style={{
+                            ...buttonStyle,
+                            padding: '12px 20px',
+                            backgroundColor: '#4f46e5',
+                            color: 'white',
+                            whiteSpace: 'nowrap'
+                        }}
+                    >
+                        + Nuevo Producto
                     </button>
                 </div>
+            </div>
+
+            {successMessage && (
+                <SuccessMessage
+                    message={successMessage}
+                    onDismiss={() => setSuccessMessage(null)}
+                    autoDismissMs={4000}
+                />
+            )}
+            {error && (
+                <ErrorMessage
+                    message={error}
+                    onRetry={loadProducts}
+                    onDismiss={() => setError(null)}
+                />
             )}
 
             {/* Barra de Filtros */}
@@ -355,7 +368,8 @@ const ProductList: React.FC = () => {
                     boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
                 }}>
                     <p style={{ fontSize: '48px', margin: '0 0 16px 0' }}>📦</p>
-                    <p style={{ color: '#64748b', margin: '0 0 16px 0' }}>No hay productos registrados</p>
+                    <p style={{ color: '#1e293b', fontSize: '18px', fontWeight: 600, margin: '0 0 8px 0' }}>No hay productos registrados</p>
+                    <p style={{ color: '#64748b', margin: '0 0 16px 0' }}>Agregá productos para vender y controlar stock.</p>
                     <button onClick={openCreateModal} style={{ ...buttonStyle, backgroundColor: '#4f46e5', color: 'white' }}>
                         Crear primer producto
                     </button>
@@ -410,10 +424,10 @@ const ProductList: React.FC = () => {
                                         {CATEGORY_OPTIONS.find(c => c.value === (product.category || ''))?.label || product.category || '—'}
                                     </td>
                                     <td style={{ padding: '16px', textAlign: 'right', fontWeight: 600, color: '#1e293b' }}>
-                                        {formatMoney(Number(product.price), (product as any).currency || 'PYG')}
+                                        {formatMoney(Number(product.price), product.currency ?? 'PYG')}
                                     </td>
                                     <td style={{ padding: '16px', textAlign: 'right', fontSize: '13px', color: '#64748b' }}>
-                                        {product.costPrice != null ? formatMoney(Number(product.costPrice), (product as any).currency || 'PYG') : '—'}
+                                        {product.costPrice != null ? formatMoney(Number(product.costPrice), product.currency ?? 'PYG') : '—'}
                                     </td>
                                     <td style={{ 
                                         padding: '16px', 

@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { statsApi, metricsApi, productsApi, customersApi, invoicesApi, getProfile } from '../../services/api';
 import type { DashboardMetrics } from '../../services/api';
 import { formatMoney } from '../settings/Settings';
 import { copy } from '../../copy';
+import { loadUsage, saveUsage, recordDashboardUsage, type DashboardUsageKey } from '../../utils/dashboardUsage';
 
 type ProfileUser = { name?: string; lastName?: string; gender?: 'male' | 'female' };
 
@@ -16,14 +17,12 @@ function buildWelcomeMessage(user: ProfileUser | null): string {
     return fullName ? `¡${greeting}, ${fullName}!` : `¡${greeting}!`;
 }
 
-const USAGE_KEY = 'vevil_dashboard_usage';
-
-const menuItems = [
+const menuItems: { label: string; icon: string; path: string; usageKey: DashboardUsageKey; color: string; description: string }[] = [
     { 
         label: 'Productos', 
         icon: '📦', 
         path: '/products', 
-        usageKey: 'products' as const,
+        usageKey: 'products',
         color: '#3b82f6', 
         description: 'Gestionar stock de combustible y productos' 
     },
@@ -31,7 +30,7 @@ const menuItems = [
         label: 'Clientes', 
         icon: '👥', 
         path: '/customers', 
-        usageKey: 'customers' as const,
+        usageKey: 'customers',
         color: '#22c55e', 
         description: 'Gestionar base de datos de clientes' 
     },
@@ -39,33 +38,27 @@ const menuItems = [
         label: 'Facturas', 
         icon: '📄', 
         path: '/invoices', 
-        usageKey: 'invoices' as const,
+        usageKey: 'invoices',
         color: '#f97316', 
         description: 'Crear y ver facturas' 
     },
 ];
 
-function loadUsage(): Record<string, number> {
-    try {
-        const raw = localStorage.getItem(USAGE_KEY);
-        if (raw) {
-            const parsed = JSON.parse(raw) as Record<string, number>;
-            return { products: 0, customers: 0, invoices: 0, ...parsed };
-        }
-    } catch (_) {}
-    return { products: 0, customers: 0, invoices: 0 };
-}
-
-function saveUsage(usage: Record<string, number>) {
-    try {
-        localStorage.setItem(USAGE_KEY, JSON.stringify(usage));
-    } catch (_) {}
-}
-
-function getMostUsedItems(items: typeof menuItems, usage: Record<string, number>): typeof menuItems {
+/** Los 3 ítems con mayor uso, ordenados de más a menos usado (desempate: orden fijo). */
+function getMostUsedItems(
+    items: typeof menuItems,
+    usage: Record<DashboardUsageKey, number>,
+): typeof menuItems {
     return [...items]
-        .sort((a, b) => (usage[b.usageKey] ?? 0) - (usage[a.usageKey] ?? 0))
-        .slice(0, 3);
+        .map((item, index) => ({ item, index }))
+        .sort((a, b) => {
+            const useA = usage[a.item.usageKey] ?? 0;
+            const useB = usage[b.item.usageKey] ?? 0;
+            if (useB !== useA) return useB - useA; // mayor uso primero
+            return a.index - b.index; // desempate: orden original
+        })
+        .slice(0, 3)
+        .map(({ item }) => item);
 }
 
 const defaultMetrics: DashboardMetrics = {
@@ -118,6 +111,7 @@ function getPeriodDates(period: PeriodKey, customFrom?: string, customTo?: strin
 
 const Dashboard: React.FC = () => {
     const navigate = useNavigate();
+    const location = useLocation();
     const [profile, setProfile] = useState<ProfileUser | null>(null);
     const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
     const [loading, setLoading] = useState(true);
@@ -126,7 +120,7 @@ const Dashboard: React.FC = () => {
     const [period, setPeriod] = useState<PeriodKey | null>(null);
     const [customFrom, setCustomFrom] = useState('');
     const [customTo, setCustomTo] = useState('');
-    const [usage, setUsage] = useState<Record<string, number>>(() => loadUsage());
+    const [usage, setUsage] = useState<Record<DashboardUsageKey, number>>(() => loadUsage());
 
     useEffect(() => {
         getProfile()
@@ -137,6 +131,11 @@ const Dashboard: React.FC = () => {
     useEffect(() => {
         loadMetrics(null);
     }, []);
+
+    // Actualizar conteo de uso al entrar al dashboard (orden "más usados" al día)
+    useEffect(() => {
+        if (location.pathname === '/dashboard') setUsage(loadUsage());
+    }, [location.pathname]);
 
     const loadMetrics = async (filters: { from: string; to: string } | null) => {
         try {
@@ -177,9 +176,8 @@ const Dashboard: React.FC = () => {
     };
 
     const handleMenuClick = (item: typeof menuItems[0]) => {
-        const next = { ...usage, [item.usageKey]: (usage[item.usageKey] ?? 0) + 1 };
-        setUsage(next);
-        saveUsage(next);
+        recordDashboardUsage(item.path);
+        setUsage(loadUsage());
         navigate(item.path);
     };
 
@@ -364,10 +362,13 @@ const Dashboard: React.FC = () => {
                 </div>
             )}
 
-            {/* Accesos rápidos (solo los 3 más usados por el usuario) */}
+            {/* Los 3 más usados, en orden de mayor a menor uso */}
+            <p style={{ fontSize: '14px', color: '#64748b', margin: '0 0 12px 0', fontWeight: 500 }}>
+                Los 3 más usados
+            </p>
             <div style={{ 
                 display: 'grid', 
-                gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', 
+                gridTemplateColumns: 'repeat(3, 1fr)', 
                 gap: '12px',
                 maxWidth: '520px'
             }}>

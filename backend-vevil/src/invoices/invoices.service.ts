@@ -9,6 +9,7 @@ import { CreatePaymentDto } from './dto/create-payment.dto';
 import { ProductsService } from '../products/products.service';
 import { CustomersService } from '../customers/customers.service';
 import { StockMovementsService } from '../stock-movements/stock-movements.service';
+import { MailService } from '../mail/mail.service';
 
 @Injectable()
 export class InvoicesService {
@@ -21,6 +22,7 @@ export class InvoicesService {
         private customersService: CustomersService,
         private stockMovementsService: StockMovementsService,
         private dataSource: DataSource,
+        private mailService: MailService,
     ) { }
 
     async create(createInvoiceDto: CreateInvoiceDto) {
@@ -120,5 +122,26 @@ export class InvoicesService {
             method: dto.method,
         });
         return this.paymentsRepository.save(payment);
+    }
+
+    /**
+     * Envía recordatorio de cobro por email al cliente de la factura (solo facturas pendientes).
+     * Retorna { sent: true } si se envió, { sent: false, reason } si no (sin email, no configurado, o no pendiente).
+     */
+    async sendReminder(invoiceId: number): Promise<{ sent: boolean; reason?: string }> {
+        const invoice = await this.findOne(invoiceId);
+        if (invoice.status !== 'pending') {
+            return { sent: false, reason: 'Solo se pueden enviar recordatorios de facturas pendientes.' };
+        }
+        const email = invoice.customer?.email?.trim();
+        if (!email) {
+            return { sent: false, reason: 'El cliente no tiene email registrado.' };
+        }
+        const invoiceNumber = String(invoice.id).padStart(7, '0');
+        const total = Number(invoice.total);
+        const currency = invoice.currency || 'PYG';
+        const customerName = invoice.customer?.name || 'Cliente';
+        await this.mailService.sendPaymentReminderEmail(email, customerName, invoiceNumber, total, currency);
+        return { sent: true };
     }
 }

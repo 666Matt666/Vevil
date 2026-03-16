@@ -37,28 +37,25 @@ const common_1 = require("@nestjs/common");
 const users_service_1 = require("../users/users.service");
 const jwt_1 = require("@nestjs/jwt");
 const user_role_enum_1 = require("../users/entities/user-role.enum");
-const bcrypt = __importStar(require("bcrypt"));
+const bcrypt = __importStar(require("bcryptjs"));
+const crypto = __importStar(require("crypto"));
 const config_1 = require("@nestjs/config");
+const mail_service_1 = require("../mail/mail.service");
 let AuthService = class AuthService {
-    constructor(usersService, jwtService, configService) {
+    constructor(usersService, jwtService, configService, mailService) {
         this.usersService = usersService;
         this.jwtService = jwtService;
         this.configService = configService;
+        this.mailService = mailService;
     }
     async validateUser(email, pass) {
-        console.log('🔍 Validating user:', { email, passwordLength: pass?.length });
         const user = await this.usersService.findOneByEmail(email);
-        console.log('👤 User found:', user ? { id: user.id, email: user.email, hasPassword: !!user.password } : 'NOT FOUND');
         if (user && user.password) {
             const passwordMatches = await bcrypt.compare(pass, user.password);
-            console.log('🔐 Password match:', passwordMatches);
             if (passwordMatches) {
                 const { password, ...result } = user;
                 return result;
             }
-        }
-        else {
-            console.log('❌ User not found or no password');
         }
         return null;
     }
@@ -78,6 +75,12 @@ let AuthService = class AuthService {
         return {
             access_token: accessToken,
             refresh_token: refreshToken,
+            user: {
+                id: user.id,
+                email: user.email,
+                name: user.name,
+                role: user.role != null ? String(user.role) : undefined,
+            },
         };
     }
     async updateRefreshToken(userId, refreshToken) {
@@ -120,12 +123,35 @@ let AuthService = class AuthService {
         const { password: _, ...result } = newUser;
         return result;
     }
+    async forgotPassword(email) {
+        const token = crypto.randomBytes(32).toString('hex');
+        const expires = new Date(Date.now() + 60 * 60 * 1000);
+        const found = await this.usersService.setResetPasswordToken(email.trim().toLowerCase(), token, expires);
+        if (!found) {
+            return { message: 'Si existe una cuenta con ese email, recibirás instrucciones para restablecer tu contraseña.' };
+        }
+        const frontendUrl = this.configService.get('FRONTEND_URL') || 'http://localhost:5173';
+        const resetLink = `${frontendUrl.replace(/\/$/, '')}/reset-password?token=${token}`;
+        await this.mailService.sendResetPasswordEmail(email.trim().toLowerCase(), resetLink);
+        return { message: 'Si existe una cuenta con ese email, recibirás instrucciones para restablecer tu contraseña.' };
+    }
+    async resetPassword(token, newPassword) {
+        const user = await this.usersService.findOneByResetToken(token);
+        if (!user) {
+            throw new common_1.BadRequestException('El enlace de restablecimiento no es válido o ha expirado.');
+        }
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
+        await this.usersService.update(user.id, { password: hashedPassword });
+        await this.usersService.clearResetPasswordToken(user.id);
+        return { message: 'Contraseña actualizada correctamente.' };
+    }
 };
 exports.AuthService = AuthService;
 exports.AuthService = AuthService = __decorate([
     (0, common_1.Injectable)(),
     __metadata("design:paramtypes", [users_service_1.UsersService,
         jwt_1.JwtService,
-        config_1.ConfigService])
+        config_1.ConfigService,
+        mail_service_1.MailService])
 ], AuthService);
 //# sourceMappingURL=auth.service.js.map

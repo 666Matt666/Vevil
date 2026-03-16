@@ -2,10 +2,19 @@
 
 Documentación técnica del sistema Vevil.
 
+## Flujo de trabajo
+
+Siempre desarrollamos **en local** (Postgres local, backend y frontend en localhost). La nube (Render, Vercel, Supabase) se usa **solo al hacer push** a la rama de producción.
+
 ## Índice
 
 - **[ARCHITECTURE.md](./ARCHITECTURE.md)** – Arquitectura, patrones, modelo de datos, seguridad.
 - **[DEVELOPMENT.md](./DEVELOPMENT.md)** – Configuración local, variables de entorno, cómo correr backend y frontend.
+- **[LOCAL_AND_PROD.md](./LOCAL_AND_PROD.md)** – Todo en PC con Postgres local (Docker), E2E local, y subir el branch a PROD.
+- **[E2E.md](./E2E.md)** – Tests E2E: cómo correrlos en local (sin nube).
+- **[DEPLOY.md](./DEPLOY.md)** – Deploy automatizado (push → Render + Vercel), migraciones en pre-deploy, SQL de respaldo, CI con GitHub Actions, protección de `main`.
+- **[PRE_DEPLOY_LOCAL_CHECK.md](./PRE_DEPLOY_LOCAL_CHECK.md)** – Verificación local antes del deploy (script + checklist en el navegador).
+- **[RELEASE_AUDIT_TO_PROD.md](./RELEASE_AUDIT_TO_PROD.md)** – Checklist para cuando quieras llevar la auditoría a PROD (migración, verificación).
 
 ## Despliegue en la nube
 
@@ -58,6 +67,31 @@ Opcional (para envío de correos: confirmación de registro, crear contraseña):
 | `MAIL_PASSWORD` | Contraseña SMTP |
 | `MAIL_FROM`  | Remitente     |
 
+**Login con huella (WebAuthn):**
+
+| Variable           | Descripción                                      | Ejemplo                         |
+|--------------------|--------------------------------------------------|---------------------------------|
+| `WEBAUTHN_RP_ID`   | Dominio del Relying Party (debe ser el del frontend) | `tu-app.vercel.app` o `localhost` |
+| `WEBAUTHN_ORIGIN`  | Origen permitido (URL completa del frontend)      | `https://tu-app.vercel.app` o `http://localhost:5173` |
+
+Si no se definen, el backend usa el host/origen derivado de `FRONTEND_URL`. En producción conviene fijarlos para evitar problemas entre dominios.
+
+**Tabla para WebAuthn:** si usás login con huella, ejecutá en Supabase (SQL Editor) la siguiente migración una vez:
+
+```sql
+CREATE TABLE IF NOT EXISTS "webauthn_credential" (
+  "id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  "userId" UUID NOT NULL REFERENCES "user"("id") ON DELETE CASCADE,
+  "credentialId" VARCHAR(500) NOT NULL,
+  "publicKey" TEXT NOT NULL,
+  "counter" INT NOT NULL DEFAULT 0,
+  "deviceType" VARCHAR(100) NULL,
+  "createdAt" TIMESTAMP NOT NULL DEFAULT NOW()
+);
+CREATE UNIQUE INDEX IF NOT EXISTS "IDX_webauthn_credential_id" ON "webauthn_credential" ("credentialId");
+CREATE INDEX IF NOT EXISTS "IDX_webauthn_credential_userId" ON "webauthn_credential" ("userId");
+```
+
 ### 3. Frontend (Vercel)
 
 1. Importar proyecto en [Vercel](https://vercel.com) desde GitHub.
@@ -77,7 +111,13 @@ Si no se define `VITE_API_URL`, la app usa lógica por defecto (ej. en `*.vercel
 - **Backend:** abrir `https://tu-backend.onrender.com/api` (o `/api/docs` si tienes Swagger); health o docs deben responder.
 - **Cold start (Render plan gratis):** la primera petición puede tardar ~1 minuto; el frontend puede mostrar mensaje de “reintentar”.
 
-### 5. Problemas frecuentes
+### 5. WebAuthn (huella / passkey)
+
+- **Flujo:** el usuario inicia sesión con email y contraseña, entra en **Configuración → Cuenta** y pulsa **Agregar huella**. A partir de ahí puede usar **Iniciar con huella** en el login (solo email + huella).
+- **Probar en local:** backend con `FRONTEND_URL=http://localhost:5173`; si no ponés `WEBAUTHN_RP_ID`/`WEBAUTHN_ORIGIN`, se usan `localhost` y `http://localhost:5173`. El navegador debe soportar WebAuthn (Chrome/Edge con dispositivo o simulador).
+- **Seguridad:** el servidor guarda el challenge al generar opciones y lo valida en verify (un solo uso, TTL 5 min).
+
+### 6. Problemas frecuentes
 
 - **Backend no arranca:** revisar que Root Directory, Build y Start Command sean correctos y que existan en el repo. Logs en Render.
 - **Error “Cannot find module dist/…”:** el build de NestJS genera `dist/src/main.js`; el Start Command debe ser `node dist/src/main.js`.

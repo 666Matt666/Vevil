@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { invoicesApi, Invoice } from '../../services/api';
+import { invoicesApi, Invoice, getErrorMessage } from '../../services/api';
+import { LoadingSpinner } from '../ui/LoadingSpinner';
+import { ErrorMessage } from '../ui/ErrorMessage';
 import { formatMoney } from '../settings/Settings';
+import { exportInvoiceToPdf } from '../../utils/exportInvoicePdf';
 
 const InvoiceDetail: React.FC = () => {
     const { invoiceId } = useParams<{ invoiceId: string }>();
@@ -21,8 +24,8 @@ const InvoiceDetail: React.FC = () => {
             setError(null);
             const data = await invoicesApi.getById(parseInt(invoiceId!));
             setInvoice(data);
-        } catch (err: any) {
-            setError(err.message || 'Error al cargar la factura');
+        } catch (err) {
+            setError(getErrorMessage(err, 'Error al cargar la factura'));
         } finally {
             setLoading(false);
         }
@@ -41,41 +44,22 @@ const InvoiceDetail: React.FC = () => {
     const IVA_RATE = 0.10;
 
     if (loading) {
-        return (
-            <div style={{ padding: '32px', display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '400px' }}>
-                <div style={{ textAlign: 'center' }}>
-                    <div style={{ 
-                        width: '48px', 
-                        height: '48px', 
-                        border: '4px solid #e2e8f0',
-                        borderTopColor: '#f97316',
-                        borderRadius: '50%',
-                        animation: 'spin 1s linear infinite',
-                        margin: '0 auto 16px'
-                    }} />
-                    <p style={{ color: '#64748b' }}>Cargando factura...</p>
-                    <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-                </div>
-            </div>
-        );
+        return <LoadingSpinner message="Cargando factura..." color="#f97316" />;
     }
 
     if (error || !invoice) {
         return (
             <div style={{ padding: '32px' }}>
-                <Link to="/invoices" style={{ color: '#f97316', textDecoration: 'none', fontWeight: 500 }}>
-                    ← Volver a facturas
-                </Link>
-                <div style={{
-                    backgroundColor: '#fee2e2',
-                    border: '1px solid #fecaca',
-                    borderRadius: '12px',
-                    padding: '24px',
-                    marginTop: '24px',
-                    textAlign: 'center'
-                }}>
-                    <p style={{ color: '#991b1b', margin: 0 }}>❌ {error || 'Factura no encontrada'}</p>
+                <div style={{ marginBottom: '16px' }}>
+                    <Link to="/invoices" style={{ color: '#f97316', textDecoration: 'none', fontWeight: 500 }}>
+                        ← Volver a facturas
+                    </Link>
                 </div>
+                <ErrorMessage
+                    message={error || 'Factura no encontrada'}
+                    onRetry={loadInvoice}
+                    onDismiss={() => setError(null)}
+                />
             </div>
         );
     }
@@ -85,18 +69,35 @@ const InvoiceDetail: React.FC = () => {
 
     return (
         <div style={{ padding: '32px' }}>
-            {/* Volver */}
-            <Link to="/invoices" style={{ 
-                color: '#f97316', 
-                textDecoration: 'none', 
-                fontWeight: 500,
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '8px',
-                marginBottom: '24px'
-            }}>
-                ← Volver a facturas
-            </Link>
+            {/* Volver + Descargar PDF */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '24px', flexWrap: 'wrap' }}>
+                <Link to="/invoices" style={{ 
+                    color: '#f97316', 
+                    textDecoration: 'none', 
+                    fontWeight: 500,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '8px'
+                }}>
+                    ← Volver a facturas
+                </Link>
+                <button
+                    type="button"
+                    onClick={() => exportInvoiceToPdf(invoice)}
+                    style={{
+                        padding: '10px 18px',
+                        borderRadius: '8px',
+                        border: '1px solid #e2e8f0',
+                        backgroundColor: 'white',
+                        color: '#64748b',
+                        fontWeight: 500,
+                        cursor: 'pointer',
+                    }}
+                    title="Descargar factura en PDF"
+                >
+                    📄 Descargar PDF
+                </button>
+            </div>
 
             {/* Factura */}
             <div style={{
@@ -196,10 +197,10 @@ const InvoiceDetail: React.FC = () => {
                                             {item.quantity}
                                         </td>
                                         <td style={{ padding: '16px 0', textAlign: 'right', color: '#64748b' }}>
-                                            {formatMoney(Number(item.priceAtSale), (invoice as any).currency || 'PYG')}
+                                            {formatMoney(Number(item.priceAtSale), invoice.currency || 'PYG')}
                                         </td>
                                         <td style={{ padding: '16px 0', textAlign: 'right', fontWeight: 500, color: '#1e293b' }}>
-                                            {formatMoney(Number(item.priceAtSale) * item.quantity, (invoice as any).currency || 'PYG')}
+                                            {formatMoney(Number(item.priceAtSale) * item.quantity, invoice.currency || 'PYG')}
                                         </td>
                                     </tr>
                                 ))}
@@ -217,11 +218,11 @@ const InvoiceDetail: React.FC = () => {
                     }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
                             <span style={{ color: '#64748b' }}>Subtotal:</span>
-                            <span style={{ color: '#1e293b' }}>{formatMoney(subtotal, (invoice as any).currency || 'PYG')}</span>
+                            <span style={{ color: '#1e293b' }}>{formatMoney(subtotal, invoice.currency || 'PYG')}</span>
                         </div>
                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
                             <span style={{ color: '#64748b' }}>IVA (10%):</span>
-                            <span style={{ color: '#1e293b' }}>{formatMoney(iva, (invoice as any).currency || 'PYG')}</span>
+                            <span style={{ color: '#1e293b' }}>{formatMoney(iva, invoice.currency || 'PYG')}</span>
                         </div>
                         <div style={{ 
                             display: 'flex', 
@@ -231,7 +232,7 @@ const InvoiceDetail: React.FC = () => {
                         }}>
                             <span style={{ fontWeight: 700, color: '#1e293b', fontSize: '18px' }}>Total:</span>
                             <span style={{ fontWeight: 700, color: '#f97316', fontSize: '18px' }}>
-                                {formatMoney(Number(invoice.total), (invoice as any).currency || 'PYG')}
+                                {formatMoney(Number(invoice.total), invoice.currency || 'PYG')}
                             </span>
                         </div>
                     </div>

@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { customersApi, Customer, invoicesApi, Invoice, Payment as ApiPayment } from '../../services/api';
+import { customersApi, Customer, invoicesApi, Invoice, Payment as ApiPayment, getErrorMessage } from '../../services/api';
 import { formatMoney } from '../settings/Settings';
+import { LoadingSpinner } from '../ui/LoadingSpinner';
+import { ErrorMessage } from '../ui/ErrorMessage';
 
 const buttonStyle: React.CSSProperties = {
     padding: '8px 16px',
@@ -40,6 +42,7 @@ const AccountsReceivable: React.FC = () => {
     const [customers, setCustomers] = useState<Customer[]>([]);
     const [invoices, setInvoices] = useState<Invoice[]>([]);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
     const [selectedCustomerId, setSelectedCustomerId] = useState<number | null>(null);
     const [showPaymentModal, setShowPaymentModal] = useState(false);
     const [paymentForm, setPaymentForm] = useState({
@@ -71,7 +74,7 @@ const AccountsReceivable: React.FC = () => {
     const getCustomerAccounts = (): CustomerAccount[] => {
         return customers.map(customer => {
             const pendingInvoices = invoices.filter(inv =>
-                inv.customerId === customer.id && (inv as any).status === 'pending'
+                inv.customerId === customer.id && inv.status === 'pending'
             );
             const totalDebt = pendingInvoices.reduce((sum, inv) => sum + Number(inv.total), 0);
             const customerInvoices = invoices.filter(inv => inv.customerId === customer.id);
@@ -114,8 +117,8 @@ const AccountsReceivable: React.FC = () => {
             setShowPaymentModal(false);
             setPaymentForm({ invoiceId: '', amount: '', method: 'cash' });
             loadData();
-        } catch (err: any) {
-            alert(err.message || 'Error al registrar pago');
+        } catch (err) {
+            alert(getErrorMessage(err, 'Error al registrar pago'));
         }
     };
 
@@ -123,8 +126,8 @@ const AccountsReceivable: React.FC = () => {
         try {
             await invoicesApi.updateStatus(invoiceId, 'paid');
             loadData();
-        } catch (err: any) {
-            alert(err.message || 'Error al actualizar');
+        } catch (err) {
+            alert(getErrorMessage(err, 'Error al actualizar'));
         }
     };
 
@@ -137,27 +140,18 @@ const AccountsReceivable: React.FC = () => {
     };
 
     if (loading) {
-        return (
-            <div style={{ padding: '32px', display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '400px' }}>
-                <div style={{ textAlign: 'center' }}>
-                    <div style={{ 
-                        width: '48px', 
-                        height: '48px', 
-                        border: '4px solid #e2e8f0',
-                        borderTopColor: '#dc2626',
-                        borderRadius: '50%',
-                        animation: 'spin 1s linear infinite',
-                        margin: '0 auto 16px'
-                    }} />
-                    <p style={{ color: '#64748b' }}>Cargando cuentas...</p>
-                    <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-                </div>
-            </div>
-        );
+        return <LoadingSpinner message="Cargando cuentas..." color="#dc2626" />;
     }
 
     return (
-        <div style={{ padding: '32px' }}>
+        <div className="responsive-padding" style={{ padding: '32px' }}>
+            {error && (
+                <ErrorMessage
+                    message={error}
+                    onRetry={loadData}
+                    onDismiss={() => setError(null)}
+                />
+            )}
             {/* Header */}
             <div style={{ marginBottom: '24px' }}>
                 <h1 style={{ fontSize: '28px', fontWeight: 700, color: '#1e293b', margin: 0 }}>
@@ -359,10 +353,35 @@ const AccountsReceivable: React.FC = () => {
                                                     {formatDate(inv.date)}
                                                 </span>
                                             </div>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                                                 <span style={{ fontWeight: 700, color: '#1e293b' }}>
-                                                    {formatMoney(Number(inv.total), 'PYG')}
+                                                    {formatMoney(Number(inv.total), inv.currency ?? 'PYG')}
                                                 </span>
+                                                <button
+                                                    type="button"
+                                                    onClick={async () => {
+                                                        try {
+                                                            const result = await invoicesApi.sendReminder(inv.id);
+                                                            if (result.sent) {
+                                                                alert('Recordatorio enviado por email al cliente.');
+                                                            } else {
+                                                                alert(result.reason || 'No se pudo enviar.');
+                                                            }
+                                                        } catch (e) {
+                                                            alert(getErrorMessage(e, 'Error al enviar recordatorio'));
+                                                        }
+                                                    }}
+                                                    style={{
+                                                        ...buttonStyle,
+                                                        backgroundColor: '#eff6ff',
+                                                        color: '#1d4ed8',
+                                                        fontSize: '12px',
+                                                        padding: '6px 12px'
+                                                    }}
+                                                    title="Enviar email de recordatorio al cliente"
+                                                >
+                                                    📧 Recordatorio
+                                                </button>
                                                 <button
                                                     onClick={() => markInvoiceAsPaid(inv.id)}
                                                     style={{
@@ -463,7 +482,7 @@ const AccountsReceivable: React.FC = () => {
                                     <option value="">Seleccionar factura</option>
                                     {selectedAccount.pendingInvoices.map(inv => (
                                         <option key={inv.id} value={inv.id}>
-                                            #{inv.id} – {formatMoney(Number(inv.total), (inv as any).currency || 'PYG')} ({formatDate(inv.date)})
+                                            #{inv.id} – {formatMoney(Number(inv.total), inv.currency ?? 'PYG')} ({formatDate(inv.date)})
                                         </option>
                                     ))}
                                 </select>

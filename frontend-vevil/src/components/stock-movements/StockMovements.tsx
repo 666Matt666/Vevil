@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { stockMovementsApi, StockMovement, productsApi, Product } from '../../services/api';
+import { stockMovementsApi, StockMovement, productsApi, Product, getErrorMessage } from '../../services/api';
 import { formatMoney } from '../settings/Settings';
+import { LoadingSpinner } from '../ui/LoadingSpinner';
+import { ErrorMessage } from '../ui/ErrorMessage';
 
 const REASON_LABELS: Record<string, string> = {
     purchase: 'Compra',
@@ -35,8 +37,8 @@ const StockMovements: React.FC = () => {
             ]);
             setMovements(movs);
             setProducts(prods);
-        } catch (e: any) {
-            setError(e.message || 'Error al cargar');
+        } catch (e) {
+            setError(getErrorMessage(e, 'Error al cargar'));
         } finally {
             setLoading(false);
         }
@@ -97,10 +99,11 @@ const StockMovements: React.FC = () => {
             </div>
 
             {error && (
-                <div style={{ backgroundColor: '#fee2e2', padding: '16px', borderRadius: '12px', marginBottom: '16px' }}>
-                    {error}
-                    <button type="button" onClick={load} style={{ marginLeft: '12px', padding: '6px 12px' }}>Reintentar</button>
-                </div>
+                <ErrorMessage
+                    message={error}
+                    onRetry={load}
+                    onDismiss={() => setError(null)}
+                />
             )}
 
             <div style={{ marginBottom: '16px', display: 'flex', gap: '12px', alignItems: 'center' }}>
@@ -153,7 +156,7 @@ const StockMovements: React.FC = () => {
                             <label style={{ display: 'block', fontSize: '12px', marginBottom: '4px', color: '#64748b' }}>Motivo *</label>
                             <select
                                 value={form.reason}
-                                onChange={(e) => setForm({ ...form, reason: e.target.value as any })}
+                                onChange={(e) => setForm({ ...form, reason: e.target.value as 'purchase' | 'adjustment_in' | 'adjustment_out' })}
                                 style={{ padding: '10px 12px', borderRadius: '8px', border: '1px solid #e2e8f0' }}
                             >
                                 {form.type === 'in' && (
@@ -197,7 +200,7 @@ const StockMovements: React.FC = () => {
             )}
 
             {loading ? (
-                <p style={{ color: '#64748b' }}>Cargando movimientos...</p>
+                <LoadingSpinner message="Cargando movimientos..." color="#0ea5e9" minHeight={200} />
             ) : (
                 <div style={{ backgroundColor: 'white', borderRadius: '12px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', overflowX: 'auto' }}>
                     <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '600px' }}>

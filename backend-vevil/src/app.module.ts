@@ -7,6 +7,7 @@ import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { AppSeedService } from './app-seed.service';
 import { UsersModule } from './users/users.module';
 import { AuthModule } from './auth/auth.module';
 import { ProductsModule } from './products/products.module';
@@ -16,10 +17,14 @@ import { MetricsModule } from './metrics/metrics.module';
 import { StockMovementsModule } from './stock-movements/stock-movements.module';
 import { MailModule } from './mail/mail.module';
 import { PendingRegistrationsModule } from './pending-registrations/pending-registrations.module';
+import { WebAuthnModule } from './webauthn/webauthn.module';
+import { AuditModule } from './audit/audit.module';
+import { User } from './users/user.entity';
 // import { ProfileModule } from './profile/profile.module';
 
 @Module({
   imports: [
+    TypeOrmModule.forFeature([User]),
     // Sirve los archivos estáticos de la carpeta 'uploads'
     ServeStaticModule.forRoot({
       // La ruta a la carpeta que queremos servir. `join` crea una ruta absoluta.
@@ -28,10 +33,10 @@ import { PendingRegistrationsModule } from './pending-registrations/pending-regi
       serveRoot: '/uploads',
     }),
  
-    // Carga las variables de entorno de forma global desde el archivo .env
+    // Carga las variables de entorno: .env y luego .env.local (local sobreescribe)
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: '.env',
+      envFilePath: ['.env', '.env.local'],
     }),
 
     // Rate limiting global (límite por IP). Rutas sensibles definen su propio límite con @Throttle().
@@ -129,12 +134,15 @@ import { PendingRegistrationsModule } from './pending-registrations/pending-regi
     MailModule,
 
     PendingRegistrationsModule,
+    WebAuthnModule,
+    AuditModule,
 
     // ProfileModule,
   ],
   controllers: [AppController],
   providers: [
     AppService,
+    AppSeedService,
     { provide: APP_GUARD, useClass: ThrottlerGuard },
   ],
 })

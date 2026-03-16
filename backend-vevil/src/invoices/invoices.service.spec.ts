@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
+import { CreateInvoiceDto } from './dto/create-invoice.dto';
 import { InvoicesService } from './invoices.service';
 import { Invoice } from './invoice.entity';
 import { Payment } from './payment.entity';
@@ -9,6 +10,8 @@ import { ProductsService } from '../products/products.service';
 import { CustomersService } from '../customers/customers.service';
 import { Customer } from '../customers/customer.entity';
 import { Product } from '../products/product.entity';
+import { StockMovementsService } from '../stock-movements/stock-movements.service';
+import { MailService } from '../mail/mail.service';
 
 describe('InvoicesService', () => {
   let service: InvoicesService;
@@ -16,6 +19,7 @@ describe('InvoicesService', () => {
   let paymentsRepository: any;
   let productsService: jest.Mocked<ProductsService>;
   let customersService: jest.Mocked<CustomersService>;
+  let mailService: jest.Mocked<MailService>;
   let queryRunner: any;
 
   const mockCustomer: Partial<Customer> = {
@@ -85,6 +89,18 @@ describe('InvoicesService', () => {
           },
         },
         {
+          provide: StockMovementsService,
+          useValue: {
+            recordSale: jest.fn().mockResolvedValue(undefined),
+          },
+        },
+        {
+          provide: MailService,
+          useValue: {
+            sendPaymentReminderEmail: jest.fn().mockResolvedValue(undefined),
+          },
+        },
+        {
           provide: DataSource,
           useValue: {
             createQueryRunner: jest.fn().mockReturnValue(queryRunner),
@@ -98,6 +114,7 @@ describe('InvoicesService', () => {
     paymentsRepository = module.get(getRepositoryToken(Payment));
     productsService = module.get(ProductsService) as jest.Mocked<ProductsService>;
     customersService = module.get(CustomersService) as jest.Mocked<CustomersService>;
+    mailService = module.get(MailService) as jest.Mocked<MailService>;
     jest.clearAllMocks();
   });
 
@@ -190,7 +207,7 @@ describe('InvoicesService', () => {
       const result = await service.create({
         customerId: 1,
         items: [{ productId: 1, quantity: 2 }],
-      } as any);
+      } as CreateInvoiceDto);
 
       expect(queryRunner.manager.save).toHaveBeenCalled();
       expect(queryRunner.commitTransaction).toHaveBeenCalled();
@@ -206,10 +223,60 @@ describe('InvoicesService', () => {
         service.create({
           customerId: 1,
           items: [{ productId: 1, quantity: 5 }],
-        } as any),
+        } as CreateInvoiceDto),
       ).rejects.toThrow(BadRequestException);
       expect(queryRunner.rollbackTransaction).toHaveBeenCalled();
       expect(productsService.update).not.toHaveBeenCalled();
+    });
+
+    it('should throw NotFoundException when customer does not exist', async () => {
+      customersService.findOne.mockRejectedValue(new NotFoundException('Customer with ID 999 not found'));
+
+      await expect(
+        service.create({
+          customerId: 999,
+          items: [{ productId: 1, quantity: 1 }],
+        } as CreateInvoiceDto),
+      ).rejects.toThrow(NotFoundException);
+      expect(queryRunner.rollbackTransaction).toHaveBeenCalled();
+      expect(productsService.findOne).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('sendReminder', () => {
+    it('should send reminder and return { sent: true } for pending invoice with customer email', async () => {
+      invoicesRepository.findOne.mockResolvedValue({ ...mockInvoice, status: 'pending', customer: mockCustomer });
+
+      const result = await service.sendReminder(1);
+
+      expect(result).toEqual({ sent: true });
+      expect(mailService.sendPaymentReminderEmail).toHaveBeenCalledWith(
+        'cliente@test.com',
+        'Cliente',
+        '0000001',
+        200,
+        'PYG',
+      );
+    });
+
+    it('should return { sent: false } when invoice is not pending', async () => {
+      invoicesRepository.findOne.mockResolvedValue({ ...mockInvoice, status: 'paid' });
+
+      const result = await service.sendReminder(1);
+
+      expect(result).toEqual({ sent: false, reason: 'Solo se pueden enviar recordatorios de facturas pendientes.' });
+    });
+
+    it('should return { sent: false } when customer has no email', async () => {
+      invoicesRepository.findOne.mockResolvedValue({
+        ...mockInvoice,
+        status: 'pending',
+        customer: { ...mockCustomer, email: '' },
+      });
+
+      const result = await service.sendReminder(1);
+
+      expect(result).toEqual({ sent: false, reason: 'El cliente no tiene email registrado.' });
     });
   });
 });

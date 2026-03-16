@@ -1,11 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getProfile } from '../../services/api';
-import {
-    pendingRegistrationsApi,
-    type PendingRegistrationItem,
-} from '../../services/api';
+import { getProfile, pendingRegistrationsApi, type PendingRegistrationItem, getErrorMessage } from '../../services/api';
 import { copy } from '../../copy';
+import { LoadingSpinner } from '../ui/LoadingSpinner';
+import { ErrorMessage } from '../ui/ErrorMessage';
 
 const PendingRegistrations: React.FC = () => {
     const navigate = useNavigate();
@@ -15,7 +13,9 @@ const PendingRegistrations: React.FC = () => {
     const [actioning, setActioning] = useState<string | null>(null);
     const [approveRole, setApproveRole] = useState<Record<string, 'admin' | 'user'>>({});
 
-    useEffect(() => {
+    const loadList = () => {
+        setLoading(true);
+        setError('');
         getProfile()
             .then((user: any) => {
                 if (user?.role !== 'admin') {
@@ -27,8 +27,12 @@ const PendingRegistrations: React.FC = () => {
             .then((data) => {
                 if (Array.isArray(data)) setList(data);
             })
-            .catch((err) => setError(err.message || 'Error al cargar'))
+            .catch((err) => setError(getErrorMessage(err, 'Error al cargar')))
             .finally(() => setLoading(false));
+    };
+
+    useEffect(() => {
+        loadList();
     }, [navigate]);
 
     const handleApprove = async (id: string) => {
@@ -38,8 +42,8 @@ const PendingRegistrations: React.FC = () => {
         try {
             await pendingRegistrationsApi.approve(id, role);
             setList((prev) => prev.filter((r) => r.id !== id));
-        } catch (err: any) {
-            setError(err.message || 'Error al aprobar');
+        } catch (err) {
+            setError(getErrorMessage(err, 'Error al aprobar'));
         } finally {
             setActioning(null);
         }
@@ -52,8 +56,8 @@ const PendingRegistrations: React.FC = () => {
         try {
             await pendingRegistrationsApi.reject(id);
             setList((prev) => prev.filter((r) => r.id !== id));
-        } catch (err: any) {
-            setError(err.message || 'Error al rechazar');
+        } catch (err) {
+            setError(getErrorMessage(err, 'Error al rechazar'));
         } finally {
             setActioning(null);
         }
@@ -62,7 +66,7 @@ const PendingRegistrations: React.FC = () => {
     if (loading) {
         return (
             <div className="responsive-padding" style={{ padding: '32px' }}>
-                <p>{copy.pendingRegistrations.loading}</p>
+                <LoadingSpinner message={copy.pendingRegistrations.loading} color="#4f46e5" minHeight={280} />
             </div>
         );
     }
@@ -77,9 +81,11 @@ const PendingRegistrations: React.FC = () => {
             </p>
 
             {error && (
-                <div style={{ backgroundColor: '#fee2e2', color: '#991b1b', padding: '12px 16px', borderRadius: '8px', marginBottom: '20px' }}>
-                    {error}
-                </div>
+                <ErrorMessage
+                    message={error}
+                    onRetry={loadList}
+                    onDismiss={() => setError('')}
+                />
             )}
 
             {list.length === 0 ? (

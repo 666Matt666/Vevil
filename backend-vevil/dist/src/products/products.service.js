@@ -22,7 +22,13 @@ let ProductsService = class ProductsService {
         this.productsRepository = productsRepository;
     }
     create(createProductDto) {
-        const product = this.productsRepository.create(createProductDto);
+        const product = this.productsRepository.create({
+            ...createProductDto,
+            currency: createProductDto.currency || 'PYG',
+            minStock: createProductDto.minStock ?? 0,
+            costPrice: createProductDto.costPrice ?? null,
+            category: createProductDto.category ?? null,
+        });
         return this.productsRepository.save(product);
     }
     findAll() {

@@ -1,7 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { invoicesApi, Invoice, customersApi, Customer, productsApi, Product } from '../../services/api';
+import { invoicesApi, Invoice, customersApi, Customer, productsApi, Product, getErrorMessage } from '../../services/api';
 import { getEnabledCurrencies, formatMoney, getInvoiceConfig, getCompanyConfig, formatInvoiceNumber } from '../settings/Settings';
+import { TableSkeleton } from '../ui/TableSkeleton';
+import { ErrorMessage } from '../ui/ErrorMessage';
+import { SuccessMessage } from '../ui/SuccessMessage';
+import { exportInvoicesToCsv } from '../../utils/exportCsv';
 
 const buttonStyle: React.CSSProperties = {
     padding: '8px 16px',
@@ -59,6 +63,7 @@ const InvoiceList: React.FC = () => {
     const [error, setError] = useState<string | null>(null);
     const [showModal, setShowModal] = useState(false);
     const [saving, setSaving] = useState(false);
+    const [successMessage, setSuccessMessage] = useState<string | null>(null);
     
     // Form state
     const [selectedCustomerId, setSelectedCustomerId] = useState<string>('');
@@ -77,7 +82,7 @@ const InvoiceList: React.FC = () => {
     const companyConfig = getCompanyConfig();
 
     const getInvoiceStatus = (invoice: Invoice): PaymentStatus => {
-        const s = (invoice as any).status;
+        const s = invoice.status;
         return (s === 'pending' || s === 'paid' || s === 'cancelled' ? s : 'paid') as PaymentStatus;
     };
 
@@ -85,8 +90,8 @@ const InvoiceList: React.FC = () => {
         try {
             await invoicesApi.updateStatus(invoiceId, status);
             setInvoices(prev => prev.map(inv => inv.id === invoiceId ? { ...inv, status } : inv));
-        } catch (err: any) {
-            alert(err.message || 'Error al actualizar estado');
+        } catch (err) {
+            alert(getErrorMessage(err, 'Error al actualizar estado'));
         }
     };
 
@@ -128,8 +133,8 @@ const InvoiceList: React.FC = () => {
             setInvoices(invoicesData);
             setCustomers(customersData);
             setProducts(productsData);
-        } catch (err: any) {
-            setError(err.message || 'Error al cargar datos');
+        } catch (err) {
+            setError(getErrorMessage(err, 'Error al cargar datos'));
         } finally {
             setLoading(false);
         }
@@ -210,9 +215,10 @@ const InvoiceList: React.FC = () => {
                 items: validItems
             });
             closeModal();
+            setSuccessMessage('Factura creada');
             loadData();
-        } catch (err: any) {
-            alert(err.message || 'Error al crear factura');
+        } catch (err) {
+            setError(getErrorMessage(err, 'Error al crear factura'));
         } finally {
             setSaving(false);
         }
@@ -294,8 +300,8 @@ const InvoiceList: React.FC = () => {
                             <tr>
                                 <td>${item.quantity}</td>
                                 <td>${item.product?.name || 'Producto'}</td>
-                                <td style="text-align: right;">${formatMoney(Number(item.priceAtSale), (invoice as any).currency || 'PYG')}</td>
-                                <td style="text-align: right;">${formatMoney(Number(item.priceAtSale) * item.quantity, (invoice as any).currency || 'PYG')}</td>
+                                <td style="text-align: right;">${formatMoney(Number(item.priceAtSale), invoice.currency ?? 'PYG')}</td>
+                                <td style="text-align: right;">${formatMoney(Number(item.priceAtSale) * item.quantity, invoice.currency ?? 'PYG')}</td>
                             </tr>
                         `).join('')}
                     </tbody>
@@ -304,15 +310,15 @@ const InvoiceList: React.FC = () => {
                 <div class="totals">
                     <div class="total-row">
                         <span>Subtotal:</span>
-                        <span>${formatMoney(subtotal, (invoice as any).currency || 'PYG')}</span>
+                        <span>${formatMoney(subtotal, invoice.currency ?? 'PYG')}</span>
                     </div>
                     <div class="total-row">
                         <span>IVA (10%):</span>
-                        <span>${formatMoney(iva, (invoice as any).currency || 'PYG')}</span>
+                        <span>${formatMoney(iva, invoice.currency ?? 'PYG')}</span>
                     </div>
                     <div class="total-row">
                         <span><strong>TOTAL:</strong></span>
-                        <span class="total-final">${formatMoney(Number(invoice.total), (invoice as any).currency || 'PYG')}</span>
+                        <span class="total-final">${formatMoney(Number(invoice.total), invoice.currency ?? 'PYG')}</span>
                     </div>
                 </div>
 
@@ -345,20 +351,11 @@ const InvoiceList: React.FC = () => {
 
     if (loading) {
         return (
-            <div style={{ padding: '32px', display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '400px' }}>
-                <div style={{ textAlign: 'center' }}>
-                    <div style={{ 
-                        width: '48px', 
-                        height: '48px', 
-                        border: '4px solid #e2e8f0',
-                        borderTopColor: '#f97316',
-                        borderRadius: '50%',
-                        animation: 'spin 1s linear infinite',
-                        margin: '0 auto 16px'
-                    }} />
-                    <p style={{ color: '#64748b' }}>Cargando facturas...</p>
-                    <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+            <div className="responsive-padding" style={{ padding: '32px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
+                    <h1 style={{ fontSize: 'clamp(22px, 5vw, 28px)', fontWeight: 700, color: '#1e293b', margin: 0 }}>Facturas</h1>
                 </div>
+                <TableSkeleton rows={6} cols={5} message="Cargando facturas..." />
             </div>
         );
     }
@@ -387,35 +384,48 @@ const InvoiceList: React.FC = () => {
                         )}
                     </p>
                 </div>
-                <button 
-                    onClick={openCreateModal}
-                    style={{
-                        ...buttonStyle,
-                        padding: '12px 24px',
-                        backgroundColor: '#f97316',
-                        color: 'white',
-                    }}
-                >
-                    + Nueva Factura
-                </button>
-            </div>
-
-            {error && (
-                <div style={{
-                    backgroundColor: '#fee2e2',
-                    border: '1px solid #fecaca',
-                    borderRadius: '12px',
-                    padding: '16px',
-                    marginBottom: '24px',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center'
-                }}>
-                    <p style={{ color: '#991b1b', margin: 0 }}>❌ {error}</p>
-                    <button onClick={loadData} style={{ ...buttonStyle, backgroundColor: '#f97316', color: 'white' }}>
-                        Reintentar
+                <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+                    <button
+                        type="button"
+                        onClick={() => exportInvoicesToCsv(filteredInvoices, formatInvoiceNumber)}
+                        style={{
+                            ...buttonStyle,
+                            padding: '10px 18px',
+                            backgroundColor: 'white',
+                            color: '#64748b',
+                            border: '1px solid #e2e8f0',
+                        }}
+                        title="Descargar listado en CSV (Excel)"
+                    >
+                        📥 Exportar CSV
+                    </button>
+                    <button 
+                        onClick={openCreateModal}
+                        style={{
+                            ...buttonStyle,
+                            padding: '12px 24px',
+                            backgroundColor: '#f97316',
+                            color: 'white',
+                        }}
+                    >
+                        + Nueva Factura
                     </button>
                 </div>
+            </div>
+
+            {successMessage && (
+                <SuccessMessage
+                    message={successMessage}
+                    onDismiss={() => setSuccessMessage(null)}
+                    autoDismissMs={4000}
+                />
+            )}
+            {error && (
+                <ErrorMessage
+                    message={error}
+                    onRetry={loadData}
+                    onDismiss={() => setError(null)}
+                />
             )}
 
             {/* Barra de Filtros */}
@@ -467,7 +477,7 @@ const InvoiceList: React.FC = () => {
                     
                     <select
                         value={filterStatus}
-                        onChange={(e) => setFilterStatus(e.target.value as any)}
+                        onChange={(e) => setFilterStatus(e.target.value as 'all' | PaymentStatus)}
                         style={{
                             padding: '10px 16px',
                             border: '1px solid #e2e8f0',
@@ -539,7 +549,8 @@ const InvoiceList: React.FC = () => {
                     boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
                 }}>
                     <p style={{ fontSize: '48px', margin: '0 0 16px 0' }}>📄</p>
-                    <p style={{ color: '#64748b', margin: '0 0 16px 0' }}>No hay facturas registradas</p>
+                    <p style={{ color: '#1e293b', fontSize: '18px', fontWeight: 600, margin: '0 0 8px 0' }}>No hay facturas registradas</p>
+                    <p style={{ color: '#64748b', margin: '0 0 24px 0' }}>Creá tu primera factura para empezar a cobrar.</p>
                     <button onClick={openCreateModal} style={{ ...buttonStyle, backgroundColor: '#f97316', color: 'white' }}>
                         Crear primera factura
                     </button>
@@ -617,7 +628,7 @@ const InvoiceList: React.FC = () => {
                                             color: isCancelled ? '#94a3b8' : '#1e293b',
                                             textDecoration: isCancelled ? 'line-through' : 'none'
                                         }}>
-                                            {formatMoney(Number(invoice.total), (invoice as any).currency || 'PYG')}
+                                            {formatMoney(Number(invoice.total), invoice.currency ?? 'PYG')}
                                         </td>
                                         <td style={{ padding: '16px', textAlign: 'center' }}>
                                             <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
@@ -779,7 +790,7 @@ const InvoiceList: React.FC = () => {
                                             <option value={0}>Seleccionar producto...</option>
                                             {products.map(product => (
                                                 <option key={product.id} value={product.id}>
-                                                    {product.name} - {formatMoney(Number(product.price), (product as any).currency || 'PYG')}
+                                                    {product.name} - {formatMoney(Number(product.price), product.currency ?? 'PYG')}
                                                 </option>
                                             ))}
                                         </select>

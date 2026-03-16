@@ -11,12 +11,14 @@ const common_1 = require("@nestjs/common");
 const auth_service_1 = require("./auth.service");
 const auth_controller_1 = require("./auth.controller");
 const users_module_1 = require("../users/users.module");
+const pending_registrations_module_1 = require("../pending-registrations/pending-registrations.module");
 const passport_1 = require("@nestjs/passport");
 const jwt_1 = require("@nestjs/jwt");
 const config_1 = require("@nestjs/config");
 const local_strategy_1 = require("./strategies/local.strategy");
 const jwt_strategy_1 = require("./strategies/jwt.strategy");
 const jwt_refresh_strategy_1 = require("./strategies/jwt-refresh.strategy");
+const mail_module_1 = require("../mail/mail.module");
 let AuthModule = class AuthModule {
 };
 exports.AuthModule = AuthModule;
@@ -24,6 +26,8 @@ exports.AuthModule = AuthModule = __decorate([
     (0, common_1.Module)({
         imports: [
             users_module_1.UsersModule,
+            pending_registrations_module_1.PendingRegistrationsModule,
+            mail_module_1.MailModule,
             passport_1.PassportModule,
             config_1.ConfigModule,
             jwt_1.JwtModule.registerAsync({

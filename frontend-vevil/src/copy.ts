@@ -85,6 +85,16 @@ export const copy = {
     setPassword: 'Restablecer contraseña',
   },
 
+  webauthn: {
+    loginWithFingerprint: 'Iniciar con huella',
+    loginWithFingerprintShort: 'Huella',
+    addingFingerprint: 'Verificando huella...',
+    noFingerprintForEmail: 'No hay huella registrada para este correo.',
+    noFingerprintHint: 'Iniciá sesión con tu contraseña y luego agregá la huella en Configuración → Cuenta.',
+    addFingerprint: 'Agregar huella',
+    addFingerprintDone: 'Huella agregada correctamente.',
+  },
+
   errors: {
     generic: 'Ha ocurrido un error.',
     invalidCredentials: 'Credenciales inválidas',

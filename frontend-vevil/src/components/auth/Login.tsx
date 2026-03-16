@@ -1,20 +1,36 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { login, wakeBackend, wakeBackendAndWait } from '../../services/api';
+import { startAuthentication, browserSupportsWebAuthn } from '@simplewebauthn/browser';
+import { login, type LoginResponse, wakeBackend, wakeBackendAndWait, webauthnLoginOptions, webauthnLoginVerify } from '../../services/api';
+import { copy } from '../../copy';
+
+const LOGIN_EMAIL_KEY = 'vevil_login_email';
 
 const Login: React.FC = () => {
-    const [email, setEmail] = useState('');
+    const [email, setEmail] = useState(() => {
+        try {
+            return localStorage.getItem(LOGIN_EMAIL_KEY) ?? '';
+        } catch {
+            return '';
+        }
+    });
     const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [isWakingUp, setIsWakingUp] = useState(false);
+    const [supportsWebAuthn, setSupportsWebAuthn] = useState(false);
+    const [isWebAuthnLoading, setIsWebAuthnLoading] = useState(false);
     const navigate = useNavigate();
 
     useEffect(() => {
         const token = localStorage.getItem('token');
         if (token) navigate('/dashboard');
     }, [navigate]);
+
+    useEffect(() => {
+        setSupportsWebAuthn(typeof window !== 'undefined' && browserSupportsWebAuthn());
+    }, []);
 
     // Despertar el backend en producción (Render free tier) al cargar la página
     useEffect(() => {
@@ -26,8 +42,16 @@ const Login: React.FC = () => {
         setIsLoading(true);
         try {
             const data = await login(email, password);
+            try {
+                localStorage.setItem(LOGIN_EMAIL_KEY, email.trim());
+            } catch (_) {}
             localStorage.setItem('token', data.access_token);
             if (data.refresh_token) localStorage.setItem('refresh_token', data.refresh_token);
+            const user = (data as LoginResponse).user;
+            if (user) {
+                const profile = { ...user, role: user.role ?? (user.email?.toLowerCase() === 'admin@vevil.com' ? 'admin' : undefined) };
+                localStorage.setItem('vevil_profile', JSON.stringify(profile));
+            }
             navigate('/dashboard');
         } catch (err: any) {
             setError(err.message || 'Error al iniciar sesión');
@@ -53,6 +77,43 @@ const Login: React.FC = () => {
         await wakeBackendAndWait(65000);
         setIsWakingUp(false);
         doLogin();
+    };
+
+    const handleWebAuthnLogin = async () => {
+        if (!email.trim()) {
+            setError(copy.webauthn.noFingerprintForEmail);
+            return;
+        }
+        setError('');
+        setIsWebAuthnLoading(true);
+        try {
+            const options = await webauthnLoginOptions(email.trim());
+            const credential = await startAuthentication({ optionsJSON: options });
+            const data = await webauthnLoginVerify(
+                credential as unknown as Record<string, unknown>,
+                options.challenge
+            );
+            try {
+                localStorage.setItem(LOGIN_EMAIL_KEY, email.trim());
+            } catch (_) {}
+            localStorage.setItem('token', data.access_token);
+            if (data.refresh_token) localStorage.setItem('refresh_token', data.refresh_token);
+            const user = (data as LoginResponse).user;
+            if (user) {
+                const profile = { ...user, role: user.role ?? (user.email?.toLowerCase() === 'admin@vevil.com' ? 'admin' : undefined) };
+                localStorage.setItem('vevil_profile', JSON.stringify(profile));
+            }
+            navigate('/dashboard');
+        } catch (err: unknown) {
+            const msg = err instanceof Error ? err.message : copy.errors.generic;
+            const isNoCredential =
+                msg.includes('huella registrada') ||
+                msg.includes('Usuario no encontrado') ||
+                msg.includes('no encontrado');
+            setError(isNoCredential ? `${msg} ${copy.webauthn.noFingerprintHint}` : msg);
+        } finally {
+            setIsWebAuthnLoading(false);
+        }
     };
 
     return (
@@ -139,10 +200,11 @@ const Login: React.FC = () => {
                     }}>
                         <form onSubmit={handleSubmit} style={{ marginTop: '8px' }}>
                             <div style={{ marginBottom: '18px' }}>
-                                <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#334155', marginBottom: '8px' }}>
+                                <label htmlFor="login-email" style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#334155', marginBottom: '8px' }}>
                                     Email
                                 </label>
                                 <input
+                                    id="login-email"
                                     type="email"
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
@@ -176,11 +238,12 @@ const Login: React.FC = () => {
                             </div>
 
                             <div style={{ marginBottom: '24px' }}>
-                                <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#334155', marginBottom: '8px' }}>
+                                <label htmlFor="login-password" style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#334155', marginBottom: '8px' }}>
                                     Contraseña
                                 </label>
                                 <div style={{ position: 'relative' }}>
                                     <input
+                                        id="login-password"
                                         type={showPassword ? 'text' : 'password'}
                                         value={password}
                                         onChange={(e) => setPassword(e.target.value)}
@@ -269,7 +332,7 @@ const Login: React.FC = () => {
 
                             <button
                                 type="submit"
-                                disabled={isLoading}
+                                disabled={isLoading || isWebAuthnLoading}
                                 className="vevil-login-btn"
                                 style={{
                                     width: '100%',
@@ -286,6 +349,31 @@ const Login: React.FC = () => {
                             >
                                 {isLoading ? 'Iniciando sesión...' : 'Iniciar sesión'}
                             </button>
+                            {supportsWebAuthn && email.trim() && (
+                                <button
+                                    type="button"
+                                    disabled={isLoading || isWebAuthnLoading}
+                                    onClick={handleWebAuthnLogin}
+                                    style={{
+                                        width: '100%',
+                                        marginTop: '12px',
+                                        padding: '12px',
+                                        fontSize: '14px',
+                                        fontWeight: 600,
+                                        color: '#4f46e5',
+                                        background: 'transparent',
+                                        border: '1px solid #c7d2fe',
+                                        borderRadius: '12px',
+                                        cursor: isLoading || isWebAuthnLoading ? 'not-allowed' : 'pointer',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        gap: '8px'
+                                    }}
+                                >
+                                    {isWebAuthnLoading ? copy.webauthn.addingFingerprint : copy.webauthn.loginWithFingerprint}
+                                </button>
+                            )}
                             {typeof window !== 'undefined' && window.location.hostname.includes('vercel.app') && (
                                 <p style={{ fontSize: '12px', color: '#94a3b8', marginTop: '10px', textAlign: 'center' }}>
                                     La primera vez puede tardar unos segundos.

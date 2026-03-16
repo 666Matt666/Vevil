@@ -17,6 +17,23 @@ export class MailService {
   }
 
   /**
+   * Email (y opcionalmente nombre) que aparece como remitente.
+   * Orden: MAIL_FROM, MAIL_ADMIN_EMAIL, MAIL_USER, fallback.
+   */
+  private getFromAddress(): string {
+    const from =
+      this.configService.get<string>('MAIL_FROM') ||
+      this.configService.get<string>('MAIL_ADMIN_EMAIL') ||
+      this.configService.get<string>('MAIL_USER') ||
+      'noreply@vevil.com';
+    const name = this.configService.get<string>('MAIL_ADMIN_NAME') || this.configService.get<string>('MAIL_FROM_NAME');
+    if (name && from) {
+      return `${name} <${from}>`;
+    }
+    return from;
+  }
+
+  /**
    * Envía el email con el enlace para restablecer la contraseña.
    * No hace nada si MAIL_* no está configurado (evita errores en desarrollo sin SMTP).
    */
@@ -29,14 +46,9 @@ export class MailService {
       return;
     }
 
-    const from =
-      this.configService.get<string>('MAIL_FROM') ||
-      this.configService.get<string>('MAIL_USER') ||
-      'noreply@vevil.com';
-
     await this.mailerService.sendMail({
       to,
-      from,
+      from: this.getFromAddress(),
       subject: 'Restablecer tu contraseña - Vevil',
       html: `
         <p>Hola,</p>
@@ -59,13 +71,9 @@ export class MailService {
       }
       return;
     }
-    const from =
-      this.configService.get<string>('MAIL_FROM') ||
-      this.configService.get<string>('MAIL_USER') ||
-      'noreply@vevil.com';
     await this.mailerService.sendMail({
       to,
-      from,
+      from: this.getFromAddress(),
       subject: 'Confirmá tu solicitud de registro - Vevil',
       html: `
         <p>Hola,</p>
@@ -81,6 +89,32 @@ export class MailService {
   }
 
   /**
+   * Envía recordatorio de cobro al cliente por una factura pendiente.
+   * No hace nada si MAIL_* no está configurado o el cliente no tiene email.
+   */
+  async sendPaymentReminderEmail(to: string, customerName: string, invoiceNumber: string, total: number, currency: string): Promise<void> {
+    if (!this.isConfigured()) {
+      if (this.configService.get<string>('NODE_ENV') === 'development') {
+        console.log('[Mail] Payment reminder (MAIL_* not configured):', { to, invoiceNumber, total });
+      }
+      return;
+    }
+    const totalStr = `${currency} ${Number(total).toLocaleString('es-PY', { minimumFractionDigits: 0 })}`;
+    await this.mailerService.sendMail({
+      to,
+      from: this.getFromAddress(),
+      subject: `Recordatorio de pago - Factura ${invoiceNumber} - Vevil`,
+      html: `
+        <p>Hola ${customerName || 'cliente'},</p>
+        <p>Te recordamos que tenés una factura pendiente de pago:</p>
+        <p><strong>Factura ${invoiceNumber}</strong> - Total: ${totalStr}</p>
+        <p>Por favor, acercate a realizar el pago o contactanos para coordinar.</p>
+        <p>Saludos,<br/>El equipo de Vevil</p>
+      `,
+    });
+  }
+
+  /**
    * Envía el email para que el usuario cree su contraseña (tras aprobación de admin).
    */
   async sendSetPasswordEmail(to: string, setPasswordLink: string): Promise<void> {
@@ -90,13 +124,9 @@ export class MailService {
       }
       return;
     }
-    const from =
-      this.configService.get<string>('MAIL_FROM') ||
-      this.configService.get<string>('MAIL_USER') ||
-      'noreply@vevil.com';
     await this.mailerService.sendMail({
       to,
-      from,
+      from: this.getFromAddress(),
       subject: 'Creá tu contraseña - Vevil',
       html: `
         <p>Hola,</p>

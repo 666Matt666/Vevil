@@ -21,6 +21,7 @@ __decorate([
 ], CreateInvoiceItemDto.prototype, "productId", void 0);
 __decorate([
     (0, class_validator_1.IsNumber)(),
+    (0, class_validator_1.Min)(1, { message: 'La cantidad debe ser al menos 1' }),
     __metadata("design:type", Number)
 ], CreateInvoiceItemDto.prototype, "quantity", void 0);
 class CreateInvoiceDto {
@@ -31,7 +32,19 @@ __decorate([
     __metadata("design:type", Number)
 ], CreateInvoiceDto.prototype, "customerId", void 0);
 __decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], CreateInvoiceDto.prototype, "currency", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsIn)(['pending', 'paid', 'cancelled'], { message: 'status debe ser pending, paid o cancelled' }),
+    __metadata("design:type", String)
+], CreateInvoiceDto.prototype, "status", void 0);
+__decorate([
     (0, class_validator_1.IsArray)(),
+    (0, class_validator_1.ArrayMinSize)(1, { message: 'Debe incluir al menos un ítem en la factura' }),
     (0, class_validator_1.ValidateNested)({ each: true }),
     (0, class_transformer_1.Type)(() => CreateInvoiceItemDto),
     __metadata("design:type", Array)

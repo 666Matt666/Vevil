@@ -52,10 +52,11 @@ const ForgotPassword: React.FC = () => {
                                 </div>
                             )}
                             <div style={{ marginBottom: '20px' }}>
-                                <label style={{ display: 'block', fontSize: '14px', fontWeight: 500, color: '#374151', marginBottom: '6px' }}>
+                                <label htmlFor="forgot-email" style={{ display: 'block', fontSize: '14px', fontWeight: 500, color: '#374151', marginBottom: '6px' }}>
                                     Email
                                 </label>
                                 <input
+                                    id="forgot-email"
                                     type="email"
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}

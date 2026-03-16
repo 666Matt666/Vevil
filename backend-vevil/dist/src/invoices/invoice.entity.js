@@ -13,6 +13,7 @@ exports.Invoice = void 0;
 const typeorm_1 = require("typeorm");
 const customer_entity_1 = require("../customers/customer.entity");
 const invoice_item_entity_1 = require("./invoice-item.entity");
+const payment_entity_1 = require("./payment.entity");
 let Invoice = class Invoice {
 };
 exports.Invoice = Invoice;
@@ -37,9 +38,21 @@ __decorate([
     __metadata("design:type", Number)
 ], Invoice.prototype, "total", void 0);
 __decorate([
+    (0, typeorm_1.Column)({ length: 3, default: 'PYG' }),
+    __metadata("design:type", String)
+], Invoice.prototype, "currency", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ length: 20, default: 'pending' }),
+    __metadata("design:type", String)
+], Invoice.prototype, "status", void 0);
+__decorate([
     (0, typeorm_1.OneToMany)(() => invoice_item_entity_1.InvoiceItem, (item) => item.invoice, { cascade: true }),
     __metadata("design:type", Array)
 ], Invoice.prototype, "items", void 0);
+__decorate([
+    (0, typeorm_1.OneToMany)(() => payment_entity_1.Payment, (p) => p.invoice),
+    __metadata("design:type", Array)
+], Invoice.prototype, "payments", void 0);
 exports.Invoice = Invoice = __decorate([
     (0, typeorm_1.Entity)()
 ], Invoice);

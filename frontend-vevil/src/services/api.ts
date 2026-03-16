@@ -17,6 +17,7 @@ const getApiBaseUrl = (): string => {
 };
 
 let API_BASE_URL = getApiBaseUrl();
+export { getApiBaseUrl };
 
 // Red de seguridad: si por caché o build viejo quedó Fly.io, usar Render cuando estamos en Vercel
 if (typeof window !== 'undefined' && window.location.hostname.includes('vercel.app') && API_BASE_URL.includes('fly.dev')) {
@@ -80,7 +81,18 @@ const fetchWithRetry = async (url: string, options: RequestInit, retriesLeft = R
 };
 
 // ============ AUTENTICACIÓN ============
-export const login = async (email: string, password: string): Promise<{ access_token: string }> => {
+export interface UserProfile {
+    id?: string;
+    email?: string;
+    name?: string;
+    role?: string;
+}
+export interface LoginResponse {
+    access_token: string;
+    refresh_token?: string;
+    user?: UserProfile;
+}
+export const login = async (email: string, password: string): Promise<LoginResponse> => {
     const loginUrl = `${API_BASE_URL}/auth/login`;
     if (import.meta.env.DEV) console.log('[Vevil] Login → POST', loginUrl);
     try {
@@ -244,7 +256,13 @@ const refreshAuth = async (): Promise<boolean> => {
     }
 };
 
-const fetchWithAuth = async (endpoint: string, options: RequestInit = {}): Promise<Response> => {
+type FetchWithAuthConfig = { skipRedirectOn401?: boolean };
+
+const fetchWithAuth = async (
+    endpoint: string,
+    options: RequestInit = {},
+    config: FetchWithAuthConfig = {}
+): Promise<Response> => {
     let token = getToken();
     const headers: HeadersInit = {
         'Content-Type': 'application/json',
@@ -269,16 +287,67 @@ const fetchWithAuth = async (endpoint: string, options: RequestInit = {}): Promi
     }
 
     if (response.status === 401) {
-        clearTokens();
-        window.location.href = '/login';
         throw new Error('Sesión expirada');
     }
     return response;
 };
 
 export const getProfile = async () => {
-    const r = await fetchWithAuth('/auth/profile');
+    const r = await fetchWithAuth('/auth/profile', {}, { skipRedirectOn401: true });
     if (!r.ok) throw new Error('No autorizado');
+    return r.json();
+};
+
+// ============ WEBAUTHN (huella / passkey) ============
+/** Opciones para iniciar sesión con huella (email debe tener credencial registrada). */
+export const webauthnLoginOptions = async (email: string): Promise<{ challenge: string; [k: string]: unknown }> => {
+    const r = await fetch(`${API_BASE_URL}/auth/webauthn/login/options`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.trim().toLowerCase() }),
+    });
+    if (!r.ok) {
+        const err = await r.json().catch(() => ({ message: 'No hay huella registrada para este correo' }));
+        throw new Error(err.message || 'Error al obtener opciones');
+    }
+    return r.json();
+};
+
+/** Verificar huella y obtener tokens. */
+export const webauthnLoginVerify = async (
+    response: Record<string, unknown>,
+    challenge: string
+): Promise<{ access_token: string; refresh_token?: string }> => {
+    const r = await fetch(`${API_BASE_URL}/auth/webauthn/login/verify`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ response, challenge }),
+    });
+    if (!r.ok) {
+        const err = await r.json().catch(() => ({ message: 'Verificación fallida' }));
+        throw new Error(err.message || 'Verificación fallida');
+    }
+    return r.json();
+};
+
+/** Opciones para registrar huella (requiere sesión). */
+export const webauthnRegisterOptions = async (): Promise<{ challenge: string; [k: string]: unknown }> => {
+    const r = await fetchWithAuth('/auth/webauthn/register/options', { method: 'POST' });
+    if (!r.ok) throw new Error('Error al obtener opciones');
+    return r.json();
+};
+
+/** Verificar y guardar credencial de huella (requiere sesión). */
+export const webauthnRegisterVerify = async (
+    response: Record<string, unknown>,
+    challenge: string
+): Promise<{ verified: boolean }> => {
+    const r = await fetchWithAuth('/auth/webauthn/register/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ response, challenge }),
+    });
+    if (!r.ok) throw new Error('Error al registrar huella');
     return r.json();
 };
 
@@ -496,6 +565,13 @@ export const invoicesApi = {
         if (!response.ok) throw new Error('Error al registrar pago');
         return response.json();
     },
+
+    /** Envía recordatorio de cobro por email al cliente. Solo facturas pendientes. */
+    sendReminder: async (id: number): Promise<{ sent: boolean; reason?: string }> => {
+        const response = await fetchWithAuth(`/invoices/${id}/send-reminder`, { method: 'POST' });
+        if (!response.ok) throw new Error('Error al enviar recordatorio');
+        return response.json();
+    },
 };
 
 // ============ ESTADÍSTICAS ============
@@ -551,4 +627,43 @@ export const metricsApi = {
         return response.json();
     },
 };
+
+// ============ AUDITORÍA ============
+export interface AuditLogItem {
+    id: number;
+    userId: string | null;
+    userEmail: string | null;
+    action: string;
+    entityType: string;
+    entityId: string | null;
+    oldValue: Record<string, unknown> | null;
+    newValue: Record<string, unknown> | null;
+    ip: string | null;
+    createdAt: string;
+}
+
+export const auditApi = {
+    getList: async (params?: { userId?: string; entityType?: string; entityId?: string; limit?: number }): Promise<AuditLogItem[]> => {
+        const search = new URLSearchParams();
+        if (params?.userId) search.set('userId', params.userId);
+        if (params?.entityType) search.set('entityType', params.entityType);
+        if (params?.entityId) search.set('entityId', params.entityId);
+        if (params?.limit != null) search.set('limit', String(params.limit));
+        const qs = search.toString();
+        const url = qs ? `/audit?${qs}` : '/audit';
+        const response = await fetchWithAuth(url);
+        if (!response.ok) throw new Error('Error al cargar auditoría');
+        return response.json();
+    },
+};
+
+/** Mensaje de error amigable a partir de cualquier error (red, API, etc.). */
+export function getErrorMessage(err: unknown, fallback: string = 'Ocurrió un error'): string {
+    if (err instanceof Error) {
+        const msg = err.message?.trim();
+        if (msg) return msg;
+    }
+    if (typeof err === 'string') return err;
+    return fallback;
+}
 

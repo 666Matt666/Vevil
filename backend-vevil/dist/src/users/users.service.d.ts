@@ -19,9 +19,16 @@ export declare class UsersService {
         id: string;
         email: string;
         name: string;
+        lastName?: string;
+        gender?: "male" | "female";
         avatar?: string;
         role: UserRole;
+        resetPasswordToken?: string;
+        resetPasswordExpires?: Date;
         createdAt: Date;
         updatedAt: Date;
     }>;
+    setResetPasswordToken(email: string, token: string, expires: Date): Promise<boolean>;
+    findOneByResetToken(token: string): Promise<User | null>;
+    clearResetPasswordToken(userId: string): Promise<void>;
 }

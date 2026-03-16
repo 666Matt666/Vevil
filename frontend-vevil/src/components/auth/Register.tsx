@@ -79,8 +79,9 @@ const Register: React.FC = () => {
 
                 <form onSubmit={handleSubmit}>
                     <div style={{ marginBottom: '20px' }}>
-                        <label style={{ display: 'block', fontSize: '14px', fontWeight: 500, color: '#374151', marginBottom: '6px' }}>{copy.register.name} *</label>
+                        <label htmlFor="register-name" style={{ display: 'block', fontSize: '14px', fontWeight: 500, color: '#374151', marginBottom: '6px' }}>{copy.register.name} *</label>
                         <input
+                            id="register-name"
                             type="text"
                             value={name}
                             onChange={(e) => setName(e.target.value)}
@@ -90,8 +91,9 @@ const Register: React.FC = () => {
                         />
                     </div>
                     <div style={{ marginBottom: '20px' }}>
-                        <label style={{ display: 'block', fontSize: '14px', fontWeight: 500, color: '#374151', marginBottom: '6px' }}>{copy.register.lastName}</label>
+                        <label htmlFor="register-lastName" style={{ display: 'block', fontSize: '14px', fontWeight: 500, color: '#374151', marginBottom: '6px' }}>{copy.register.lastName}</label>
                         <input
+                            id="register-lastName"
                             type="text"
                             value={lastName}
                             onChange={(e) => setLastName(e.target.value)}
@@ -100,8 +102,9 @@ const Register: React.FC = () => {
                         />
                     </div>
                     <div style={{ marginBottom: '20px' }}>
-                        <label style={{ display: 'block', fontSize: '14px', fontWeight: 500, color: '#374151', marginBottom: '6px' }}>{copy.auth.email} *</label>
+                        <label htmlFor="register-email" style={{ display: 'block', fontSize: '14px', fontWeight: 500, color: '#374151', marginBottom: '6px' }}>{copy.auth.email} *</label>
                         <input
+                            id="register-email"
                             type="email"
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}

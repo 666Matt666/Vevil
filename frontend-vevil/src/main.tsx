@@ -24,6 +24,7 @@ import Reports from './components/reports/Reports.tsx';
 import AccountsReceivable from './components/accounts/AccountsReceivable.tsx';
 import StockMovements from './components/stock-movements/StockMovements.tsx';
 import PendingRegistrations from './components/admin/PendingRegistrations.tsx';
+import AuditLogView from './components/audit/AuditLogView.tsx';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
     <React.StrictMode>
@@ -48,6 +49,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
                     <Route path="reports" element={<Reports />} />
                     <Route path="accounts" element={<AccountsReceivable />} />
                     <Route path="pending-registrations" element={<PendingRegistrations />} />
+                    <Route path="audit" element={<AuditLogView />} />
                     <Route path="settings" element={<Settings />} />
                 </Route>
             </Routes>

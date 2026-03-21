@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import apiClient from '@/api/axios';
+import { clearTokens } from '@/services/api';
 
 export interface User {
   id: string;
@@ -10,52 +11,50 @@ export interface User {
 
 export const useAuthStore = defineStore('auth', () => {
   const user = ref<User | null>(null);
-  // Al iniciar, intentamos leer el token desde localStorage
-  const accessToken = ref<string | null>(localStorage.getItem('accessToken'));
+  // Ya no necesitamos token local - usamos HttpOnly cookies
+  // isAuthenticated se determina verificando con el servidor
 
   // Un getter computado que nos dice si el usuario está realmente autenticado
-  const isAuthenticated = computed(() => !!accessToken.value && !!user.value);
-
-  function setToken(token: string) {
-    accessToken.value = token;
-    // Guardamos el token en localStorage para persistir la sesión
-    localStorage.setItem('accessToken', token);
-  }
+  // Ahora depende de si tenemos usuario cargado (verificado con el servidor)
+  const isAuthenticated = computed(() => !!user.value);
 
   function clearAuth() {
     user.value = null;
-    accessToken.value = null;
-    localStorage.removeItem('accessToken');
+    // Ya no usamos localStorage para el token
   }
 
   async function fetchProfile() {
-    // Si no hay token, no hay nada que hacer
-    if (!accessToken.value) return;
-
+    // Intentar obtener el perfil usando las cookies HttpOnly
     try {
       const response = await apiClient.get<User>('/auth/profile');
       user.value = response.data;
+      return true;
     } catch (error) {
-      // Si el token es inválido o expiró, limpiamos todo
-      console.error('Failed to fetch profile, token might be invalid.', error);
-      clearAuth();
+      // Si no podemos obtener el perfil, no hay sesión activa
+      console.error('Failed to fetch profile, user might not be authenticated.', error);
+      user.value = null;
+      return false;
     }
   }
 
   async function login(email: string, password: string) {
-    const response = await apiClient.post<{ access_token: string }>('/auth/login', { email, password });
-    setToken(response.data.access_token);
-    // Inmediatamente después de obtener el token, buscamos el perfil
-    await fetchProfile();
+    // El login ahora usa cookies HttpOnly - no necesitamos guardar token
+    await apiClient.post('/auth/login', { email, password });
+    // Después del login exitoso, obtenemos el perfil
+    const success = await fetchProfile();
+    if (!success) {
+      throw new Error('Login failed');
+    }
   }
 
-  function logout() {
+  async function logout() {
+    // Llamar al servidor para invalidar las cookies
+    await clearTokens();
     clearAuth();
   }
 
   return {
     user,
-    accessToken,
     isAuthenticated,
     login,
     logout,

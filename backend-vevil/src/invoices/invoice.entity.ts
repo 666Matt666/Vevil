@@ -1,9 +1,13 @@
-import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, OneToMany, CreateDateColumn } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, OneToMany, CreateDateColumn, Index } from 'typeorm';
 import { Customer } from '../customers/customer.entity';
 import { InvoiceItem } from './invoice-item.entity';
 import { Payment } from './payment.entity';
 
 @Entity()
+@Index(['customerId']) // Filtrado por cliente
+@Index(['date']) // Filtrado por fecha
+@Index(['status']) // Filtrado por estado
+@Index(['customerId', 'status']) // Consulta de facturas por cliente y estado
 export class Invoice {
     @PrimaryGeneratedColumn()
     id: number;

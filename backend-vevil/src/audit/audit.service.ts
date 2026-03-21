@@ -54,10 +54,19 @@ export class AuditService {
   }
 
   /** Últimos N registros (para listado general). */
-  async findRecent(limit = 50): Promise<AuditLog[]> {
+  async findRecent(limit = 50, offset = 0): Promise<AuditLog[]> {
     return this.repo.find({
       order: { createdAt: 'DESC' },
       take: limit,
+      skip: offset,
     });
+  }
+
+  async getTotalCount(filters?: { userId?: string; entityType?: string; entityId?: string }): Promise<number> {
+    const qb = this.repo.createQueryBuilder('a');
+    if (filters?.userId) qb.andWhere('a.userId = :userId', { userId: filters.userId });
+    if (filters?.entityType) qb.andWhere('a.entityType = :entityType', { entityType: filters.entityType });
+    if (filters?.entityId) qb.andWhere('a.entityId = :entityId', { entityId: filters.entityId });
+    return qb.getCount();
   }
 }

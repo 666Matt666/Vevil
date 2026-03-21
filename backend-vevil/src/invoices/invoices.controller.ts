@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Patch, Body, Param, UseGuards, Request } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Body, Param, UseGuards, Request, Query } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { InvoicesService } from './invoices.service';
 import { CreateInvoiceDto } from './dto/create-invoice.dto';
@@ -34,7 +34,27 @@ export class InvoicesController {
     }
 
     @Get()
-    findAll() {
+    async findAll(
+        @Query('page') pageStr?: string,
+        @Query('limit') limitStr?: string,
+        @Query('search') search?: string,
+        @Query('customerId') customerIdStr?: string,
+        @Query('status') status?: string,
+        @Query('dateFrom') dateFrom?: string,
+        @Query('dateTo') dateTo?: string,
+    ) {
+        const page = pageStr != null ? parseInt(pageStr, 10) : NaN;
+        const limit = limitStr != null ? parseInt(limitStr, 10) : NaN;
+        const customerId = customerIdStr != null ? parseInt(customerIdStr, 10) : undefined;
+        if (Number.isFinite(page) && Number.isFinite(limit)) {
+            return this.invoicesService.findPage(page, limit, {
+                search,
+                customerId: Number.isFinite(customerId) ? customerId : undefined,
+                status,
+                dateFrom,
+                dateTo,
+            });
+        }
         return this.invoicesService.findAll();
     }
 

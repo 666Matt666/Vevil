@@ -49,16 +49,37 @@ export function wakeBackendAndWait(timeoutMs: number = 65000): Promise<void> {
     });
 }
 
-const getToken = (): string | null => localStorage.getItem('token');
-const getRefreshToken = (): string | null => localStorage.getItem('refresh_token');
-const setTokens = (access: string, refresh?: string) => {
-    localStorage.setItem('token', access);
-    if (refresh != null) localStorage.setItem('refresh_token', refresh);
-    else localStorage.removeItem('refresh_token');
+// =====================================================
+// SEGURIDAD: Tokens ahora se manejan via HttpOnly Cookies
+// El navegador envía automáticamente las cookies con cada request
+// =====================================================
+
+// Verificar si hay sesión activa (cookie de access_token existe)
+// Nota: No podemos leer la cookie directamente por seguridad (HttpOnly),
+// pero podemos verificar que el usuario no haya sido redirigido a login
+export const hasActiveSession = async (): Promise<boolean> => {
+    try {
+        const response = await fetch(`${API_BASE_URL}/auth/profile`, {
+            method: 'GET',
+            credentials: 'include', // Importante: incluir cookies
+        });
+        return response.ok;
+    } catch {
+        return false;
+    }
 };
-export const clearTokens = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('refresh_token');
+
+// Logout: llama al endpoint para invalidar el refresh token en el servidor
+// y limpiar las cookies (el servidor envía cookies vacías con fecha pasada)
+export const clearTokens = async (): Promise<void> => {
+    try {
+        await fetch(`${API_BASE_URL}/auth/logout`, {
+            method: 'POST',
+            credentials: 'include',
+        });
+    } catch {
+        // Ignorar errores en logout
+    }
 };
 
 // Reintentos para cold start del backend (Render free tier puede tardar ~1 min en despertar)
@@ -238,18 +259,20 @@ export const resetPassword = async (token: string, newPassword: string): Promise
     return response.json();
 };
 
+// =====================================================
+// REFRESH DE AUTH: Ahora el servidor maneja las cookies automáticamente
+// El navegador envía automáticamente las cookies HttpOnly con cada request
+// =====================================================
 const refreshAuth = async (): Promise<boolean> => {
-    const refresh = getRefreshToken();
-    if (!refresh) return false;
     try {
+        // El navegador envía automáticamente la cookie de refresh token
         const res = await fetch(`${API_BASE_URL}/auth/refresh`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ refresh_token: refresh }),
+            credentials: 'include', // Importante: incluir cookies
         });
         if (!res.ok) return false;
-        const data = await res.json();
-        setTokens(data.access_token, data.refresh_token);
+        // El servidor envía nuevas cookies automáticamente
         return true;
     } catch {
         return false;
@@ -263,16 +286,19 @@ const fetchWithAuth = async (
     options: RequestInit = {},
     config: FetchWithAuthConfig = {}
 ): Promise<Response> => {
-    let token = getToken();
     const headers: HeadersInit = {
         'Content-Type': 'application/json',
         ...options.headers,
     };
-    if (token) (headers as Record<string, string>)['Authorization'] = `Bearer ${token}`;
+    // Ya NO necesitamos enviar Authorization header - las cookies se envían automáticamente
 
     let response: Response;
     try {
-        response = await fetch(`${API_BASE_URL}${endpoint}`, { ...options, headers });
+        response = await fetch(`${API_BASE_URL}${endpoint}`, { 
+            ...options, 
+            headers,
+            credentials: 'include', // Importante: incluir cookies HttpOnly
+        });
     } catch (e: any) {
         if (e?.message?.includes('Failed to fetch') || e?.name === 'TypeError' || e?.name === 'AbortError') {
             throw new Error('No se pudo conectar al servidor. Si usás el plan gratis de Render, esperá ~1 minuto y probá de nuevo.');
@@ -280,13 +306,22 @@ const fetchWithAuth = async (
         throw e;
     }
 
+    // Intentar refresh si hay 401
     if (response.status === 401 && (await refreshAuth())) {
-        token = getToken();
-        if (token) (headers as Record<string, string>)['Authorization'] = `Bearer ${token}`;
-        response = await fetch(`${API_BASE_URL}${endpoint}`, { ...options, headers });
+        // Reintentar request con nuevas cookies
+        response = await fetch(`${API_BASE_URL}${endpoint}`, { 
+            ...options, 
+            headers,
+            credentials: 'include',
+        });
     }
 
     if (response.status === 401) {
+        if (!config.skipRedirectOn401 && typeof window !== 'undefined') {
+            await clearTokens();
+            const base = (import.meta.env.BASE_URL || '/').replace(/\/$/, '');
+            window.location.assign(`${base}/login?expired=1`);
+        }
         throw new Error('Sesión expirada');
     }
     return response;
@@ -365,9 +400,27 @@ export interface Product {
     description?: string;
 }
 
+export interface PaginatedResponse<T> {
+    data: T[];
+    total: number;
+}
+
 export const productsApi = {
     getAll: async (): Promise<Product[]> => {
         const response = await fetchWithAuth('/products');
+        if (!response.ok) throw new Error('Error al obtener productos');
+        return response.json();
+    },
+    getPage: async (
+        page: number,
+        limit: number,
+        filters?: { search?: string; type?: string; category?: string },
+    ): Promise<PaginatedResponse<Product>> => {
+        const params = new URLSearchParams({ page: String(page), limit: String(limit) });
+        if (filters?.search?.trim()) params.set('search', filters.search.trim());
+        if (filters?.type && filters.type !== 'all') params.set('type', filters.type);
+        if (filters?.category && filters.category !== 'all') params.set('category', filters.category);
+        const response = await fetchWithAuth(`/products?${params.toString()}`);
         if (!response.ok) throw new Error('Error al obtener productos');
         return response.json();
     },
@@ -458,7 +511,23 @@ export const customersApi = {
         if (!response.ok) throw new Error('Error al obtener clientes');
         return response.json();
     },
-    
+    getPage: async (
+        page: number,
+        limit: number,
+        filters?: { search?: string; department?: string },
+    ): Promise<PaginatedResponse<Customer>> => {
+        const params = new URLSearchParams({ page: String(page), limit: String(limit) });
+        if (filters?.search?.trim()) params.set('search', filters.search.trim());
+        if (filters?.department?.trim()) params.set('department', filters.department.trim());
+        const response = await fetchWithAuth(`/customers?${params.toString()}`);
+        if (!response.ok) throw new Error('Error al obtener clientes');
+        return response.json();
+    },
+    getDepartments: async (): Promise<string[]> => {
+        const response = await fetchWithAuth('/customers/meta/departments');
+        if (!response.ok) throw new Error('Error al obtener departamentos');
+        return response.json();
+    },
     getById: async (id: number): Promise<Customer> => {
         const response = await fetchWithAuth(`/customers/${id}`);
         if (!response.ok) throw new Error('Error al obtener cliente');
@@ -526,7 +595,21 @@ export const invoicesApi = {
         if (!response.ok) throw new Error('Error al obtener facturas');
         return response.json();
     },
-    
+    getPage: async (
+        page: number,
+        limit: number,
+        filters?: { search?: string; customerId?: number; status?: string; dateFrom?: string; dateTo?: string },
+    ): Promise<PaginatedResponse<Invoice>> => {
+        const params = new URLSearchParams({ page: String(page), limit: String(limit) });
+        if (filters?.search?.trim()) params.set('search', filters.search.trim());
+        if (filters?.customerId != null) params.set('customerId', String(filters.customerId));
+        if (filters?.status?.trim()) params.set('status', filters.status.trim());
+        if (filters?.dateFrom) params.set('dateFrom', filters.dateFrom);
+        if (filters?.dateTo) params.set('dateTo', filters.dateTo);
+        const response = await fetchWithAuth(`/invoices?${params.toString()}`);
+        if (!response.ok) throw new Error('Error al obtener facturas');
+        return response.json();
+    },
     getById: async (id: number): Promise<Invoice> => {
         const response = await fetchWithAuth(`/invoices/${id}`);
         if (!response.ok) throw new Error('Error al obtener factura');
@@ -643,12 +726,19 @@ export interface AuditLogItem {
 }
 
 export const auditApi = {
-    getList: async (params?: { userId?: string; entityType?: string; entityId?: string; limit?: number }): Promise<AuditLogItem[]> => {
+    getList: async (params?: {
+        userId?: string;
+        entityType?: string;
+        entityId?: string;
+        limit?: number;
+        offset?: number;
+    }): Promise<PaginatedResponse<AuditLogItem>> => {
         const search = new URLSearchParams();
         if (params?.userId) search.set('userId', params.userId);
         if (params?.entityType) search.set('entityType', params.entityType);
         if (params?.entityId) search.set('entityId', params.entityId);
         if (params?.limit != null) search.set('limit', String(params.limit));
+        if (params?.offset != null) search.set('offset', String(params.offset));
         const qs = search.toString();
         const url = qs ? `/audit?${qs}` : '/audit';
         const response = await fetchWithAuth(url);

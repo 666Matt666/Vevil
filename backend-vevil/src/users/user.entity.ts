@@ -4,11 +4,15 @@ import {
   Column,
   CreateDateColumn,
   UpdateDateColumn,
+  Index,
 } from 'typeorm';
 import { UserRole } from './entities/user-role.enum';
 import { Exclude } from 'class-transformer';
 
 @Entity()
+@Index(['email'], { unique: true }) // Búsquedas por email (login)
+@Index(['role']) // Filtrado por rol
+@Index(['createdAt']) // Ordenamiento por fecha
 export class User {
   @PrimaryGeneratedColumn('uuid')
   id: string;

@@ -32,11 +32,13 @@ import { User } from './users/user.entity';
       // El prefijo de la URL desde el cual se servirán los archivos.
       serveRoot: '/uploads',
     }),
- 
+
     // Carga las variables de entorno: .env y luego .env.local (local sobreescribe)
+    // La validación se hace en el factory de TypeOrmModule para asegurar que la DB esté configurada
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: ['.env', '.env.local'],
+      validationSchema: null, // Usamos validación manual en el factory
     }),
 
     // Rate limiting global (límite por IP). Rutas sensibles definen su propio límite con @Throttle().

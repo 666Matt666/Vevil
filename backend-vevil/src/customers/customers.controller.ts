@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Request } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Request, Query } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { CustomersService } from './customers.service';
 import { CreateCustomerDto } from './dto/create-customer.dto';
@@ -33,8 +33,23 @@ export class CustomersController {
     }
 
     @Get()
-    findAll() {
+    async findAll(
+        @Query('page') pageStr?: string,
+        @Query('limit') limitStr?: string,
+        @Query('search') search?: string,
+        @Query('department') department?: string,
+    ) {
+        const page = pageStr != null ? parseInt(pageStr, 10) : NaN;
+        const limit = limitStr != null ? parseInt(limitStr, 10) : NaN;
+        if (Number.isFinite(page) && Number.isFinite(limit)) {
+            return this.customersService.findPage(page, limit, { search, department });
+        }
         return this.customersService.findAll();
+    }
+
+    @Get('meta/departments')
+    getDepartments() {
+        return this.customersService.getDepartments();
     }
 
     @Get(':id')

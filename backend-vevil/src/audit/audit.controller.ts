@@ -23,6 +23,7 @@ export class AuditController {
   @ApiQuery({ name: 'entityType', required: false, description: 'Tipo de entidad (invoice, customer, product, etc.)' })
   @ApiQuery({ name: 'entityId', required: false, description: 'ID de la entidad' })
   @ApiQuery({ name: 'limit', required: false, description: 'Máximo de resultados (1-200, default 50)' })
+  @ApiQuery({ name: 'offset', required: false, description: 'Desplazamiento para paginación' })
   @ApiResponse({ status: 200, description: 'Lista de registros de auditoría' })
   @ApiResponse({ status: 401, description: 'No autorizado' })
   async list(
@@ -30,15 +31,23 @@ export class AuditController {
     @Query('entityType') entityType?: string,
     @Query('entityId') entityId?: string,
     @Query('limit') limitStr?: string,
+    @Query('offset') offsetStr?: string,
   ) {
     const limit = Math.min(Math.max(parseInt(limitStr || '50', 10) || 50, 1), 200);
+    const offset = Math.max(0, parseInt(offsetStr || '0', 10) || 0);
 
     if (userId) {
-      return this.auditService.findByUser(userId, limit);
+      const data = await this.auditService.findByUser(userId, limit);
+      const total = await this.auditService.getTotalCount({ userId });
+      return { data, total };
     }
     if (entityType && entityId) {
-      return this.auditService.findByEntity(entityType, entityId, limit);
+      const data = await this.auditService.findByEntity(entityType, entityId, limit);
+      const total = await this.auditService.getTotalCount({ entityType, entityId });
+      return { data, total };
     }
-    return this.auditService.findRecent(limit);
+    const data = await this.auditService.findRecent(limit, offset);
+    const total = await this.auditService.getTotalCount();
+    return { data, total };
   }
 }

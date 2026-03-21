@@ -89,6 +89,43 @@ export class InvoicesService {
         });
     }
 
+    async findPage(
+        page: number = 1,
+        limit: number = 10,
+        filters?: { search?: string; customerId?: number; status?: string; dateFrom?: string; dateTo?: string },
+    ): Promise<{ data: Invoice[]; total: number }> {
+        const skip = Math.max(0, (page - 1) * limit);
+        const take = Math.min(100, Math.max(1, limit));
+        const qb = this.invoicesRepository
+            .createQueryBuilder('inv')
+            .leftJoinAndSelect('inv.customer', 'customer')
+            .leftJoinAndSelect('inv.items', 'items')
+            .leftJoinAndSelect('items.product', 'product')
+            .leftJoinAndSelect('inv.payments', 'payments')
+            .orderBy('inv.id', 'DESC');
+        if (filters?.search?.trim()) {
+            const term = `%${filters.search.trim().toLowerCase()}%`;
+            qb.andWhere(
+                '(CAST(inv.id AS TEXT) LIKE :term OR LOWER(customer.name) LIKE :term)',
+                { term },
+            );
+        }
+        if (filters?.customerId != null) {
+            qb.andWhere('inv.customerId = :customerId', { customerId: filters.customerId });
+        }
+        if (filters?.status?.trim()) {
+            qb.andWhere('inv.status = :status', { status: filters.status.trim() });
+        }
+        if (filters?.dateFrom) {
+            qb.andWhere('inv.date >= :dateFrom', { dateFrom: filters.dateFrom });
+        }
+        if (filters?.dateTo) {
+            qb.andWhere('inv.date <= :dateTo', { dateTo: `${filters.dateTo}T23:59:59.999Z` });
+        }
+        const [data, total] = await qb.skip(skip).take(take).getManyAndCount();
+        return { data, total };
+    }
+
     async findOne(id: number) {
         const invoice = await this.invoicesRepository.findOne({
             where: { id },

@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Request } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Request, Query } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { ProductsService } from './products.service';
 import { CreateProductDto } from './dto/create-product.dto';
@@ -33,7 +33,18 @@ export class ProductsController {
     }
 
     @Get()
-    findAll() {
+    async findAll(
+        @Query('page') pageStr?: string,
+        @Query('limit') limitStr?: string,
+        @Query('search') search?: string,
+        @Query('type') type?: string,
+        @Query('category') category?: string,
+    ) {
+        const page = pageStr != null ? parseInt(pageStr, 10) : NaN;
+        const limit = limitStr != null ? parseInt(limitStr, 10) : NaN;
+        if (Number.isFinite(page) && Number.isFinite(limit)) {
+            return this.productsService.findPage(page, limit, { search, type, category });
+        }
         return this.productsService.findAll();
     }
 

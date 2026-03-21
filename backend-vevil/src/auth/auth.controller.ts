@@ -9,8 +9,10 @@ import {
   Request,
   HttpCode,
   HttpStatus,
+  Res,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
+import { Response } from 'express';
 import { AuthService } from './auth.service';
 import { GetUser } from './decorators/get-user.decorator';
 import { User } from '@/users/user.entity';
@@ -27,6 +29,11 @@ import { PendingRegistrationsService } from '@/pending-registrations/pending-reg
 import { UsersService } from '@/users/users.service';
 import { AuditService } from '@/audit/audit.service';
 
+// Constantes para nombres de cookies
+export const ACCESS_TOKEN_COOKIE = 'vevil_access_token';
+export const REFRESH_TOKEN_COOKIE = 'vevil_refresh_token';
+export const COOKIE_MAX_AGE = 7 * 24 * 60 * 60 * 1000; // 7 días
+
 @Controller('auth')
 @ApiTags('Authentication')
 export class AuthController {
@@ -37,16 +44,56 @@ export class AuthController {
     private auditService: AuditService,
   ) {}
 
+  /**
+   * Configura las cookies HttpOnly con los tokens de autenticación.
+   */
+  private setTokenCookies(res: Response, accessToken: string, refreshToken: string): void {
+    const isProduction = process.env.NODE_ENV === 'production';
+    
+    res.cookie(ACCESS_TOKEN_COOKIE, accessToken, {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: 'strict',
+      maxAge: 15 * 60 * 1000, // 15 minutos (igual que access_token)
+      path: '/',
+    });
+
+    res.cookie(REFRESH_TOKEN_COOKIE, refreshToken, {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: 'strict',
+      maxAge: COOKIE_MAX_AGE,
+      path: '/',
+    });
+  }
+
+  /**
+   * Limpia las cookies de autenticación.
+   */
+  private clearTokenCookies(res: Response): void {
+    res.clearCookie(ACCESS_TOKEN_COOKIE, { path: '/' });
+    res.clearCookie(REFRESH_TOKEN_COOKIE, { path: '/' });
+  }
+
   @Public() // Endpoint público
   @Throttle({ short: { limit: 5, ttl: 60_000 } }) // 5 intentos por minuto por IP
   @UseGuards(AuthGuard('local'))
   @HttpCode(HttpStatus.OK)
   @Post('login')
   @ApiOperation({ summary: 'Iniciar sesión de usuario' })
-  @ApiResponse({ status: 200, description: 'Login exitoso, devuelve tokens.' })
+  @ApiResponse({ status: 200, description: 'Login exitoso, establece cookies HttpOnly.' })
   @ApiResponse({ status: 401, description: 'Credenciales inválidas.' })
-  async login(@GetUser() user: User, @Body() _loginDto: LoginDto, @Request() req: any) {
+  async login(
+    @GetUser() user: User,
+    @Body() _loginDto: LoginDto,
+    @Request() req: any,
+    @Res() res: Response,
+  ) {
     const result = await this.authService.login(user);
+    
+    // Establecer cookies HttpOnly en lugar de enviar tokens en el body
+    this.setTokenCookies(res, result.access_token, result.refresh_token);
+    
     await this.auditService.log({
       userId: user?.id ?? null,
       userEmail: user?.email ?? null,
@@ -55,7 +102,11 @@ export class AuthController {
       entityId: user?.id ?? '',
       ip: req?.ip ?? req?.headers?.['x-forwarded-for'] ?? null,
     }).catch(() => {});
-    return result;
+
+    // Enviar solo datos del usuario (sin tokens en el body para seguridad)
+    return res.json({
+      user: result.user,
+    });
   }
 
   @Public()
@@ -106,17 +157,30 @@ export class AuthController {
   @Post('logout')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Cerrar sesión del usuario' })
-  async logout(@GetUser() user: User & { userId?: string }) {
+  async logout(
+    @GetUser() user: User & { userId?: string },
+    @Res() res: Response,
+  ) {
     const userId = user.id ?? (user as any).userId;
-    return this.authService.logout(userId);
+    await this.authService.logout(userId);
+    this.clearTokenCookies(res);
+    return res.json({ message: 'Sesión cerrada correctamente' });
   }
 
   @UseGuards(JwtRefreshGuard)
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Refrescar tokens de autenticación' })
-  async refreshTokens(@GetUser() user: User & { refreshToken: string }) {
-    return this.authService.refreshTokens(user.id, user.refreshToken);
+  async refreshTokens(
+    @GetUser() user: User & { refreshToken: string },
+    @Res() res: Response,
+  ) {
+    const result = await this.authService.refreshTokens(user.id, user.refreshToken);
+    // Actualizar cookies con nuevos tokens
+    this.setTokenCookies(res, result.access_token, result.refresh_token);
+    return res.json({
+      user: result.user,
+    });
   }
 
   @Public()

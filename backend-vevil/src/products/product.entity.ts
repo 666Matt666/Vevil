@@ -1,7 +1,11 @@
-import { Entity, Column, PrimaryGeneratedColumn, OneToMany } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, OneToMany, Index } from 'typeorm';
 import { InvoiceItem } from '../invoices/invoice-item.entity';
 
 @Entity()
+@Index(['name']) // Búsqueda por nombre
+@Index(['type']) // Filtrado por tipo
+@Index(['category']) // Filtrado por categoría
+@Index(['stock']) // Para alertas de stock bajo
 export class Product {
   @PrimaryGeneratedColumn()
   id: number;

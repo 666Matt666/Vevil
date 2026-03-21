@@ -2,6 +2,7 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import * as cookieParser from 'cookie-parser';
 
 async function bootstrap() {
   try {
@@ -9,6 +10,9 @@ async function bootstrap() {
       console.log('🚀 Iniciando aplicación Vevil...');
     }
     const app = await NestFactory.create(AppModule);
+
+    // Middleware para parsear cookies (necesario para HttpOnly cookies)
+    app.use(cookieParser());
 
     // Configuración de CORS - siempre permitir Vercel y localhost; opcionalmente orígenes extra desde env
     const defaultOrigins: (string | RegExp)[] = [

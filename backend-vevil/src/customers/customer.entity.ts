@@ -1,6 +1,10 @@
-import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, Index } from 'typeorm';
 
 @Entity()
+@Index(['email'], { unique: true }) // Búsqueda por email
+@Index(['name']) // Búsqueda por nombre
+@Index(['address_city']) // Filtrado por ciudad
+@Index(['address_province']) // Filtrado por provincia
 export class Customer {
     @PrimaryGeneratedColumn()
     id: number;

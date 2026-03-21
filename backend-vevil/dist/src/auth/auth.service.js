@@ -145,6 +145,19 @@ let AuthService = class AuthService {
         await this.usersService.clearResetPasswordToken(user.id);
         return { message: 'Contraseña actualizada correctamente.' };
     }
+    async changePassword(userId, currentPassword, newPassword) {
+        const user = await this.usersService.findOne(userId);
+        if (!user) {
+            throw new common_1.NotFoundException('Usuario no encontrado');
+        }
+        const isPasswordValid = await bcrypt.compare(currentPassword, user.password);
+        if (!isPasswordValid) {
+            throw new common_1.UnauthorizedException('La contraseña actual es incorrecta');
+        }
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
+        await this.usersService.update(userId, { password: hashedPassword });
+        return { message: 'Contraseña actualizada correctamente' };
+    }
 };
 exports.AuthService = AuthService;
 exports.AuthService = AuthService = __decorate([

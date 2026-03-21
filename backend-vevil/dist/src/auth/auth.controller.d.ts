@@ -5,6 +5,7 @@ import { CreateUserDto } from '@/users/dto/create-user.dto';
 import { LoginDto } from './dto/login.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
+import { ChangePasswordDto } from './dto/change-password.dto';
 import { RequestRegistrationDto } from './dto/request-registration.dto';
 import { PendingRegistrationsService } from '@/pending-registrations/pending-registrations.service';
 import { UsersService } from '@/users/users.service';
@@ -64,6 +65,9 @@ export declare class AuthController {
         message: string;
     }>;
     resetPassword(dto: ResetPasswordDto): Promise<{
+        message: string;
+    }>;
+    changePassword(user: User, dto: ChangePasswordDto): Promise<{
         message: string;
     }>;
 }

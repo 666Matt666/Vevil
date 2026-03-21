@@ -24,6 +24,7 @@ const create_user_dto_1 = require("../users/dto/create-user.dto");
 const login_dto_1 = require("./dto/login.dto");
 const forgot_password_dto_1 = require("./dto/forgot-password.dto");
 const reset_password_dto_1 = require("./dto/reset-password.dto");
+const change_password_dto_1 = require("./dto/change-password.dto");
 const request_registration_dto_1 = require("./dto/request-registration.dto");
 const swagger_1 = require("@nestjs/swagger");
 const throttler_1 = require("@nestjs/throttler");
@@ -42,28 +43,40 @@ let AuthController = class AuthController {
     }
     setTokenCookies(res, accessToken, refreshToken) {
         const isProduction = process.env.NODE_ENV === 'production';
-        res.cookie(exports.ACCESS_TOKEN_COOKIE, accessToken, {
+        const cookieOptions = {
             httpOnly: true,
             secure: isProduction,
-            sameSite: 'strict',
             maxAge: 15 * 60 * 1000,
             path: '/',
-        });
-        res.cookie(exports.REFRESH_TOKEN_COOKIE, refreshToken, {
+        };
+        if (isProduction) {
+            cookieOptions.sameSite = 'strict';
+        }
+        res.cookie(exports.ACCESS_TOKEN_COOKIE, accessToken, cookieOptions);
+        const refreshCookieOptions = {
             httpOnly: true,
             secure: isProduction,
-            sameSite: 'strict',
             maxAge: exports.COOKIE_MAX_AGE,
             path: '/',
-        });
+        };
+        if (isProduction) {
+            refreshCookieOptions.sameSite = 'strict';
+        }
+        res.cookie(exports.REFRESH_TOKEN_COOKIE, refreshToken, refreshCookieOptions);
     }
     clearTokenCookies(res) {
         res.clearCookie(exports.ACCESS_TOKEN_COOKIE, { path: '/' });
         res.clearCookie(exports.REFRESH_TOKEN_COOKIE, { path: '/' });
     }
     async login(user, _loginDto, req, res) {
+        console.log('[AUTH] Login request for user:', user?.email);
         const result = await this.authService.login(user);
-        this.setTokenCookies(res, result.access_token, result.refresh_token);
+        this.clearTokenCookies(res);
+        return res.json({
+            access_token: result.access_token,
+            refresh_token: result.refresh_token,
+            user: result.user,
+        });
         await this.auditService.log({
             userId: user?.id ?? null,
             userEmail: user?.email ?? null,
@@ -95,14 +108,19 @@ let AuthController = class AuthController {
     }
     async logout(user, res) {
         const userId = user.id ?? user.userId;
+        console.log('[AUTH] Logout for user:', userId);
         await this.authService.logout(userId);
         this.clearTokenCookies(res);
+        console.log('[AUTH] Logout complete for user:', userId);
         return res.json({ message: 'Sesión cerrada correctamente' });
     }
     async refreshTokens(user, res) {
+        console.log('[AUTH] Refresh tokens for user:', user.id, 'refreshToken present:', !!user.refreshToken);
         const result = await this.authService.refreshTokens(user.id, user.refreshToken);
-        this.setTokenCookies(res, result.access_token, result.refresh_token);
+        console.log('[AUTH] Tokens refreshed successfully for user:', user.id);
         return res.json({
+            access_token: result.access_token,
+            refresh_token: result.refresh_token,
             user: result.user,
         });
     }
@@ -111,6 +129,9 @@ let AuthController = class AuthController {
     }
     async resetPassword(dto) {
         return this.authService.resetPassword(dto.token, dto.newPassword);
+    }
+    async changePassword(user, dto) {
+        return this.authService.changePassword(user.id, dto.currentPassword, dto.newPassword);
     }
 };
 exports.AuthController = AuthController;
@@ -121,7 +142,7 @@ __decorate([
     (0, common_1.HttpCode)(common_1.HttpStatus.OK),
     (0, common_1.Post)('login'),
     (0, swagger_1.ApiOperation)({ summary: 'Iniciar sesión de usuario' }),
-    (0, swagger_1.ApiResponse)({ status: 200, description: 'Login exitoso, establece cookies HttpOnly.' }),
+    (0, swagger_1.ApiResponse)({ status: 200, description: 'Login exitoso.' }),
     (0, swagger_1.ApiResponse)({ status: 401, description: 'Credenciales inválidas.' }),
     __param(0, (0, get_user_decorator_1.GetUser)()),
     __param(1, (0, common_1.Body)()),
@@ -223,6 +244,20 @@ __decorate([
     __metadata("design:paramtypes", [reset_password_dto_1.ResetPasswordDto]),
     __metadata("design:returntype", Promise)
 ], AuthController.prototype, "resetPassword", null);
+__decorate([
+    (0, common_1.UseGuards)((0, passport_1.AuthGuard)('jwt')),
+    (0, common_1.Post)('change-password'),
+    (0, common_1.HttpCode)(common_1.HttpStatus.OK),
+    (0, swagger_1.ApiOperation)({ summary: 'Cambiar contraseña del usuario logueado' }),
+    (0, swagger_1.ApiResponse)({ status: 200, description: 'Contraseña actualizada correctamente' }),
+    (0, swagger_1.ApiResponse)({ status: 401, description: 'La contraseña actual es incorrecta' }),
+    __param(0, (0, get_user_decorator_1.GetUser)()),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [user_entity_1.User,
+        change_password_dto_1.ChangePasswordDto]),
+    __metadata("design:returntype", Promise)
+], AuthController.prototype, "changePassword", null);
 exports.AuthController = AuthController = __decorate([
     (0, common_1.Controller)('auth'),
     (0, swagger_1.ApiTags)('Authentication'),

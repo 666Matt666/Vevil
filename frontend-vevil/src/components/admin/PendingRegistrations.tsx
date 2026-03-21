@@ -11,6 +11,7 @@ const PendingRegistrations: React.FC = () => {
     const [list, setList] = useState<PendingRegistrationItem[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+    const [successMessage, setSuccessMessage] = useState<string | null>(null);
     const [actioning, setActioning] = useState<string | null>(null);
     const [approveRole, setApproveRole] = useState<Record<string, 'admin' | 'user'>>({});
 

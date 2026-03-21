@@ -226,18 +226,18 @@ export interface PendingRegistrationItem {
 
 export const pendingRegistrationsApi = {
     getCount: async (): Promise<number> => {
-        const r = await fetchWithAuth(`${API_BASE_URL}/pending-registrations/count`);
+        const r = await fetchWithAuth('/pending-registrations/count');
         if (!r.ok) return 0;
         const data = await r.json();
         return data.count ?? 0;
     },
     getList: async (): Promise<PendingRegistrationItem[]> => {
-        const r = await fetchWithAuth(`${API_BASE_URL}/pending-registrations`);
+        const r = await fetchWithAuth('/pending-registrations');
         if (!r.ok) throw new Error('Error al cargar solicitudes');
         return r.json();
     },
     approve: async (id: string, role: 'admin' | 'user'): Promise<{ message: string }> => {
-        const r = await fetchWithAuth(`${API_BASE_URL}/pending-registrations/${id}/approve`, {
+        const r = await fetchWithAuth(`/pending-registrations/${id}/approve`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ role }),
@@ -249,7 +249,7 @@ export const pendingRegistrationsApi = {
         return r.json();
     },
     reject: async (id: string): Promise<{ message: string }> => {
-        const r = await fetchWithAuth(`${API_BASE_URL}/pending-registrations/${id}/reject`, {
+        const r = await fetchWithAuth(`/pending-registrations/${id}/reject`, {
             method: 'POST',
         });
         if (!r.ok) {

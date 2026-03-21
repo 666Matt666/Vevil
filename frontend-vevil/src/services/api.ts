@@ -50,36 +50,53 @@ export function wakeBackendAndWait(timeoutMs: number = 65000): Promise<void> {
 }
 
 // =====================================================
-// SEGURIDAD: Tokens ahora se manejan via HttpOnly Cookies
-// El navegador envía automáticamente las cookies con cada request
+// SEGURIDAD: Tokens se manejan en memoria (no localStorage)
+// El access token se envía en el Authorization header
+// El refresh token se usa para revalidar la sesión
 // =====================================================
 
-// Verificar si hay sesión activa (cookie de access_token existe)
-// Nota: No podemos leer la cookie directamente por seguridad (HttpOnly),
-// pero podemos verificar que el usuario no haya sido redirigido a login
+// Almacenar tokens en memoria (no en localStorage por seguridad)
+let accessToken: string | null = null;
+let refreshToken: string | null = null;
+
+export const getAccessToken = (): string | null => accessToken;
+export const setAccessToken = (token: string | null): void => { accessToken = token; };
+export const getRefreshToken = (): string | null => refreshToken;
+export const setRefreshToken = (token: string | null): void => { refreshToken = token; };
+
+// Verificar si hay sesión activa
 export const hasActiveSession = async (): Promise<boolean> => {
-    try {
-        const response = await fetch(`${API_BASE_URL}/auth/profile`, {
-            method: 'GET',
-            credentials: 'include', // Importante: incluir cookies
-        });
-        return response.ok;
-    } catch {
-        return false;
-    }
+    return !!accessToken;
 };
 
 // Logout: llama al endpoint para invalidar el refresh token en el servidor
 // y limpiar las cookies (el servidor envía cookies vacías con fecha pasada)
 export const clearTokens = async (): Promise<void> => {
+    console.log('[API] clearTokens: Starting logout...');
     try {
         await fetch(`${API_BASE_URL}/auth/logout`, {
             method: 'POST',
             credentials: 'include',
         });
-    } catch {
+        console.log('[API] clearTokens: Logout request sent');
+    } catch (e) {
+        console.error('[API] clearTokens: Error', e);
         // Ignorar errores en logout
     }
+};
+
+// Cambiar contraseña del usuario logueado
+export const changePassword = async (currentPassword: string, newPassword: string): Promise<{ message: string }> => {
+    const response = await fetchWithAuth('/auth/change-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ currentPassword, newPassword }),
+    });
+    if (!response.ok) {
+        const error = await response.json().catch(() => ({ message: 'Error al cambiar contraseña' }));
+        throw new Error(error.message || 'Error al cambiar contraseña');
+    }
+    return response.json();
 };
 
 // Reintentos para cold start del backend (Render free tier puede tardar ~1 min en despertar)
@@ -127,7 +144,19 @@ export const login = async (email: string, password: string): Promise<LoginRespo
             const error = await response.json().catch(() => ({ message: 'Credenciales inválidas' }));
             throw new Error(error.message || 'Error al iniciar sesión');
         }
-        return response.json();
+        
+        // Guardar tokens en memoria después del login exitoso
+        const data = await response.json();
+        if (data.access_token) {
+            setAccessToken(data.access_token);
+            if (import.meta.env.DEV) console.log('[Vevil] Access token guardado en memoria');
+        }
+        if (data.refresh_token) {
+            setRefreshToken(data.refresh_token);
+            if (import.meta.env.DEV) console.log('[Vevil] Refresh token guardado en memoria');
+        }
+        
+        return data;
     } catch (error: any) {
         if (import.meta.env.DEV) console.warn('[Vevil] Login error:', error?.name, error?.message);
         if (error?.message?.includes('Failed to fetch') || error?.name === 'TypeError' || error?.name === 'AbortError') {
@@ -264,17 +293,33 @@ export const resetPassword = async (token: string, newPassword: string): Promise
 // El navegador envía automáticamente las cookies HttpOnly con cada request
 // =====================================================
 const refreshAuth = async (): Promise<boolean> => {
+    console.log('[API] refreshAuth: Starting...');
+    const token = getRefreshToken();
+    if (!token) {
+        console.log('[API] refreshAuth: No refresh token available');
+        return false;
+    }
     try {
-        // El navegador envía automáticamente la cookie de refresh token
+        // Enviar refresh token en el body
         const res = await fetch(`${API_BASE_URL}/auth/refresh`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            credentials: 'include', // Importante: incluir cookies
+            body: JSON.stringify({ refresh_token: token }),
         });
+        console.log('[API] refreshAuth: Response status:', res.status);
         if (!res.ok) return false;
-        // El servidor envía nuevas cookies automáticamente
+        
+        // Obtener nuevos tokens del body
+        const data = await res.json();
+        if (data.access_token) {
+            setAccessToken(data.access_token);
+        }
+        if (data.refresh_token) {
+            setRefreshToken(data.refresh_token);
+        }
         return true;
-    } catch {
+    } catch (e) {
+        console.error('[API] refreshAuth: Error', e);
         return false;
     }
 };
@@ -286,20 +331,25 @@ const fetchWithAuth = async (
     options: RequestInit = {},
     config: FetchWithAuthConfig = {}
 ): Promise<Response> => {
+    // Obtener token de memoria (no de localStorage por seguridad)
+    const token = getAccessToken();
+    
     const headers: HeadersInit = {
         'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
         ...options.headers,
     };
-    // Ya NO necesitamos enviar Authorization header - las cookies se envían automáticamente
 
     let response: Response;
     try {
+        console.log('[API] fetchWithAuth:', endpoint, 'method:', options.method || 'GET');
         response = await fetch(`${API_BASE_URL}${endpoint}`, { 
             ...options, 
             headers,
-            credentials: 'include', // Importante: incluir cookies HttpOnly
         });
+        console.log('[API] fetchWithAuth response:', endpoint, 'status:', response.status);
     } catch (e: any) {
+        console.error('[API] fetchWithAuth error:', endpoint, e);
         if (e?.message?.includes('Failed to fetch') || e?.name === 'TypeError' || e?.name === 'AbortError') {
             throw new Error('No se pudo conectar al servidor. Si usás el plan gratis de Render, esperá ~1 minuto y probá de nuevo.');
         }
@@ -307,16 +357,26 @@ const fetchWithAuth = async (
     }
 
     // Intentar refresh si hay 401
-    if (response.status === 401 && (await refreshAuth())) {
-        // Reintentar request con nuevas cookies
-        response = await fetch(`${API_BASE_URL}${endpoint}`, { 
-            ...options, 
-            headers,
-            credentials: 'include',
-        });
+    if (response.status === 401) {
+        console.log('[API] fetchWithAuth: Got 401 for', endpoint, 'trying refresh...');
+        if (await refreshAuth()) {
+            // Reintentar request con nuevo token
+            const newToken = getAccessToken();
+            const newHeaders: HeadersInit = {
+                'Content-Type': 'application/json',
+                ...(newToken ? { Authorization: `Bearer ${newToken}` } : {}),
+                ...options.headers,
+            };
+            response = await fetch(`${API_BASE_URL}${endpoint}`, { 
+                ...options, 
+                headers: newHeaders,
+            });
+            console.log('[API] fetchWithAuth after refresh:', endpoint, 'status:', response.status);
+        }
     }
 
     if (response.status === 401) {
+        console.log('[API] fetchWithAuth: Still 401 after refresh, redirecting to login');
         if (!config.skipRedirectOn401 && typeof window !== 'undefined') {
             await clearTokens();
             const base = (import.meta.env.BASE_URL || '/').replace(/\/$/, '');

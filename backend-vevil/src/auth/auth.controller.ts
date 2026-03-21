@@ -51,21 +51,35 @@ export class AuthController {
   private setTokenCookies(res: Response, accessToken: string, refreshToken: string): void {
     const isProduction = process.env.NODE_ENV === 'production';
     
-    res.cookie(ACCESS_TOKEN_COOKIE, accessToken, {
+    // En desarrollo local, NO usar sameSite para permitir cookies en todos los contextos
+    // En producción, usar 'strict' para mayor seguridad
+    const cookieOptions: any = {
       httpOnly: true,
       secure: isProduction,
-      sameSite: 'strict',
       maxAge: 15 * 60 * 1000, // 15 minutos (igual que access_token)
       path: '/',
-    });
+    };
+    
+    if (isProduction) {
+      cookieOptions.sameSite = 'strict';
+    }
+    // En desarrollo, no usamos sameSite para que funcione correctamente
+    
+    res.cookie(ACCESS_TOKEN_COOKIE, accessToken, cookieOptions);
 
-    res.cookie(REFRESH_TOKEN_COOKIE, refreshToken, {
+    // Para el refresh token
+    const refreshCookieOptions: any = {
       httpOnly: true,
       secure: isProduction,
-      sameSite: 'strict',
       maxAge: COOKIE_MAX_AGE,
       path: '/',
-    });
+    };
+    
+    if (isProduction) {
+      refreshCookieOptions.sameSite = 'strict';
+    }
+    
+    res.cookie(REFRESH_TOKEN_COOKIE, refreshToken, refreshCookieOptions);
   }
 
   /**
@@ -82,7 +96,7 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @Post('login')
   @ApiOperation({ summary: 'Iniciar sesión de usuario' })
-  @ApiResponse({ status: 200, description: 'Login exitoso, establece cookies HttpOnly.' })
+  @ApiResponse({ status: 200, description: 'Login exitoso.' })
   @ApiResponse({ status: 401, description: 'Credenciales inválidas.' })
   async login(
     @GetUser() user: User,
@@ -90,10 +104,18 @@ export class AuthController {
     @Request() req: any,
     @Res() res: Response,
   ) {
+    console.log('[AUTH] Login request for user:', user?.email);
     const result = await this.authService.login(user);
     
-    // Establecer cookies HttpOnly en lugar de enviar tokens en el body
-    this.setTokenCookies(res, result.access_token, result.refresh_token);
+    // Enviar tokens en el body (sistema original que funciona)
+    // Limpiar cookies si existen de intentos anteriores
+    this.clearTokenCookies(res);
+    
+    return res.json({
+      access_token: result.access_token,
+      refresh_token: result.refresh_token,
+      user: result.user,
+    });
     
     await this.auditService.log({
       userId: user?.id ?? null,
@@ -163,8 +185,10 @@ export class AuthController {
     @Res() res: Response,
   ) {
     const userId = user.id ?? (user as any).userId;
+    console.log('[AUTH] Logout for user:', userId);
     await this.authService.logout(userId);
     this.clearTokenCookies(res);
+    console.log('[AUTH] Logout complete for user:', userId);
     return res.json({ message: 'Sesión cerrada correctamente' });
   }
 
@@ -176,10 +200,13 @@ export class AuthController {
     @GetUser() user: User & { refreshToken: string },
     @Res() res: Response,
   ) {
+    console.log('[AUTH] Refresh tokens for user:', user.id, 'refreshToken present:', !!user.refreshToken);
     const result = await this.authService.refreshTokens(user.id, user.refreshToken);
-    // Actualizar cookies con nuevos tokens
-    this.setTokenCookies(res, result.access_token, result.refresh_token);
+    // Enviar tokens en el body
+    console.log('[AUTH] Tokens refreshed successfully for user:', user.id);
     return res.json({
+      access_token: result.access_token,
+      refresh_token: result.refresh_token,
       user: result.user,
     });
   }

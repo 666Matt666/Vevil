@@ -30,7 +30,8 @@ async function bootstrap() {
       origin: corsOrigins,
       credentials: true,
       methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-      allowedHeaders: ['Content-Type', 'Authorization'],
+      allowedHeaders: ['Content-Type', 'Authorization', 'Cookie'],
+      exposedHeaders: ['Set-Cookie'],
     });
 
     // Log de peticiones solo en desarrollo (en producción llenaría los logs de Render)

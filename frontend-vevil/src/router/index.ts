@@ -63,25 +63,32 @@ const router = createRouter({
 let isAuthInitialized = false;
 
 router.beforeEach(async (to, from, next) => {
+  console.log('[ROUTER] Navigation:', from.name, '→', to.name, '| requiresAuth:', to.meta.requiresAuth);
   const authStore = useAuthStore();
 
   // Si la sesión no ha sido inicializada (primera carga/recarga de página)
   if (!isAuthInitialized) {
+    console.log('[ROUTER] Initializing auth...');
     // Intentamos obtener el perfil del usuario usando el token de localStorage
     await authStore.fetchProfile();
     isAuthInitialized = true;
+    console.log('[ROUTER] Auth initialized, user:', authStore.user);
   }
 
   const isAuthenticated = authStore.isAuthenticated;
+  console.log('[ROUTER] isAuthenticated:', isAuthenticated);
 
   if (to.meta.requiresAuth && !isAuthenticated) {
+    console.log('[ROUTER] Redirecting to login (unauthenticated)');
     // Si la ruta es protegida y no estamos autenticados, vamos al login
     next({ name: 'login', query: { redirect: to.fullPath } });
   } else if ((to.name === 'login' || to.name === 'register') && isAuthenticated) {
+    console.log('[ROUTER] Redirecting to dashboard (already authenticated)');
     // Si ya estamos logueados, no nos dejes ir a login/register, vamos al dashboard
     next({ name: 'dashboard' });
   } else {
     // En cualquier otro caso, permite la navegación
+    console.log('[ROUTER] Allowing navigation');
     next();
   }
 });

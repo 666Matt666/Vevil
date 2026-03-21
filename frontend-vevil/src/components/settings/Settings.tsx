@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { startRegistration, browserSupportsWebAuthn } from '@simplewebauthn/browser';
 import { getConversionTarget, getRates, convert, fetchRates, setConversionTarget } from '../../services/currencyRates';
-import { webauthnRegisterOptions, webauthnRegisterVerify } from '../../services/api';
+import { webauthnRegisterOptions, webauthnRegisterVerify, changePassword } from '../../services/api';
 import { copy } from '../../copy';
 
 // ============== TIPOS ==============
@@ -322,6 +322,13 @@ const Settings: React.FC = () => {
     const [ratesUpdatedAt, setRatesUpdatedAt] = useState<string | null>(() => getRates()?.updatedAt ?? null);
     const [ratesLoading, setRatesLoading] = useState(false);
 
+    // Estados para cambio de contraseña
+    const [changingPassword, setChangingPassword] = useState(false);
+    const [passwordMessage, setPasswordMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+    const [currentPassword, setCurrentPassword] = useState('');
+    const [newPassword, setNewPassword] = useState('');
+    const [confirmPassword, setConfirmPassword] = useState('');
+
     useEffect(() => {
         setSupportsWebAuthn(typeof window !== 'undefined' && browserSupportsWebAuthn());
     }, []);
@@ -352,6 +359,34 @@ const Settings: React.FC = () => {
         }
     };
 
+    const handleChangePassword = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setPasswordMessage(null);
+        
+        if (newPassword.length < 6) {
+            setPasswordMessage({ type: 'error', text: 'La nueva contraseña debe tener al menos 6 caracteres' });
+            return;
+        }
+        
+        if (newPassword !== confirmPassword) {
+            setPasswordMessage({ type: 'error', text: 'Las contraseñas no coinciden' });
+            return;
+        }
+        
+        setChangingPassword(true);
+        try {
+            await changePassword(currentPassword, newPassword);
+            setPasswordMessage({ type: 'success', text: 'Contraseña cambiada correctamente' });
+            setCurrentPassword('');
+            setNewPassword('');
+            setConfirmPassword('');
+        } catch (error: any) {
+            setPasswordMessage({ type: 'error', text: error.message || 'Error al cambiar contraseña' });
+        } finally {
+            setChangingPassword(false);
+        }
+    };
+
     const showSaved = () => {
         setSaved(true);
         setTimeout(() => setSaved(false), 2000);
@@ -374,10 +409,74 @@ const Settings: React.FC = () => {
 
     const renderAccountSection = () => (
         <div>
+            {/* Sección: Cambiar Contraseña */}
             <h2 style={{ fontSize: '20px', fontWeight: 600, color: '#1e293b', margin: '0 0 8px 0' }}>
+                🔐 Cambiar Contraseña
+            </h2>
+            <p style={{ fontSize: '14px', color: '#64748b', margin: '0 0 16px 0' }}>
+                Actualizá tu contraseña de acceso al sistema.
+            </p>
+            <form onSubmit={handleChangePassword} style={{ padding: '20px', backgroundColor: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0', marginBottom: '24px' }}>
+                <div style={{ marginBottom: '16px' }}>
+                    <label style={labelStyle}>Contraseña Actual</label>
+                    <input
+                        type="password"
+                        value={currentPassword}
+                        onChange={(e) => setCurrentPassword(e.target.value)}
+                        style={inputStyle}
+                        placeholder="Ingresá tu contraseña actual"
+                        required
+                        minLength={6}
+                    />
+                </div>
+                <div style={{ marginBottom: '16px' }}>
+                    <label style={labelStyle}>Nueva Contraseña</label>
+                    <input
+                        type="password"
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        style={inputStyle}
+                        placeholder="Mínimo 6 caracteres"
+                        required
+                        minLength={6}
+                    />
+                </div>
+                <div style={{ marginBottom: '16px' }}>
+                    <label style={labelStyle}>Confirmar Nueva Contraseña</label>
+                    <input
+                        type="password"
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        style={inputStyle}
+                        placeholder="Repetí la nueva contraseña"
+                        required
+                        minLength={6}
+                    />
+                </div>
+                {passwordMessage && (
+                    <p style={{ margin: '0 0 16px 0', fontSize: '14px', color: passwordMessage.type === 'success' ? '#16a34a' : '#dc2626' }}>
+                        {passwordMessage.text}
+                    </p>
+                )}
+                <button
+                    type="submit"
+                    disabled={changingPassword}
+                    style={{
+                        ...buttonStyle,
+                        backgroundColor: changingPassword ? '#94a3b8' : '#4f46e5',
+                        color: 'white',
+                        padding: '12px 20px'
+                    }}
+                >
+                    {changingPassword ? 'Cambiando...' : 'Cambiar Contraseña'}
+                </button>
+            </form>
+
+            {/* Sección: Huella Digital */}
+            <h2 style={{ fontSize: '20px', fontWeight: 600, color: '#1e293b', margin: '24px 0 8px 0' }}>
                 👤 Cuenta y acceso
             </h2>
-            <p style={{ fontSize: '14px', color: '#64748b', margin: '0 0 24px 0' }}>
+            <p style={{ fontSize: '14px', color: '#64748b', margin: '0 0 16px 0' }}>
                 Podés agregar inicio de sesión con huella digital si tu dispositivo lo permite.
             </p>
             {supportsWebAuthn ? (

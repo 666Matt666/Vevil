@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { startAuthentication, browserSupportsWebAuthn } from '@simplewebauthn/browser';
-import { login, type LoginResponse, wakeBackend, wakeBackendAndWait, webauthnLoginOptions, webauthnLoginVerify } from '../../services/api';
+import { login, getProfile, type LoginResponse, wakeBackend, wakeBackendAndWait, webauthnLoginOptions, webauthnLoginVerify } from '../../services/api';
 import { copy } from '../../copy';
 
 const LOGIN_EMAIL_KEY = 'vevil_login_email';
@@ -26,8 +26,15 @@ const Login: React.FC = () => {
     const navigate = useNavigate();
 
     useEffect(() => {
-        const token = localStorage.getItem('token');
-        if (token) navigate('/dashboard');
+        // Verificar si hay sesión activa usando el perfil guardado o intentando obtenerlo
+        // Con HttpOnly cookies, el navegador maneja la sesión automáticamente
+        const profile = localStorage.getItem('vevil_profile');
+        if (profile) {
+            // Hay un perfil guardado, intentamos obtener el perfil del servidor para verificar la sesión
+            getProfile()
+                .then(() => navigate('/dashboard'))
+                .catch(() => { /* session expired, stay on login */ });
+        }
     }, [navigate]);
 
     useEffect(() => {
@@ -49,17 +56,15 @@ const Login: React.FC = () => {
         setError('');
         setIsLoading(true);
         try {
-            const data = await login(email, password);
+            // El login ahora usa HttpOnly cookies - no necesitamos guardar tokens en localStorage
+            await login(email, password);
             try {
                 localStorage.setItem(LOGIN_EMAIL_KEY, email.trim());
             } catch (_) {}
-            localStorage.setItem('token', data.access_token);
-            if (data.refresh_token) localStorage.setItem('refresh_token', data.refresh_token);
-            const user = (data as LoginResponse).user;
-            if (user) {
-                const profile = { ...user, role: user.role ?? (user.email?.toLowerCase() === 'admin@vevil.com' ? 'admin' : undefined) };
-                localStorage.setItem('vevil_profile', JSON.stringify(profile));
-            }
+            // Obtener el perfil después del login exitoso
+            const user = await getProfile();
+            const profile = { ...user, role: user.role ?? (user.email?.toLowerCase() === 'admin@vevil.com' ? 'admin' : undefined) };
+            localStorage.setItem('vevil_profile', JSON.stringify(profile));
             navigate('/dashboard');
         } catch (err: any) {
             setError(err.message || 'Error al iniciar sesión');
@@ -97,20 +102,18 @@ const Login: React.FC = () => {
         try {
             const options = await webauthnLoginOptions(email.trim());
             const credential = await startAuthentication({ optionsJSON: options });
-            const data = await webauthnLoginVerify(
+            // WebAuthn también usa HttpOnly cookies ahora
+            await webauthnLoginVerify(
                 credential as unknown as Record<string, unknown>,
                 options.challenge
             );
             try {
                 localStorage.setItem(LOGIN_EMAIL_KEY, email.trim());
             } catch (_) {}
-            localStorage.setItem('token', data.access_token);
-            if (data.refresh_token) localStorage.setItem('refresh_token', data.refresh_token);
-            const user = (data as LoginResponse).user;
-            if (user) {
-                const profile = { ...user, role: user.role ?? (user.email?.toLowerCase() === 'admin@vevil.com' ? 'admin' : undefined) };
-                localStorage.setItem('vevil_profile', JSON.stringify(profile));
-            }
+            // Obtener el perfil después del login exitoso
+            const user = await getProfile();
+            const profile = { ...user, role: user.role ?? (user.email?.toLowerCase() === 'admin@vevil.com' ? 'admin' : undefined) };
+            localStorage.setItem('vevil_profile', JSON.stringify(profile));
             navigate('/dashboard');
         } catch (err: unknown) {
             const msg = err instanceof Error ? err.message : copy.errors.generic;

@@ -3,6 +3,7 @@ import { stockMovementsApi, StockMovement, productsApi, Product, getErrorMessage
 import { formatMoney } from '../settings/Settings';
 import { LoadingSpinner } from '../ui/LoadingSpinner';
 import { ErrorMessage } from '../ui/ErrorMessage';
+import { SuccessMessage } from '../ui/SuccessMessage';
 
 const REASON_LABELS: Record<string, string> = {
     purchase: 'Compra',
@@ -26,6 +27,7 @@ const StockMovements: React.FC = () => {
         note: '',
     });
     const [saving, setSaving] = useState(false);
+    const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
     const load = async () => {
         try {
@@ -60,11 +62,12 @@ const StockMovements: React.FC = () => {
                 reason: form.reason,
                 note: form.note || undefined,
             });
+            setSuccessMessage('Movimiento registrado');
             setShowForm(false);
             setForm({ productId: '', type: 'in', quantity: '', reason: 'purchase', note: '' });
             load();
         } catch (e: any) {
-            alert(e.message || 'Error al guardar');
+            setError(getErrorMessage(e, 'Error al guardar'));
         } finally {
             setSaving(false);
         }
@@ -98,6 +101,13 @@ const StockMovements: React.FC = () => {
                 </button>
             </div>
 
+            {successMessage && (
+                <SuccessMessage
+                    message={successMessage}
+                    onDismiss={() => setSuccessMessage(null)}
+                    autoDismissMs={4000}
+                />
+            )}
             {error && (
                 <ErrorMessage
                     message={error}

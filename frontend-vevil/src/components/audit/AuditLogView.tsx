@@ -3,6 +3,8 @@ import { auditApi, type AuditLogItem } from '../../services/api';
 import { getErrorMessage } from '../../services/api';
 import { LoadingSpinner } from '../ui/LoadingSpinner';
 import { ErrorMessage } from '../ui/ErrorMessage';
+import { Pagination } from '../ui/Pagination';
+import { exportAuditToCsv } from '../../utils/exportCsv';
 
 const ENTITY_TYPES = [
     { value: '', label: 'Todos' },
@@ -16,6 +18,8 @@ const LIMIT_OPTIONS = [20, 50, 100, 200];
 
 const AuditLogView: React.FC = () => {
     const [logs, setLogs] = useState<AuditLogItem[]>([]);
+    const [total, setTotal] = useState(0);
+    const [page, setPage] = useState(1);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [userId, setUserId] = useState('');
@@ -23,16 +27,19 @@ const AuditLogView: React.FC = () => {
     const [entityId, setEntityId] = useState('');
     const [limit, setLimit] = useState(50);
 
-    const load = async () => {
+    const load = async (pageNum: number = page) => {
         try {
             setLoading(true);
             setError(null);
-            const params: { userId?: string; entityType?: string; entityId?: string; limit: number } = { limit };
+            const offset = (pageNum - 1) * limit;
+            const params: { userId?: string; entityType?: string; entityId?: string; limit: number; offset?: number } = { limit };
             if (userId.trim()) params.userId = userId.trim();
             if (entityType) params.entityType = entityType;
             if (entityId.trim()) params.entityId = entityId.trim();
-            const data = await auditApi.getList(params);
-            setLogs(data);
+            if (!params.userId && !(params.entityType && params.entityId)) params.offset = offset;
+            const result = await auditApi.getList(params);
+            setLogs(result.data);
+            setTotal(result.total);
         } catch (err) {
             setError(getErrorMessage(err, 'Error al cargar auditoría'));
         } finally {
@@ -41,13 +48,16 @@ const AuditLogView: React.FC = () => {
     };
 
     useEffect(() => {
-        load();
-    }, []);
+        load(page);
+    }, [page, limit]);
 
     const handleApplyFilters = (e: React.FormEvent) => {
         e.preventDefault();
-        load();
+        setPage(1);
+        load(1);
     };
+
+    const goToPage = (newPage: number) => setPage(newPage);
 
     const formatDate = (dateStr: string) => {
         try {
@@ -60,14 +70,42 @@ const AuditLogView: React.FC = () => {
         }
     };
 
+    const formatDateCsv = (dateStr: string) => (dateStr ? dateStr.slice(0, 19).replace('T', ' ') : '');
+
+    const handleExportCsv = () => {
+        exportAuditToCsv(logs, formatDateCsv);
+    };
+
     return (
         <div className="responsive-padding" style={{ padding: '32px' }}>
-            <h1 style={{ fontSize: 'clamp(24px, 5vw, 32px)', fontWeight: 700, color: '#1e293b', marginBottom: '8px' }}>
-                📋 Auditoría
-            </h1>
-            <p style={{ color: '#64748b', marginBottom: '24px' }}>
-                Historial de acciones (quién hizo qué y cuándo).
-            </p>
+            <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'flex-start', gap: '16px', marginBottom: '24px' }}>
+                <div>
+                    <h1 style={{ fontSize: 'clamp(24px, 5vw, 32px)', fontWeight: 700, color: '#1e293b', marginBottom: '8px' }}>
+                        📋 Auditoría
+                    </h1>
+                    <p style={{ color: '#64748b', margin: 0 }}>
+                        Historial de acciones (quién hizo qué y cuándo).
+                    </p>
+                </div>
+                <button
+                    type="button"
+                    aria-label="Exportar auditoría a CSV"
+                    onClick={handleExportCsv}
+                    disabled={logs.length === 0}
+                    style={{
+                        padding: '10px 20px',
+                        backgroundColor: logs.length === 0 ? '#cbd5e1' : '#0f766e',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '8px',
+                        fontWeight: 600,
+                        cursor: logs.length === 0 ? 'not-allowed' : 'pointer',
+                        whiteSpace: 'nowrap',
+                    }}
+                >
+                    📥 Exportar CSV
+                </button>
+            </div>
 
             {/* Filtros */}
             <form
@@ -135,7 +173,7 @@ const AuditLogView: React.FC = () => {
                     <span style={{ fontSize: '12px', color: '#64748b' }}>Límite</span>
                     <select
                         value={limit}
-                        onChange={(e) => setLimit(Number(e.target.value))}
+                        onChange={(e) => { setLimit(Number(e.target.value)); setPage(1); }}
                         style={{
                             padding: '8px 12px',
                             border: '1px solid #e2e8f0',
@@ -213,6 +251,17 @@ const AuditLogView: React.FC = () => {
                             ))}
                         </tbody>
                     </table>
+                    {total > limit && (
+                        <div style={{ padding: '12px 16px' }}>
+                            <Pagination
+                                page={page}
+                                limit={limit}
+                                total={total}
+                                onPageChange={goToPage}
+                                label="registros"
+                            />
+                        </div>
+                    )}
                 </div>
             )}
         </div>

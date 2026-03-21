@@ -55,6 +55,10 @@ __decorate([
     __metadata("design:type", String)
 ], Customer.prototype, "tax_id", void 0);
 exports.Customer = Customer = __decorate([
-    (0, typeorm_1.Entity)()
+    (0, typeorm_1.Entity)(),
+    (0, typeorm_1.Index)(['email'], { unique: true }),
+    (0, typeorm_1.Index)(['name']),
+    (0, typeorm_1.Index)(['address_city']),
+    (0, typeorm_1.Index)(['address_province'])
 ], Customer);
 //# sourceMappingURL=customer.entity.js.map

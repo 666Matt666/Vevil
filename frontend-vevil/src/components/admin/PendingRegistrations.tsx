@@ -4,6 +4,7 @@ import { getProfile, pendingRegistrationsApi, type PendingRegistrationItem, getE
 import { copy } from '../../copy';
 import { LoadingSpinner } from '../ui/LoadingSpinner';
 import { ErrorMessage } from '../ui/ErrorMessage';
+import { SuccessMessage } from '../ui/SuccessMessage';
 
 const PendingRegistrations: React.FC = () => {
     const navigate = useNavigate();
@@ -41,6 +42,7 @@ const PendingRegistrations: React.FC = () => {
         setError('');
         try {
             await pendingRegistrationsApi.approve(id, role);
+            setSuccessMessage('Solicitud aprobada');
             setList((prev) => prev.filter((r) => r.id !== id));
         } catch (err) {
             setError(getErrorMessage(err, 'Error al aprobar'));
@@ -55,6 +57,7 @@ const PendingRegistrations: React.FC = () => {
         setError('');
         try {
             await pendingRegistrationsApi.reject(id);
+            setSuccessMessage('Solicitud rechazada');
             setList((prev) => prev.filter((r) => r.id !== id));
         } catch (err) {
             setError(getErrorMessage(err, 'Error al rechazar'));
@@ -80,6 +83,13 @@ const PendingRegistrations: React.FC = () => {
                 {copy.pendingRegistrations.intro}
             </p>
 
+            {successMessage && (
+                <SuccessMessage
+                    message={successMessage}
+                    onDismiss={() => setSuccessMessage(null)}
+                    autoDismissMs={4000}
+                />
+            )}
             {error && (
                 <ErrorMessage
                     message={error}

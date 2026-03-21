@@ -16,6 +16,15 @@ Siempre desarrollamos **en local** (Postgres local, backend y frontend en localh
 - **[PRE_DEPLOY_LOCAL_CHECK.md](./PRE_DEPLOY_LOCAL_CHECK.md)** – Verificación local antes del deploy (script + checklist en el navegador).
 - **[RELEASE_AUDIT_TO_PROD.md](./RELEASE_AUDIT_TO_PROD.md)** – Checklist para cuando quieras llevar la auditoría a PROD (migración, verificación).
 
+## Guía de uso (funcionalidades para el usuario)
+
+- **Sesión expirada:** Si el token de sesión vence, la app redirige al login y muestra el mensaje *“Sesión expirada. Volvé a iniciar sesión.”* Basta con volver a iniciar sesión.
+- **Listas paginadas:** En Productos, Clientes, Facturas y Auditoría las listas están paginadas. Podés cambiar de página con los botones *Anterior* / *Siguiente* y los números de página. Los filtros (búsqueda, tipo, categoría, departamento, estado, fechas) se aplican en el servidor y la paginación refleja los resultados filtrados.
+- **Confirmación antes de borrar:** Al eliminar un producto o un cliente, y al anular una factura, se muestra un modal de confirmación. Hay que aceptar para que se ejecute la acción (no se puede deshacer).
+- **Exportar auditoría:** En la vista **Auditoría** hay un botón *Exportar CSV* en la parte superior. Descarga un archivo CSV con los registros actuales (según filtros y página). Útil para respaldos o análisis en Excel.
+
+---
+
 ## Despliegue en la nube
 
 Stack: **Supabase** (PostgreSQL), **Render** (backend NestJS), **Vercel** (frontend React/Vite).

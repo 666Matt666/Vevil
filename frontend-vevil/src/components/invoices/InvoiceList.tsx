@@ -5,7 +5,11 @@ import { getEnabledCurrencies, formatMoney, getInvoiceConfig, getCompanyConfig, 
 import { TableSkeleton } from '../ui/TableSkeleton';
 import { ErrorMessage } from '../ui/ErrorMessage';
 import { SuccessMessage } from '../ui/SuccessMessage';
+import { Pagination } from '../ui/Pagination';
+import { ConfirmModal } from '../ui/ConfirmModal';
 import { exportInvoicesToCsv } from '../../utils/exportCsv';
+
+const PAGE_SIZE = 20;
 
 const buttonStyle: React.CSSProperties = {
     padding: '8px 16px',
@@ -57,6 +61,8 @@ const statusColors: Record<PaymentStatus, { bg: string; text: string }> = {
 const InvoiceList: React.FC = () => {
     const navigate = useNavigate();
     const [invoices, setInvoices] = useState<Invoice[]>([]);
+    const [totalInvoices, setTotalInvoices] = useState(0);
+    const [invoicePage, setInvoicePage] = useState(1);
     const [customers, setCustomers] = useState<Customer[]>([]);
     const [products, setProducts] = useState<Product[]>([]);
     const [loading, setLoading] = useState(true);
@@ -64,6 +70,8 @@ const InvoiceList: React.FC = () => {
     const [showModal, setShowModal] = useState(false);
     const [saving, setSaving] = useState(false);
     const [successMessage, setSuccessMessage] = useState<string | null>(null);
+    const [invoiceToCancel, setInvoiceToCancel] = useState<Invoice | null>(null);
+    const [cancelling, setCancelling] = useState(false);
     
     // Form state
     const [selectedCustomerId, setSelectedCustomerId] = useState<string>('');
@@ -95,42 +103,45 @@ const InvoiceList: React.FC = () => {
         }
     };
 
-    // Facturas filtradas
-    const filteredInvoices = invoices.filter(invoice => {
-        const searchLower = searchText.toLowerCase();
-        const matchesSearch = 
-            String(invoice.id).includes(searchLower) ||
-            formatInvoiceNumber(invoice.id).toLowerCase().includes(searchLower) ||
-            (invoice.customer?.name && invoice.customer.name.toLowerCase().includes(searchLower));
-        const matchesCustomer = filterCustomerId === 'all' || String(invoice.customerId) === filterCustomerId;
-        const matchesStatus = filterStatus === 'all' || getInvoiceStatus(invoice) === filterStatus;
-        
-        // Filtro de fecha
-        let matchesDate = true;
-        if (filterDateFrom) {
-            matchesDate = matchesDate && new Date(invoice.date) >= new Date(filterDateFrom);
+    const handleStatusChange = (invoice: Invoice, newStatus: PaymentStatus) => {
+        if (newStatus === 'cancelled') {
+            setInvoiceToCancel(invoice);
+            return;
         }
-        if (filterDateTo) {
-            matchesDate = matchesDate && new Date(invoice.date) <= new Date(filterDateTo + 'T23:59:59');
+        changeInvoiceStatus(invoice.id, newStatus);
+    };
+
+    const handleConfirmCancelInvoice = async () => {
+        if (!invoiceToCancel) return;
+        try {
+            setCancelling(true);
+            await invoicesApi.updateStatus(invoiceToCancel.id, 'cancelled');
+            setInvoices(prev => prev.map(inv => inv.id === invoiceToCancel.id ? { ...inv, status: 'cancelled' } : inv));
+            setInvoiceToCancel(null);
+        } catch (err) {
+            alert(getErrorMessage(err, 'Error al anular factura'));
+        } finally {
+            setCancelling(false);
         }
-        
-        return matchesSearch && matchesCustomer && matchesStatus && matchesDate;
-    });
+    };
 
-    useEffect(() => {
-        loadData();
-    }, []);
-
-    const loadData = async () => {
+    const loadData = async (page: number = invoicePage) => {
         try {
             setLoading(true);
             setError(null);
-            const [invoicesData, customersData, productsData] = await Promise.all([
-                invoicesApi.getAll(),
+            const [invoicesRes, customersData, productsData] = await Promise.all([
+                invoicesApi.getPage(page, PAGE_SIZE, {
+                    search: searchText || undefined,
+                    customerId: filterCustomerId !== 'all' ? parseInt(filterCustomerId, 10) : undefined,
+                    status: filterStatus !== 'all' ? filterStatus : undefined,
+                    dateFrom: filterDateFrom || undefined,
+                    dateTo: filterDateTo || undefined,
+                }),
                 customersApi.getAll(),
                 productsApi.getAll()
             ]);
-            setInvoices(invoicesData);
+            setInvoices(invoicesRes.data);
+            setTotalInvoices(invoicesRes.total);
             setCustomers(customersData);
             setProducts(productsData);
         } catch (err) {
@@ -139,6 +150,10 @@ const InvoiceList: React.FC = () => {
             setLoading(false);
         }
     };
+
+    useEffect(() => {
+        loadData(invoicePage);
+    }, [invoicePage, searchText, filterCustomerId, filterStatus, filterDateFrom, filterDateTo]);
 
     const formatDate = (dateString: string) => {
         const date = new Date(dateString);
@@ -216,7 +231,7 @@ const InvoiceList: React.FC = () => {
             });
             closeModal();
             setSuccessMessage('Factura creada');
-            loadData();
+            loadData(invoicePage);
         } catch (err) {
             setError(getErrorMessage(err, 'Error al crear factura'));
         } finally {
@@ -338,13 +353,13 @@ const InvoiceList: React.FC = () => {
         }
     };
 
-    // Limpiar filtros
     const clearFilters = () => {
         setSearchText('');
         setFilterCustomerId('all');
         setFilterStatus('all');
         setFilterDateFrom('');
         setFilterDateTo('');
+        setInvoicePage(1);
     };
 
     const hasActiveFilters = searchText || filterCustomerId !== 'all' || filterStatus !== 'all' || filterDateFrom || filterDateTo;
@@ -376,7 +391,7 @@ const InvoiceList: React.FC = () => {
                         Facturas
                     </h1>
                     <p style={{ fontSize: '16px', color: '#64748b', margin: '4px 0 0 0' }}>
-                        {invoices.length} facturas registradas
+                        {totalInvoices} facturas registradas
                         {invoiceConfig.timbrado && (
                             <span style={{ marginLeft: '12px', fontSize: '12px', color: '#94a3b8' }}>
                                 | Timbrado: {invoiceConfig.timbrado}
@@ -423,10 +438,21 @@ const InvoiceList: React.FC = () => {
             {error && (
                 <ErrorMessage
                     message={error}
-                    onRetry={loadData}
+                    onRetry={() => loadData(invoicePage)}
                     onDismiss={() => setError(null)}
                 />
             )}
+
+            <ConfirmModal
+                open={invoiceToCancel !== null}
+                title="Anular factura"
+                message={invoiceToCancel ? `¿Anular la factura ${formatInvoiceNumber(invoiceToCancel.id)}? No se puede deshacer.` : ''}
+                confirmLabel="Anular"
+                variant="danger"
+                loading={cancelling}
+                onConfirm={handleConfirmCancelInvoice}
+                onCancel={() => setInvoiceToCancel(null)}
+            />
 
             {/* Barra de Filtros */}
             <div style={{
@@ -443,7 +469,7 @@ const InvoiceList: React.FC = () => {
                             type="text"
                             placeholder="Buscar por N° o cliente..."
                             value={searchText}
-                            onChange={(e) => setSearchText(e.target.value)}
+                            onChange={(e) => { setSearchText(e.target.value); setInvoicePage(1); }}
                             style={{
                                 padding: '10px 16px',
                                 border: '1px solid #e2e8f0',
@@ -458,7 +484,7 @@ const InvoiceList: React.FC = () => {
                     {customers.length > 0 && (
                         <select
                             value={filterCustomerId}
-                            onChange={(e) => setFilterCustomerId(e.target.value)}
+                            onChange={(e) => { setFilterCustomerId(e.target.value); setInvoicePage(1); }}
                             style={{
                                 padding: '10px 16px',
                                 border: '1px solid #e2e8f0',
@@ -477,7 +503,7 @@ const InvoiceList: React.FC = () => {
                     
                     <select
                         value={filterStatus}
-                        onChange={(e) => setFilterStatus(e.target.value as 'all' | PaymentStatus)}
+                        onChange={(e) => { setFilterStatus(e.target.value as 'all' | PaymentStatus); setInvoicePage(1); }}
                         style={{
                             padding: '10px 16px',
                             border: '1px solid #e2e8f0',
@@ -498,7 +524,7 @@ const InvoiceList: React.FC = () => {
                         <input
                             type="date"
                             value={filterDateFrom}
-                            onChange={(e) => setFilterDateFrom(e.target.value)}
+                            onChange={(e) => { setFilterDateFrom(e.target.value); setInvoicePage(1); }}
                             style={{
                                 padding: '10px 12px',
                                 border: '1px solid #e2e8f0',
@@ -510,7 +536,7 @@ const InvoiceList: React.FC = () => {
                         <input
                             type="date"
                             value={filterDateTo}
-                            onChange={(e) => setFilterDateTo(e.target.value)}
+                            onChange={(e) => { setFilterDateTo(e.target.value); setInvoicePage(1); }}
                             style={{
                                 padding: '10px 12px',
                                 border: '1px solid #e2e8f0',
@@ -534,13 +560,10 @@ const InvoiceList: React.FC = () => {
                         </button>
                     )}
                 </div>
-                <div style={{ marginTop: '12px', fontSize: '14px', color: '#64748b' }}>
-                    Mostrando {filteredInvoices.length} de {invoices.length} facturas
-                </div>
             </div>
 
             {/* Tabla */}
-            {invoices.length === 0 ? (
+            {!loading && totalInvoices === 0 && !error ? (
                 <div style={{
                     backgroundColor: 'white',
                     borderRadius: '12px',
@@ -575,7 +598,7 @@ const InvoiceList: React.FC = () => {
                             </tr>
                         </thead>
                         <tbody>
-                            {filteredInvoices.map((invoice) => {
+                            {invoices.map((invoice) => {
                                 const status = getInvoiceStatus(invoice);
                                 const isCancelled = status === 'cancelled';
                                 
@@ -603,7 +626,7 @@ const InvoiceList: React.FC = () => {
                                         <td style={{ padding: '16px', textAlign: 'center' }}>
                                             <select
                                                 value={status}
-                                                onChange={(e) => changeInvoiceStatus(invoice.id, e.target.value as PaymentStatus)}
+                                                onChange={(e) => handleStatusChange(invoice, e.target.value as PaymentStatus)}
                                                 style={{
                                                     padding: '6px 12px',
                                                     backgroundColor: statusColors[status].bg,
@@ -663,6 +686,15 @@ const InvoiceList: React.FC = () => {
                             })}
                         </tbody>
                     </table>
+                    <div style={{ padding: '0 16px 16px' }}>
+                        <Pagination
+                            page={invoicePage}
+                            limit={PAGE_SIZE}
+                            total={totalInvoices}
+                            onPageChange={setInvoicePage}
+                            label="facturas"
+                        />
+                    </div>
                 </div>
             )}
 

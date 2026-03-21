@@ -40,7 +40,12 @@ let ProductsController = class ProductsController {
         }).catch(() => { });
         return created;
     }
-    findAll() {
+    async findAll(pageStr, limitStr, search, type, category) {
+        const page = pageStr != null ? parseInt(pageStr, 10) : NaN;
+        const limit = limitStr != null ? parseInt(limitStr, 10) : NaN;
+        if (Number.isFinite(page) && Number.isFinite(limit)) {
+            return this.productsService.findPage(page, limit, { search, type, category });
+        }
         return this.productsService.findAll();
     }
     findOne(id) {
@@ -83,9 +88,14 @@ __decorate([
 ], ProductsController.prototype, "create", null);
 __decorate([
     (0, common_1.Get)(),
+    __param(0, (0, common_1.Query)('page')),
+    __param(1, (0, common_1.Query)('limit')),
+    __param(2, (0, common_1.Query)('search')),
+    __param(3, (0, common_1.Query)('type')),
+    __param(4, (0, common_1.Query)('category')),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", []),
-    __metadata("design:returntype", void 0)
+    __metadata("design:paramtypes", [String, String, String, String, String]),
+    __metadata("design:returntype", Promise)
 ], ProductsController.prototype, "findAll", null);
 __decorate([
     (0, common_1.Get)(':id'),

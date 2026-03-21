@@ -5,6 +5,8 @@ import { LoadingSpinner } from '../ui/LoadingSpinner';
 import { TableSkeleton } from '../ui/TableSkeleton';
 import { ErrorMessage } from '../ui/ErrorMessage';
 import { SuccessMessage } from '../ui/SuccessMessage';
+import { Pagination } from '../ui/Pagination';
+import { ConfirmModal } from '../ui/ConfirmModal';
 import { exportProductsToCsv } from '../../utils/exportCsv';
 
 // Estilos comunes
@@ -67,8 +69,12 @@ const emptyForm: ProductFormData = {
     description: ''
 };
 
+const PAGE_SIZE = 20;
+
 const ProductList: React.FC = () => {
     const [products, setProducts] = useState<Product[]>([]);
+    const [total, setTotal] = useState(0);
+    const [page, setPage] = useState(1);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [showModal, setShowModal] = useState(false);
@@ -76,35 +82,37 @@ const ProductList: React.FC = () => {
     const [formData, setFormData] = useState<ProductFormData>(emptyForm);
     const [saving, setSaving] = useState(false);
     const [successMessage, setSuccessMessage] = useState<string | null>(null);
+    const [productToDelete, setProductToDelete] = useState<Product | null>(null);
+    const [deleting, setDeleting] = useState(false);
     
-    // Filtros
     const [searchName, setSearchName] = useState('');
     const [filterType, setFilterType] = useState('all');
     const [filterCategory, setFilterCategory] = useState('all');
 
-    // Productos filtrados
-    const filteredProducts = products.filter(product => {
-        const matchesName = product.name.toLowerCase().includes(searchName.toLowerCase());
-        const matchesType = filterType === 'all' || product.type === filterType;
-        const matchesCategory = filterCategory === 'all' || (product.category || '') === filterCategory;
-        return matchesName && matchesType && matchesCategory;
-    });
-
-    useEffect(() => {
-        loadProducts();
-    }, []);
-
-    const loadProducts = async () => {
+    const loadProducts = async (pageNum: number = page) => {
         try {
             setLoading(true);
             setError(null);
-            const data = await productsApi.getAll();
+            const { data, total: totalCount } = await productsApi.getPage(pageNum, PAGE_SIZE, {
+                search: searchName || undefined,
+                type: filterType !== 'all' ? filterType : undefined,
+                category: filterCategory !== 'all' ? filterCategory : undefined,
+            });
             setProducts(data);
+            setTotal(totalCount);
         } catch (err) {
             setError(getErrorMessage(err, 'Error al cargar productos'));
         } finally {
             setLoading(false);
         }
+    };
+
+    useEffect(() => {
+        loadProducts(page);
+    }, [page, searchName, filterType, filterCategory]);
+
+    const goToPage = (newPage: number) => {
+        setPage(newPage);
     };
 
     const openCreateModal = () => {
@@ -169,15 +177,22 @@ const ProductList: React.FC = () => {
         }
     };
 
-    const handleDelete = async (product: Product) => {
-        if (!confirm(`¿Eliminar "${product.name}"?`)) return;
+    const handleDeleteClick = (product: Product) => {
+        setProductToDelete(product);
+    };
 
+    const handleDeleteConfirm = async () => {
+        if (!productToDelete) return;
         try {
-            await productsApi.delete(product.id);
+            setDeleting(true);
+            await productsApi.delete(productToDelete.id);
             setSuccessMessage('Producto eliminado');
-            loadProducts();
+            setProductToDelete(null);
+            loadProducts(page);
         } catch (err) {
             setError(getErrorMessage(err, 'Error al eliminar'));
+        } finally {
+            setDeleting(false);
         }
     };
 
@@ -228,7 +243,7 @@ const ProductList: React.FC = () => {
                 <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
                     <button
                         type="button"
-                        onClick={() => exportProductsToCsv(filteredProducts, getTypeLabel, (cat) => CATEGORY_OPTIONS.find((o) => o.value === cat)?.label ?? cat)}
+                        onClick={() => exportProductsToCsv(products, getTypeLabel, (cat) => CATEGORY_OPTIONS.find((o) => o.value === cat)?.label ?? cat)}
                         style={{
                             ...buttonStyle,
                             padding: '10px 18px',
@@ -271,7 +286,7 @@ const ProductList: React.FC = () => {
             )}
 
             {/* Barra de Filtros */}
-            {products.length > 0 && (
+            {(total > 0 || searchName || filterType !== 'all' || filterCategory !== 'all') && (
                 <div style={{
                     backgroundColor: 'white',
                     borderRadius: '12px',
@@ -291,7 +306,7 @@ const ProductList: React.FC = () => {
                                 type="text"
                                 placeholder="Buscar..."
                                 value={searchName}
-                                onChange={(e) => setSearchName(e.target.value)}
+                                onChange={(e) => { setSearchName(e.target.value); setPage(1); }}
                                 style={{
                                     padding: '10px 12px',
                                     border: '1px solid #e2e8f0',
@@ -304,7 +319,7 @@ const ProductList: React.FC = () => {
                         </div>
                         <select
                             value={filterType}
-                            onChange={(e) => setFilterType(e.target.value)}
+                            onChange={(e) => { setFilterType(e.target.value); setPage(1); }}
                             style={{
                                 padding: '10px 12px',
                                 border: '1px solid #e2e8f0',
@@ -321,7 +336,7 @@ const ProductList: React.FC = () => {
                         </select>
                         <select
                             value={filterCategory}
-                            onChange={(e) => setFilterCategory(e.target.value)}
+                            onChange={(e) => { setFilterCategory(e.target.value); setPage(1); }}
                             style={{
                                 padding: '10px 12px',
                                 border: '1px solid #e2e8f0',
@@ -339,7 +354,7 @@ const ProductList: React.FC = () => {
                         </select>
                         {(searchName || filterType !== 'all' || filterCategory !== 'all') && (
                             <button
-                                onClick={() => { setSearchName(''); setFilterType('all'); setFilterCategory('all'); }}
+                                onClick={() => { setSearchName(''); setFilterType('all'); setFilterCategory('all'); setPage(1); }}
                                 style={{
                                     ...buttonStyle,
                                     backgroundColor: '#f1f5f9',
@@ -352,14 +367,11 @@ const ProductList: React.FC = () => {
                             </button>
                         )}
                     </div>
-                    <div style={{ marginTop: '12px', fontSize: '13px', color: '#64748b' }}>
-                        Mostrando {filteredProducts.length} de {products.length}
-                    </div>
                 </div>
             )}
 
             {/* Tabla */}
-            {products.length === 0 ? (
+            {!loading && total === 0 && !error ? (
                 <div style={{
                     backgroundColor: 'white',
                     borderRadius: '12px',
@@ -396,7 +408,7 @@ const ProductList: React.FC = () => {
                             </tr>
                         </thead>
                         <tbody>
-                            {filteredProducts.map((product) => (
+                            {products.map((product) => (
                                 <tr key={product.id} style={{ borderTop: '1px solid #e2e8f0' }}>
                                     <td style={{ padding: '16px', color: '#64748b' }}>#{product.id}</td>
                                     <td style={{ padding: '16px' }}>
@@ -453,7 +465,7 @@ const ProductList: React.FC = () => {
                                             ✏️ Editar
                                         </button>
                                         <button
-                                            onClick={() => handleDelete(product)}
+                                            onClick={() => handleDeleteClick(product)}
                                             style={{
                                                 ...buttonStyle,
                                                 backgroundColor: '#fee2e2',
@@ -467,8 +479,28 @@ const ProductList: React.FC = () => {
                             ))}
                         </tbody>
                     </table>
+                    <div style={{ padding: '0 16px 16px' }}>
+                        <Pagination
+                            page={page}
+                            limit={PAGE_SIZE}
+                            total={total}
+                            onPageChange={goToPage}
+                            label="productos"
+                        />
+                    </div>
                 </div>
             )}
+
+            <ConfirmModal
+                open={productToDelete !== null}
+                title="Eliminar producto"
+                message={productToDelete ? `¿Eliminar el producto "${productToDelete.name}"? No se puede deshacer.` : ''}
+                confirmLabel="Eliminar"
+                variant="danger"
+                loading={deleting}
+                onConfirm={handleDeleteConfirm}
+                onCancel={() => setProductToDelete(null)}
+            />
 
             {/* Modal */}
             {showModal && (

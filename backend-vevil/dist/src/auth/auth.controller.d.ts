@@ -1,3 +1,4 @@
+import { Response } from 'express';
 import { AuthService } from './auth.service';
 import { User } from '@/users/user.entity';
 import { CreateUserDto } from '@/users/dto/create-user.dto';
@@ -8,22 +9,18 @@ import { RequestRegistrationDto } from './dto/request-registration.dto';
 import { PendingRegistrationsService } from '@/pending-registrations/pending-registrations.service';
 import { UsersService } from '@/users/users.service';
 import { AuditService } from '@/audit/audit.service';
+export declare const ACCESS_TOKEN_COOKIE = "vevil_access_token";
+export declare const REFRESH_TOKEN_COOKIE = "vevil_refresh_token";
+export declare const COOKIE_MAX_AGE: number;
 export declare class AuthController {
     private authService;
     private pendingRegistrationsService;
     private usersService;
     private auditService;
     constructor(authService: AuthService, pendingRegistrationsService: PendingRegistrationsService, usersService: UsersService, auditService: AuditService);
-    login(user: User, _loginDto: LoginDto, req: any): Promise<{
-        access_token: string;
-        refresh_token: string;
-        user: {
-            id: string;
-            email: string;
-            name: string;
-            role: string;
-        };
-    }>;
+    private setTokenCookies;
+    private clearTokenCookies;
+    login(user: User, _loginDto: LoginDto, req: any, res: Response): Promise<Response<any, Record<string, any>>>;
     requestRegistration(dto: RequestRegistrationDto): Promise<{
         message: string;
     }>;
@@ -59,19 +56,10 @@ export declare class AuthController {
     }>;
     logout(user: User & {
         userId?: string;
-    }): Promise<void>;
+    }, res: Response): Promise<Response<any, Record<string, any>>>;
     refreshTokens(user: User & {
         refreshToken: string;
-    }): Promise<{
-        access_token: string;
-        refresh_token: string;
-        user: {
-            id: string;
-            email: string;
-            name: string;
-            role: string;
-        };
-    }>;
+    }, res: Response): Promise<Response<any, Record<string, any>>>;
     forgotPassword(dto: ForgotPasswordDto): Promise<{
         message: string;
     }>;

@@ -2,6 +2,7 @@
  * Exporta listados a CSV (UTF-8 con BOM para Excel).
  */
 import type { Invoice, Customer, Product } from '../services/api';
+import type { AuditLogItem } from '../services/api';
 
 function escapeCsvCell(value: string): string {
     const s = String(value ?? '').replace(/"/g, '""');
@@ -82,4 +83,25 @@ export function exportProductsToCsv(
     ]);
     const csvContent = [headers.map(escapeCsvCell).join(','), ...rows.map((r) => r.map(escapeCsvCell).join(','))].join('\n');
     downloadCsv(csvContent, `productos_${new Date().toISOString().slice(0, 10)}.csv`);
+}
+
+/** Exporta registros de auditoría a CSV. */
+export function exportAuditToCsv(
+    logs: AuditLogItem[],
+    formatDate: (dateStr: string) => string = defaultFormatDate,
+): void {
+    const headers = ['Fecha', 'Usuario', 'Email', 'Acción', 'Entidad', 'ID', 'Valor nuevo', 'Valor anterior', 'IP'];
+    const rows = logs.map((log) => [
+        formatDate(log.createdAt),
+        log.userId ?? '',
+        log.userEmail ?? '',
+        log.action ?? '',
+        log.entityType ?? '',
+        log.entityId ?? '',
+        log.newValue && Object.keys(log.newValue).length > 0 ? JSON.stringify(log.newValue) : '',
+        log.oldValue && Object.keys(log.oldValue).length > 0 ? JSON.stringify(log.oldValue) : '',
+        log.ip ?? '',
+    ]);
+    const csvContent = [headers.map(escapeCsvCell).join(','), ...rows.map((r) => r.map(escapeCsvCell).join(','))].join('\n');
+    downloadCsv(csvContent, `auditoria_${new Date().toISOString().slice(0, 10)}.csv`);
 }

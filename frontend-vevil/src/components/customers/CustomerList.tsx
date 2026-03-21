@@ -3,7 +3,11 @@ import { customersApi, Customer, getErrorMessage } from '../../services/api';
 import { TableSkeleton } from '../ui/TableSkeleton';
 import { ErrorMessage } from '../ui/ErrorMessage';
 import { SuccessMessage } from '../ui/SuccessMessage';
+import { Pagination } from '../ui/Pagination';
+import { ConfirmModal } from '../ui/ConfirmModal';
 import { exportCustomersToCsv } from '../../utils/exportCsv';
+
+const PAGE_SIZE = 20;
 
 const buttonStyle: React.CSSProperties = {
     padding: '8px 16px',
@@ -78,6 +82,8 @@ const emptyForm: CustomerFormData = {
 
 const CustomerList: React.FC = () => {
     const [customers, setCustomers] = useState<Customer[]>([]);
+    const [total, setTotal] = useState(0);
+    const [page, setPage] = useState(1);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [showModal, setShowModal] = useState(false);
@@ -86,40 +92,36 @@ const CustomerList: React.FC = () => {
     const [saving, setSaving] = useState(false);
     const [successMessage, setSuccessMessage] = useState<string | null>(null);
     
-    // Filtros
     const [searchText, setSearchText] = useState('');
     const [filterCity, setFilterCity] = useState('all');
+    const [departments, setDepartments] = useState<string[]>([]);
 
-    // Obtener departamentos únicos para el filtro
-    const uniqueDepartments = [...new Set(customers.map(c => c.address_province).filter(Boolean))];
-
-    // Clientes filtrados
-    const filteredCustomers = customers.filter(customer => {
-        const searchLower = searchText.toLowerCase();
-        const matchesSearch = 
-            customer.name.toLowerCase().includes(searchLower) ||
-            customer.email.toLowerCase().includes(searchLower) ||
-            (customer.tax_id && customer.tax_id.toLowerCase().includes(searchLower));
-        const matchesDepartment = filterCity === 'all' || customer.address_province === filterCity;
-        return matchesSearch && matchesDepartment;
-    });
-
-    useEffect(() => {
-        loadCustomers();
-    }, []);
-
-    const loadCustomers = async () => {
+    const loadCustomers = async (pageNum: number = page) => {
         try {
             setLoading(true);
             setError(null);
-            const data = await customersApi.getAll();
+            const { data, total: totalCount } = await customersApi.getPage(pageNum, PAGE_SIZE, {
+                search: searchText || undefined,
+                department: filterCity !== 'all' ? filterCity : undefined,
+            });
             setCustomers(data);
+            setTotal(totalCount);
         } catch (err) {
             setError(getErrorMessage(err, 'Error al cargar clientes'));
         } finally {
             setLoading(false);
         }
     };
+
+    useEffect(() => {
+        customersApi.getDepartments().then(setDepartments).catch(() => {});
+    }, []);
+
+    useEffect(() => {
+        loadCustomers(page);
+    }, [page, searchText, filterCity]);
+
+    const goToPage = (newPage: number) => setPage(newPage);
 
     const openCreateModal = () => {
         setEditingCustomer(null);
@@ -185,15 +187,22 @@ const CustomerList: React.FC = () => {
         }
     };
 
-    const handleDelete = async (customer: Customer) => {
-        if (!confirm(`¿Eliminar cliente "${customer.name}"?`)) return;
+    const handleDeleteClick = (customer: Customer) => {
+        setCustomerToDelete(customer);
+    };
 
+    const handleDeleteConfirm = async () => {
+        if (!customerToDelete) return;
         try {
-            await customersApi.delete(customer.id);
+            setDeleting(true);
+            await customersApi.delete(customerToDelete.id);
             setSuccessMessage('Cliente eliminado');
-            loadCustomers();
+            setCustomerToDelete(null);
+            loadCustomers(page);
         } catch (err) {
             setError(getErrorMessage(err, 'Error al eliminar'));
+        } finally {
+            setDeleting(false);
         }
     };
 
@@ -229,7 +238,7 @@ const CustomerList: React.FC = () => {
                         Clientes
                     </h1>
                     <p style={{ fontSize: '14px', color: '#64748b', margin: '4px 0 0 0' }}>
-                        {customers.length} clientes registrados
+                        {total} clientes registrados
                     </p>
                 </div>
                 <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
@@ -272,13 +281,13 @@ const CustomerList: React.FC = () => {
             {error && (
                 <ErrorMessage
                     message={error}
-                    onRetry={loadCustomers}
+                    onRetry={() => loadCustomers(page)}
                     onDismiss={() => setError(null)}
                 />
             )}
 
             {/* Barra de Filtros */}
-            {customers.length > 0 && (
+            {total > 0 && (
                 <div style={{
                     backgroundColor: 'white',
                     borderRadius: '12px',
@@ -296,7 +305,7 @@ const CustomerList: React.FC = () => {
                             type="text"
                             placeholder="Buscar por nombre, email o RUC..."
                             value={searchText}
-                            onChange={(e) => setSearchText(e.target.value)}
+                            onChange={(e) => { setSearchText(e.target.value); setPage(1); }}
                             style={{
                                 padding: '10px 16px',
                                 border: '1px solid #e2e8f0',
@@ -307,12 +316,12 @@ const CustomerList: React.FC = () => {
                             }}
                         />
                     </div>
-                    {uniqueDepartments.length > 0 && (
+                    {departments.length > 0 && (
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                             <span style={{ fontSize: '14px', color: '#64748b' }}>Departamento:</span>
                             <select
                                 value={filterCity}
-                                onChange={(e) => setFilterCity(e.target.value)}
+                                onChange={(e) => { setFilterCity(e.target.value); setPage(1); }}
                                 style={{
                                     padding: '10px 16px',
                                     border: '1px solid #e2e8f0',
@@ -323,7 +332,7 @@ const CustomerList: React.FC = () => {
                                 }}
                             >
                                 <option value="all">Todos</option>
-                                {uniqueDepartments.map(dept => (
+                                {departments.map(dept => (
                                     <option key={dept} value={dept}>{dept}</option>
                                 ))}
                             </select>
@@ -331,7 +340,7 @@ const CustomerList: React.FC = () => {
                     )}
                     {(searchText || filterCity !== 'all') && (
                         <button
-                            onClick={() => { setSearchText(''); setFilterCity('all'); }}
+                            onClick={() => { setSearchText(''); setFilterCity('all'); setPage(1); }}
                             style={{
                                 ...buttonStyle,
                                 backgroundColor: '#f1f5f9',
@@ -342,14 +351,11 @@ const CustomerList: React.FC = () => {
                             ✕ Limpiar filtros
                         </button>
                     )}
-                    <span style={{ marginLeft: 'auto', fontSize: '14px', color: '#64748b' }}>
-                        Mostrando {filteredCustomers.length} de {customers.length}
-                    </span>
                 </div>
             )}
 
             {/* Tabla */}
-            {customers.length === 0 ? (
+            {!loading && total === 0 && !error ? (
                 <div style={{
                     backgroundColor: 'white',
                     borderRadius: '12px',
@@ -385,7 +391,7 @@ const CustomerList: React.FC = () => {
                             </tr>
                         </thead>
                         <tbody>
-                            {filteredCustomers.map((customer) => (
+                            {customers.map((customer) => (
                                 <tr key={customer.id} style={{ borderTop: '1px solid #e2e8f0' }}>
                                     <td style={{ padding: '16px', color: '#64748b' }}>#{customer.id}</td>
                                     <td style={{ padding: '16px', fontWeight: 500, color: '#1e293b' }}>{customer.name}</td>
@@ -408,7 +414,7 @@ const CustomerList: React.FC = () => {
                                             ✏️ Editar
                                         </button>
                                         <button
-                                            onClick={() => handleDelete(customer)}
+                                            onClick={() => handleDeleteClick(customer)}
                                             style={{
                                                 ...buttonStyle,
                                                 backgroundColor: '#fee2e2',
@@ -422,8 +428,28 @@ const CustomerList: React.FC = () => {
                             ))}
                         </tbody>
                     </table>
+                    <div style={{ padding: '0 16px 16px' }}>
+                        <Pagination
+                            page={page}
+                            limit={PAGE_SIZE}
+                            total={total}
+                            onPageChange={goToPage}
+                            label="clientes"
+                        />
+                    </div>
                 </div>
             )}
+
+            <ConfirmModal
+                open={customerToDelete !== null}
+                title="Eliminar cliente"
+                message={customerToDelete ? `¿Eliminar el cliente "${customerToDelete.name}"? No se puede deshacer.` : ''}
+                confirmLabel="Eliminar"
+                variant="danger"
+                loading={deleting}
+                onConfirm={handleDeleteConfirm}
+                onCancel={() => setCustomerToDelete(null)}
+            />
 
             {/* Modal */}
             {showModal && (

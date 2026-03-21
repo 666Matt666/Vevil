@@ -17,14 +17,26 @@ const password = ref('');
 const error = ref('');
 const isLoading = ref(false);
 
+const showRegisterOption = ref(false);
+
 const handleLogin = async () => {
   error.value = '';
+  showRegisterOption.value = false;
   isLoading.value = true;
   try {
     await authStore.login(email.value, password.value);
     router.push({ name: 'dashboard' });
   } catch (err: any) {
-    error.value = err.message || 'Error al iniciar sesión. Por favor, verifica tus credenciales.';
+    const errorMessage = err.message || err.response?.data?.message || 'Error al iniciar sesión';
+    
+    if (errorMessage === 'USER_NOT_FOUND' || errorMessage.includes('USER_NOT_FOUND')) {
+      error.value = 'El email ingresado no existe en nuestro sistema.';
+      showRegisterOption.value = true;
+    } else if (errorMessage === 'INVALID_PASSWORD' || errorMessage.includes('INVALID_PASSWORD')) {
+      error.value = 'La contraseña es incorrecta. Por favor, intenta nuevamente.';
+    } else {
+      error.value = 'Error al iniciar sesión. Por favor, verifica tus credenciales.';
+    }
   } finally {
     isLoading.value = false;
   }
@@ -59,7 +71,12 @@ onMounted(() => {
             <InputText id="password" v-model="password" type="password" class="w-full" required />
             <label for="password">Contraseña</label>
           </div>
-          <Message v-if="error" severity="error" :closable="false">{{ error }}</Message>
+          <Message v-if="error && !showRegisterOption" severity="error" :closable="false">{{ error }}</Message>
+          <Message v-if="showRegisterOption" severity="warn" :closable="false">
+            <span>{{ error }}</span>
+            <br />
+            <router-link to="/register" class="font-medium text-primary-500 hover:text-primary-400">¿No tienes una cuenta? Regístrate aquí</router-link>
+          </Message>
           <Button type="submit" label="Iniciar Sesión" class="w-full" :loading="isLoading" />
         </form>
       </template>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { startAuthentication, browserSupportsWebAuthn } from '@simplewebauthn/browser';
 import { login, type LoginResponse, wakeBackend, wakeBackendAndWait, webauthnLoginOptions, webauthnLoginVerify } from '../../services/api';
 import { copy } from '../../copy';
@@ -21,12 +21,20 @@ const Login: React.FC = () => {
     const [isWakingUp, setIsWakingUp] = useState(false);
     const [supportsWebAuthn, setSupportsWebAuthn] = useState(false);
     const [isWebAuthnLoading, setIsWebAuthnLoading] = useState(false);
+    const [searchParams, setSearchParams] = useSearchParams();
+    const [showSessionExpired, setShowSessionExpired] = useState(() => searchParams.get('expired') === '1');
     const navigate = useNavigate();
 
     useEffect(() => {
         const token = localStorage.getItem('token');
         if (token) navigate('/dashboard');
     }, [navigate]);
+
+    useEffect(() => {
+        if (showSessionExpired && searchParams.get('expired') === '1') {
+            setSearchParams({}, { replace: true });
+        }
+    }, [showSessionExpired, searchParams, setSearchParams]);
 
     useEffect(() => {
         setSupportsWebAuthn(typeof window !== 'undefined' && browserSupportsWebAuthn());
@@ -297,6 +305,19 @@ const Login: React.FC = () => {
                                 </div>
                             </div>
 
+                            {showSessionExpired && (
+                                <div style={{
+                                    backgroundColor: '#eff6ff',
+                                    color: '#1e40af',
+                                    padding: '12px 14px',
+                                    borderRadius: '12px',
+                                    marginBottom: '20px',
+                                    fontSize: '14px',
+                                    border: '1px solid #bfdbfe'
+                                }}>
+                                    Sesión expirada. Volvé a iniciar sesión.
+                                </div>
+                            )}
                             {error && (
                                 <div style={{
                                     backgroundColor: '#fef2f2',

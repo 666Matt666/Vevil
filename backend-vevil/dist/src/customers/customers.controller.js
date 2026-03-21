@@ -40,8 +40,16 @@ let CustomersController = class CustomersController {
         }).catch(() => { });
         return created;
     }
-    findAll() {
+    async findAll(pageStr, limitStr, search, department) {
+        const page = pageStr != null ? parseInt(pageStr, 10) : NaN;
+        const limit = limitStr != null ? parseInt(limitStr, 10) : NaN;
+        if (Number.isFinite(page) && Number.isFinite(limit)) {
+            return this.customersService.findPage(page, limit, { search, department });
+        }
         return this.customersService.findAll();
+    }
+    getDepartments() {
+        return this.customersService.getDepartments();
     }
     findOne(id) {
         return this.customersService.findOne(+id);
@@ -83,10 +91,20 @@ __decorate([
 ], CustomersController.prototype, "create", null);
 __decorate([
     (0, common_1.Get)(),
+    __param(0, (0, common_1.Query)('page')),
+    __param(1, (0, common_1.Query)('limit')),
+    __param(2, (0, common_1.Query)('search')),
+    __param(3, (0, common_1.Query)('department')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String, String, String]),
+    __metadata("design:returntype", Promise)
+], CustomersController.prototype, "findAll", null);
+__decorate([
+    (0, common_1.Get)('meta/departments'),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", void 0)
-], CustomersController.prototype, "findAll", null);
+], CustomersController.prototype, "getDepartments", null);
 __decorate([
     (0, common_1.Get)(':id'),
     __param(0, (0, common_1.Param)('id')),

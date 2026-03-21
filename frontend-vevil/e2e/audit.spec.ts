@@ -25,4 +25,10 @@ test.describe('Auditoría', () => {
     await expect(page).toHaveURL(/\/audit/);
     await expect(page.getByRole('heading', { name: /auditoría/i })).toBeVisible({ timeout: 5000 });
   });
+
+  test('hay botón Exportar CSV en la vista de auditoría', async ({ page }) => {
+    await page.goto('/audit');
+    await expect(page.getByRole('heading', { name: /auditoría/i })).toBeVisible({ timeout: 5000 });
+    await expect(page.getByRole('button', { name: /exportar csv/i })).toBeVisible();
+  });
 });

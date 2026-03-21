@@ -21,15 +21,22 @@ let AuditController = class AuditController {
     constructor(auditService) {
         this.auditService = auditService;
     }
-    async list(userId, entityType, entityId, limitStr) {
+    async list(userId, entityType, entityId, limitStr, offsetStr) {
         const limit = Math.min(Math.max(parseInt(limitStr || '50', 10) || 50, 1), 200);
+        const offset = Math.max(0, parseInt(offsetStr || '0', 10) || 0);
         if (userId) {
-            return this.auditService.findByUser(userId, limit);
+            const data = await this.auditService.findByUser(userId, limit);
+            const total = await this.auditService.getTotalCount({ userId });
+            return { data, total };
         }
         if (entityType && entityId) {
-            return this.auditService.findByEntity(entityType, entityId, limit);
+            const data = await this.auditService.findByEntity(entityType, entityId, limit);
+            const total = await this.auditService.getTotalCount({ entityType, entityId });
+            return { data, total };
         }
-        return this.auditService.findRecent(limit);
+        const data = await this.auditService.findRecent(limit, offset);
+        const total = await this.auditService.getTotalCount();
+        return { data, total };
     }
 };
 exports.AuditController = AuditController;
@@ -40,14 +47,16 @@ __decorate([
     (0, swagger_1.ApiQuery)({ name: 'entityType', required: false, description: 'Tipo de entidad (invoice, customer, product, etc.)' }),
     (0, swagger_1.ApiQuery)({ name: 'entityId', required: false, description: 'ID de la entidad' }),
     (0, swagger_1.ApiQuery)({ name: 'limit', required: false, description: 'Máximo de resultados (1-200, default 50)' }),
+    (0, swagger_1.ApiQuery)({ name: 'offset', required: false, description: 'Desplazamiento para paginación' }),
     (0, swagger_1.ApiResponse)({ status: 200, description: 'Lista de registros de auditoría' }),
     (0, swagger_1.ApiResponse)({ status: 401, description: 'No autorizado' }),
     __param(0, (0, common_1.Query)('userId')),
     __param(1, (0, common_1.Query)('entityType')),
     __param(2, (0, common_1.Query)('entityId')),
     __param(3, (0, common_1.Query)('limit')),
+    __param(4, (0, common_1.Query)('offset')),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, String, String, String]),
+    __metadata("design:paramtypes", [String, String, String, String, String]),
     __metadata("design:returntype", Promise)
 ], AuditController.prototype, "list", null);
 exports.AuditController = AuditController = __decorate([

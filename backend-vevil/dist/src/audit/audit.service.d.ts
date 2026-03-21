@@ -16,5 +16,10 @@ export declare class AuditService {
     log(payload: AuditPayload): Promise<AuditLog>;
     findByUser(userId: string, limit?: number): Promise<AuditLog[]>;
     findByEntity(entityType: string, entityId: string, limit?: number): Promise<AuditLog[]>;
-    findRecent(limit?: number): Promise<AuditLog[]>;
+    findRecent(limit?: number, offset?: number): Promise<AuditLog[]>;
+    getTotalCount(filters?: {
+        userId?: string;
+        entityType?: string;
+        entityId?: string;
+    }): Promise<number>;
 }

@@ -12,7 +12,7 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
     return function (target, key) { decorator(target, key, paramIndex); }
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.AuthController = void 0;
+exports.AuthController = exports.COOKIE_MAX_AGE = exports.REFRESH_TOKEN_COOKIE = exports.ACCESS_TOKEN_COOKIE = void 0;
 const common_1 = require("@nestjs/common");
 const passport_1 = require("@nestjs/passport");
 const auth_service_1 = require("./auth.service");
@@ -30,6 +30,9 @@ const throttler_1 = require("@nestjs/throttler");
 const pending_registrations_service_1 = require("../pending-registrations/pending-registrations.service");
 const users_service_1 = require("../users/users.service");
 const audit_service_1 = require("../audit/audit.service");
+exports.ACCESS_TOKEN_COOKIE = 'vevil_access_token';
+exports.REFRESH_TOKEN_COOKIE = 'vevil_refresh_token';
+exports.COOKIE_MAX_AGE = 7 * 24 * 60 * 60 * 1000;
 let AuthController = class AuthController {
     constructor(authService, pendingRegistrationsService, usersService, auditService) {
         this.authService = authService;
@@ -37,8 +40,30 @@ let AuthController = class AuthController {
         this.usersService = usersService;
         this.auditService = auditService;
     }
-    async login(user, _loginDto, req) {
+    setTokenCookies(res, accessToken, refreshToken) {
+        const isProduction = process.env.NODE_ENV === 'production';
+        res.cookie(exports.ACCESS_TOKEN_COOKIE, accessToken, {
+            httpOnly: true,
+            secure: isProduction,
+            sameSite: 'strict',
+            maxAge: 15 * 60 * 1000,
+            path: '/',
+        });
+        res.cookie(exports.REFRESH_TOKEN_COOKIE, refreshToken, {
+            httpOnly: true,
+            secure: isProduction,
+            sameSite: 'strict',
+            maxAge: exports.COOKIE_MAX_AGE,
+            path: '/',
+        });
+    }
+    clearTokenCookies(res) {
+        res.clearCookie(exports.ACCESS_TOKEN_COOKIE, { path: '/' });
+        res.clearCookie(exports.REFRESH_TOKEN_COOKIE, { path: '/' });
+    }
+    async login(user, _loginDto, req, res) {
         const result = await this.authService.login(user);
+        this.setTokenCookies(res, result.access_token, result.refresh_token);
         await this.auditService.log({
             userId: user?.id ?? null,
             userEmail: user?.email ?? null,
@@ -47,7 +72,9 @@ let AuthController = class AuthController {
             entityId: user?.id ?? '',
             ip: req?.ip ?? req?.headers?.['x-forwarded-for'] ?? null,
         }).catch(() => { });
-        return result;
+        return res.json({
+            user: result.user,
+        });
     }
     async requestRegistration(dto) {
         return this.pendingRegistrationsService.createRequest(dto);
@@ -66,12 +93,18 @@ let AuthController = class AuthController {
         const { password, hashedRefreshToken, resetPasswordToken, resetPasswordExpires, ...profile } = full;
         return { ...profile, role: full.role != null ? String(full.role) : undefined };
     }
-    async logout(user) {
+    async logout(user, res) {
         const userId = user.id ?? user.userId;
-        return this.authService.logout(userId);
+        await this.authService.logout(userId);
+        this.clearTokenCookies(res);
+        return res.json({ message: 'Sesión cerrada correctamente' });
     }
-    async refreshTokens(user) {
-        return this.authService.refreshTokens(user.id, user.refreshToken);
+    async refreshTokens(user, res) {
+        const result = await this.authService.refreshTokens(user.id, user.refreshToken);
+        this.setTokenCookies(res, result.access_token, result.refresh_token);
+        return res.json({
+            user: result.user,
+        });
     }
     async forgotPassword(dto) {
         return this.authService.forgotPassword(dto.email);
@@ -88,13 +121,15 @@ __decorate([
     (0, common_1.HttpCode)(common_1.HttpStatus.OK),
     (0, common_1.Post)('login'),
     (0, swagger_1.ApiOperation)({ summary: 'Iniciar sesión de usuario' }),
-    (0, swagger_1.ApiResponse)({ status: 200, description: 'Login exitoso, devuelve tokens.' }),
+    (0, swagger_1.ApiResponse)({ status: 200, description: 'Login exitoso, establece cookies HttpOnly.' }),
     (0, swagger_1.ApiResponse)({ status: 401, description: 'Credenciales inválidas.' }),
     __param(0, (0, get_user_decorator_1.GetUser)()),
     __param(1, (0, common_1.Body)()),
     __param(2, (0, common_1.Request)()),
+    __param(3, (0, common_1.Res)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [user_entity_1.User, login_dto_1.LoginDto, Object]),
+    __metadata("design:paramtypes", [user_entity_1.User,
+        login_dto_1.LoginDto, Object, Object]),
     __metadata("design:returntype", Promise)
 ], AuthController.prototype, "login", null);
 __decorate([
@@ -151,8 +186,9 @@ __decorate([
     (0, common_1.HttpCode)(common_1.HttpStatus.OK),
     (0, swagger_1.ApiOperation)({ summary: 'Cerrar sesión del usuario' }),
     __param(0, (0, get_user_decorator_1.GetUser)()),
+    __param(1, (0, common_1.Res)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object]),
+    __metadata("design:paramtypes", [Object, Object]),
     __metadata("design:returntype", Promise)
 ], AuthController.prototype, "logout", null);
 __decorate([
@@ -161,8 +197,9 @@ __decorate([
     (0, common_1.HttpCode)(common_1.HttpStatus.OK),
     (0, swagger_1.ApiOperation)({ summary: 'Refrescar tokens de autenticación' }),
     __param(0, (0, get_user_decorator_1.GetUser)()),
+    __param(1, (0, common_1.Res)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object]),
+    __metadata("design:paramtypes", [Object, Object]),
     __metadata("design:returntype", Promise)
 ], AuthController.prototype, "refreshTokens", null);
 __decorate([

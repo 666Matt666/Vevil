@@ -54,6 +54,10 @@ __decorate([
     __metadata("design:type", Array)
 ], Invoice.prototype, "payments", void 0);
 exports.Invoice = Invoice = __decorate([
-    (0, typeorm_1.Entity)()
+    (0, typeorm_1.Entity)(),
+    (0, typeorm_1.Index)(['customerId']),
+    (0, typeorm_1.Index)(['date']),
+    (0, typeorm_1.Index)(['status']),
+    (0, typeorm_1.Index)(['customerId', 'status'])
 ], Invoice);
 //# sourceMappingURL=invoice.entity.js.map

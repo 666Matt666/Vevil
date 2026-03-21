@@ -16,6 +16,7 @@ const menuItems = [
     { label: 'Productos', icon: 'pi pi-box', route: 'products', color: 'bg-blue-500', description: 'Gestionar stock de combustible y productos' },
     { label: 'Clientes', icon: 'pi pi-users', route: 'customers', color: 'bg-green-500', description: 'Gestionar base de datos de clientes' },
     { label: 'Facturas', icon: 'pi pi-file', route: 'invoices', color: 'bg-orange-500', description: 'Crear y ver facturas' },
+    { label: 'Perfil', icon: 'pi pi-user', route: 'profile', color: 'bg-purple-500', description: 'Cambiar contraseña y ver información de tu cuenta' },
 ];
 </script>
 

@@ -2,6 +2,7 @@ import {
   BadRequestException,
   ConflictException,
   Injectable,
+  NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { UsersService } from '@/users/users.service';
@@ -173,5 +174,27 @@ export class AuthService {
     await this.usersService.update(user.id, { password: hashedPassword });
     await this.usersService.clearResetPasswordToken(user.id);
     return { message: 'Contraseña actualizada correctamente.' };
+  }
+
+  /**
+   * Cambia la contraseña del usuario verificada con la contraseña actual.
+   */
+  async changePassword(userId: string, currentPassword: string, newPassword: string): Promise<{ message: string }> {
+    const user = await this.usersService.findOne(userId);
+    if (!user) {
+      throw new NotFoundException('Usuario no encontrado');
+    }
+
+    // Verificar que la contraseña actual sea correcta
+    const isPasswordValid = await bcrypt.compare(currentPassword, user.password);
+    if (!isPasswordValid) {
+      throw new UnauthorizedException('La contraseña actual es incorrecta');
+    }
+
+    // Hash de la nueva contraseña
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    await this.usersService.update(userId, { password: hashedPassword });
+
+    return { message: 'Contraseña actualizada correctamente' };
   }
 }

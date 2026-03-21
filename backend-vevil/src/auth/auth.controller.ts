@@ -22,6 +22,7 @@ import { CreateUserDto } from '@/users/dto/create-user.dto';
 import { LoginDto } from './dto/login.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
+import { ChangePasswordDto } from './dto/change-password.dto';
 import { RequestRegistrationDto } from './dto/request-registration.dto';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
@@ -198,5 +199,18 @@ export class AuthController {
   @ApiOperation({ summary: 'Restablecer contraseña con token' })
   async resetPassword(@Body() dto: ResetPasswordDto) {
     return this.authService.resetPassword(dto.token, dto.newPassword);
+  }
+
+  @UseGuards(AuthGuard('jwt'))
+  @Post('change-password')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Cambiar contraseña del usuario logueado' })
+  @ApiResponse({ status: 200, description: 'Contraseña actualizada correctamente' })
+  @ApiResponse({ status: 401, description: 'La contraseña actual es incorrecta' })
+  async changePassword(
+    @GetUser() user: User,
+    @Body() dto: ChangePasswordDto,
+  ) {
+    return this.authService.changePassword(user.id, dto.currentPassword, dto.newPassword);
   }
 }

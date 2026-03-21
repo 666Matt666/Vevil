@@ -48,11 +48,22 @@ let AuditService = class AuditService {
             take: limit,
         });
     }
-    async findRecent(limit = 50) {
+    async findRecent(limit = 50, offset = 0) {
         return this.repo.find({
             order: { createdAt: 'DESC' },
             take: limit,
+            skip: offset,
         });
+    }
+    async getTotalCount(filters) {
+        const qb = this.repo.createQueryBuilder('a');
+        if (filters?.userId)
+            qb.andWhere('a.userId = :userId', { userId: filters.userId });
+        if (filters?.entityType)
+            qb.andWhere('a.entityType = :entityType', { entityType: filters.entityType });
+        if (filters?.entityId)
+            qb.andWhere('a.entityId = :entityId', { entityId: filters.entityId });
+        return qb.getCount();
     }
 };
 exports.AuditService = AuditService;

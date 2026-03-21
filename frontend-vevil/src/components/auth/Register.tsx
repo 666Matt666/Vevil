@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { requestRegistration } from '../../services/api';
+import { requestRegistration, getProfile } from '../../services/api';
 import { copy } from '../../copy';
 
 const Register: React.FC = () => {
@@ -14,8 +14,13 @@ const Register: React.FC = () => {
     const navigate = useNavigate();
 
     useEffect(() => {
-        const token = localStorage.getItem('token');
-        if (token) navigate('/dashboard');
+        // Verificar si hay sesión activa usando el perfil guardado
+        const profile = localStorage.getItem('vevil_profile');
+        if (profile) {
+            getProfile()
+                .then(() => navigate('/dashboard'))
+                .catch(() => { /* stay on register */ });
+        }
     }, [navigate]);
 
     const handleSubmit = async (e: React.FormEvent) => {

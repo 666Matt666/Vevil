@@ -6,19 +6,10 @@ const apiClient = axios.create({
     headers: {
         'Content-Type': 'application/json',
     },
+    withCredentials: true, // Importante: incluir cookies HttpOnly
 });
 
-apiClient.interceptors.request.use(
-    (config) => {
-        const token = localStorage.getItem('token');
-        if (token) {
-            config.headers.Authorization = `Bearer ${token}`;
-        }
-        return config;
-    },
-    (error) => {
-        return Promise.reject(error);
-    }
-);
+// Ya no necesitamos interceptor de token - ahora usamos HttpOnly cookies
+// El navegador maneja automáticamente las cookies con cada request
 
 export default apiClient;

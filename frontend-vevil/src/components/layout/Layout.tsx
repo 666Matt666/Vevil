@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Outlet, Link, useLocation, useNavigate, Navigate } from 'react-router-dom';
-import { getProfile, pendingRegistrationsApi, type UserProfile } from '../../services/api';
+import { getProfile, pendingRegistrationsApi, clearTokens, type UserProfile } from '../../services/api';
 import { recordDashboardUsage } from '../../utils/dashboardUsage';
 import CurrencyRatesBar from './CurrencyRatesBar';
 import HelpPanel from '../help/HelpPanel';
@@ -35,8 +35,8 @@ const Layout: React.FC = () => {
     });
     const [pendingCount, setPendingCount] = useState(0);
 
-    const token = localStorage.getItem('token');
-    if (!token) return <Navigate to="/login" replace />;
+    // Ya no verificamos el token en localStorage - ahora usamos HttpOnly cookies
+    // El navegador maneja automáticamente las cookies, así que confiamos en getProfile()
 
     const isAdmin =
         String(profile?.role ?? '').toLowerCase() === 'admin' ||
@@ -90,8 +90,8 @@ const Layout: React.FC = () => {
                 if (trustedAdmin) {
                     setProfile(current);
                 } else {
-                    localStorage.removeItem('token');
-                    localStorage.removeItem('refresh_token');
+                    // Usar clearTokens para limpiar las cookies HttpOnly
+                    clearTokens();
                     localStorage.removeItem('vevil_profile');
                     navigate('/login', { replace: true });
                 }
@@ -126,9 +126,9 @@ const Layout: React.FC = () => {
         setIsHelpOpen(false);
     }, [location.pathname]);
 
-    const handleLogout = () => {
-        localStorage.removeItem('token');
-        localStorage.removeItem('refresh_token');
+    const handleLogout = async () => {
+        // Usar la función clearTokens que llama al backend y limpia las cookies HttpOnly
+        await clearTokens();
         localStorage.removeItem('vevil_profile');
         navigate('/login');
     };

@@ -43,6 +43,9 @@ export class User {
   })
   role: UserRole;
 
+  @Column({ default: true })
+  isActive: boolean;
+
   @Column({ nullable: true })
   @Exclude()
   hashedRefreshToken?: string;

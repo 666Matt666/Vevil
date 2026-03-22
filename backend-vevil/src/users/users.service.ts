@@ -1,4 +1,4 @@
-import { ConflictException, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ILike, Repository } from 'typeorm';
 import { User } from './user.entity';
@@ -206,5 +206,16 @@ export class UsersService {
       resetPasswordToken: null as any,
       resetPasswordExpires: null as any,
     });
+  }
+
+  async toggleActive(id: string, requestingUserId?: string): Promise<User> {
+    // Prevenir auto-desactivación: un usuario no puede desactivarse a sí mismo
+    if (requestingUserId && id === requestingUserId) {
+      throw new BadRequestException('No puedes desactivar tu propia cuenta');
+    }
+    
+    const user = await this.findOne(id);
+    user.isActive = !user.isActive;
+    return this.userRepository.save(user);
   }
 }

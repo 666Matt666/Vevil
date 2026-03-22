@@ -51,33 +51,29 @@ export class AuthController {
   private setTokenCookies(res: Response, accessToken: string, refreshToken: string): void {
     const isProduction = process.env.NODE_ENV === 'production';
     
-    // En desarrollo local, NO usar sameSite para permitir cookies en todos los contextos
-    // En producción, usar 'strict' para mayor seguridad
+    // Configuración de cookies con seguridad apropiada para cada entorno
+    // 'lax' permite cookies en navegaciones de primer nivel (ideal para desarrollo)
+    // 'strict' es más seguro pero puede bloquear redirectos
+    const sameSiteValue = isProduction ? 'strict' : 'lax';
+    
     const cookieOptions: any = {
       httpOnly: true,
       secure: isProduction,
       maxAge: 15 * 60 * 1000, // 15 minutos (igual que access_token)
       path: '/',
+      sameSite: sameSiteValue,
     };
-    
-    if (isProduction) {
-      cookieOptions.sameSite = 'strict';
-    }
-    // En desarrollo, no usamos sameSite para que funcione correctamente
     
     res.cookie(ACCESS_TOKEN_COOKIE, accessToken, cookieOptions);
 
-    // Para el refresh token
+    // Para el refresh token - configuración similar
     const refreshCookieOptions: any = {
       httpOnly: true,
       secure: isProduction,
       maxAge: COOKIE_MAX_AGE,
       path: '/',
+      sameSite: sameSiteValue,
     };
-    
-    if (isProduction) {
-      refreshCookieOptions.sameSite = 'strict';
-    }
     
     res.cookie(REFRESH_TOKEN_COOKIE, refreshToken, refreshCookieOptions);
   }
@@ -104,30 +100,18 @@ export class AuthController {
     @Request() req: any,
     @Res() res: Response,
   ) {
-    console.log('[AUTH] Login request for user:', user?.email);
     const result = await this.authService.login(user);
     
-    // Enviar tokens en el body (sistema original que funciona)
     // Limpiar cookies si existen de intentos anteriores
     this.clearTokenCookies(res);
     
+    // Configurar cookies con los tokens
+    this.setTokenCookies(res, result.access_token, result.refresh_token);
+    
+    // Enviar tokens en el body (sistema original que funciona)
     return res.json({
       access_token: result.access_token,
       refresh_token: result.refresh_token,
-      user: result.user,
-    });
-    
-    await this.auditService.log({
-      userId: user?.id ?? null,
-      userEmail: user?.email ?? null,
-      action: 'auth.login',
-      entityType: 'auth',
-      entityId: user?.id ?? '',
-      ip: req?.ip ?? req?.headers?.['x-forwarded-for'] ?? null,
-    }).catch(() => {});
-
-    // Enviar solo datos del usuario (sin tokens en el body para seguridad)
-    return res.json({
       user: result.user,
     });
   }
@@ -185,10 +169,8 @@ export class AuthController {
     @Res() res: Response,
   ) {
     const userId = user.id ?? (user as any).userId;
-    console.log('[AUTH] Logout for user:', userId);
     await this.authService.logout(userId);
     this.clearTokenCookies(res);
-    console.log('[AUTH] Logout complete for user:', userId);
     return res.json({ message: 'Sesión cerrada correctamente' });
   }
 
@@ -200,10 +182,7 @@ export class AuthController {
     @GetUser() user: User & { refreshToken: string },
     @Res() res: Response,
   ) {
-    console.log('[AUTH] Refresh tokens for user:', user.id, 'refreshToken present:', !!user.refreshToken);
     const result = await this.authService.refreshTokens(user.id, user.refreshToken);
-    // Enviar tokens en el body
-    console.log('[AUTH] Tokens refreshed successfully for user:', user.id);
     return res.json({
       access_token: result.access_token,
       refresh_token: result.refresh_token,

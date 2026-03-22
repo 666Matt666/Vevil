@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export interface SuccessMessageProps {
     message: string;
@@ -20,8 +21,12 @@ export const SuccessMessage: React.FC<SuccessMessageProps> = ({
     }, [autoDismissMs, onDismiss]);
 
     return (
-        <div
+        <motion.div
             role="status"
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.3 }}
             style={{
                 backgroundColor: '#dcfce7',
                 border: '1px solid #86efac',
@@ -52,6 +57,6 @@ export const SuccessMessage: React.FC<SuccessMessageProps> = ({
                     Cerrar
                 </button>
             )}
-        </div>
+        </motion.div>
     );
 };

@@ -34,6 +34,10 @@ export class AuthService {
   async validateUser(email: string, pass: string): Promise<any> {
     const user = await this.usersService.findOneByEmail(email);
     if (user && user.password) {
+      // Verificar que el usuario esté activo antes de permitir el login
+      if (!user.isActive) {
+        throw new UnauthorizedException('Tu cuenta está desactivada. Contacta al administrador.');
+      }
       const passwordMatches = await bcrypt.compare(pass, user.password);
       if (passwordMatches) {
         const { password, ...result } = user;
@@ -74,6 +78,7 @@ export class AuthService {
         email: user.email,
         name: user.name,
         role: user.role != null ? String(user.role) : undefined,
+        isActive: user.isActive,
       },
     };
   }
@@ -106,9 +111,10 @@ export class AuthService {
       id: user.id,
       email: user.email,
       role: user.role,
-      name: user.name, // Añadido
-      createdAt: user.createdAt, // Añadido
-      updatedAt: user.updatedAt, // Añadido
+      name: user.name,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
+      isActive: user.isActive ?? true,
     }
     return this.login(userPayloadForLogin);
   }

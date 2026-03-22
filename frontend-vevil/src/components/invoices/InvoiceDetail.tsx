@@ -159,16 +159,42 @@ const InvoiceDetail: React.FC = () => {
                                 </p>
                             </div>
                             <div>
-                                <span style={{
-                                    padding: '6px 16px',
-                                    backgroundColor: '#dcfce7',
-                                    color: '#166534',
-                                    borderRadius: '9999px',
-                                    fontSize: '14px',
-                                    fontWeight: 600
-                                }}>
-                                    Pagada
-                                </span>
+                                {invoice.status === 'paid' && (
+                                    <span style={{
+                                        padding: '6px 16px',
+                                        backgroundColor: '#dcfce7',
+                                        color: '#166534',
+                                        borderRadius: '9999px',
+                                        fontSize: '14px',
+                                        fontWeight: 600
+                                    }}>
+                                        Pagada
+                                    </span>
+                                )}
+                                {invoice.status === 'pending' && (
+                                    <span style={{
+                                        padding: '6px 16px',
+                                        backgroundColor: '#fef3c7',
+                                        color: '#92400e',
+                                        borderRadius: '9999px',
+                                        fontSize: '14px',
+                                        fontWeight: 600
+                                    }}>
+                                        Pendiente
+                                    </span>
+                                )}
+                                {invoice.status === 'cancelled' && (
+                                    <span style={{
+                                        padding: '6px 16px',
+                                        backgroundColor: '#fee2e2',
+                                        color: '#991b1b',
+                                        borderRadius: '9999px',
+                                        fontSize: '14px',
+                                        fontWeight: 600
+                                    }}>
+                                        Anulada
+                                    </span>
+                                )}
                             </div>
                         </div>
                     </div>

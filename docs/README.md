@@ -20,8 +20,15 @@ Siempre desarrollamos **en local** (Postgres local, backend y frontend en localh
 
 - **Sesión expirada:** Si el token de sesión vence, la app redirige al login y muestra el mensaje *“Sesión expirada. Volvé a iniciar sesión.”* Basta con volver a iniciar sesión.
 - **Listas paginadas:** En Productos, Clientes, Facturas y Auditoría las listas están paginadas. Podés cambiar de página con los botones *Anterior* / *Siguiente* y los números de página. Los filtros (búsqueda, tipo, categoría, departamento, estado, fechas) se aplican en el servidor y la paginación refleja los resultados filtrados.
-- **Confirmación antes de borrar:** Al eliminar un producto o un cliente, y al anular una factura, se muestra un modal de confirmación. Hay que aceptar para que se ejecute la acción (no se puede deshacer).
+- **Confirmación antes de borrar:** Al eliminar un producto, un cliente o una factura, se muestra un modal de confirmación. Hay que aceptar para que se ejecute la acción (no se puede deshacer).
 - **Exportar auditoría:** En la vista **Auditoría** hay un botón *Exportar CSV* en la parte superior. Descarga un archivo CSV con los registros actuales (según filtros y página). Útil para respaldos o análisis en Excel.
+- **Editar y eliminar facturas:** Los administradores pueden editar y eliminar facturas que estén en estado "Pendiente" o "Anulada". Las facturas "Pagadas" no pueden modificarse. Al hacer clic en ✏️ (editar) se abre un modal donde se puede cambiar:
+  - Cliente
+  - Moneda
+  - Estado
+  - Productos (agregar, eliminar o modificar cantidades)
+  Al hacer clic en 🗑️ (eliminar) se pide confirmación antes de borrar la factura.
+- **Editar y eliminar clientes y productos:** Los administradores pueden editar y eliminar clientes y productos desde sus respective listas. Al hacer clic en ✏️ (editar) se abre un modal con los datos del registro para modificar. Al hacer clic en 🗑️ (eliminar) se pide confirmación antes de borrar.
 
 ---
 

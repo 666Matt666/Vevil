@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { invoicesApi, Invoice, customersApi, Customer, productsApi, Product, getErrorMessage } from '../../services/api';
 import { getEnabledCurrencies, formatMoney, getInvoiceConfig, getCompanyConfig, formatInvoiceNumber } from '../settings/Settings';
@@ -8,6 +9,8 @@ import { SuccessMessage } from '../ui/SuccessMessage';
 import { Pagination } from '../ui/Pagination';
 import { ConfirmModal } from '../ui/ConfirmModal';
 import { exportInvoicesToCsv } from '../../utils/exportCsv';
+import { fadeInUp } from '../../hooks/useAnimations';
+import { useToast } from '../../hooks/useToast';
 
 const PAGE_SIZE = 20;
 
@@ -60,6 +63,7 @@ const statusColors: Record<PaymentStatus, { bg: string; text: string }> = {
 
 const InvoiceList: React.FC = () => {
     const navigate = useNavigate();
+    const { showToast } = useToast();
     const [invoices, setInvoices] = useState<Invoice[]>([]);
     const [totalInvoices, setTotalInvoices] = useState(0);
     const [invoicePage, setInvoicePage] = useState(1);
@@ -73,11 +77,33 @@ const InvoiceList: React.FC = () => {
     const [invoiceToCancel, setInvoiceToCancel] = useState<Invoice | null>(null);
     const [cancelling, setCancelling] = useState(false);
     
+    // Verificar si es admin
+    const [isAdmin, setIsAdmin] = useState(false);
+    
+    // Modal de edición
+    const [showEditModal, setShowEditModal] = useState(false);
+    const [editingInvoice, setEditingInvoice] = useState<Invoice | null>(null);
+    const [editCustomerId, setEditCustomerId] = useState<string>('');
+    const [editCurrency, setEditCurrency] = useState<string>('PYG');
+    const [editStatus, setEditStatus] = useState<string>('pending');
+    const [editItems, setEditItems] = useState<{ productId: number; quantity: number }[]>([]);
+    
+    // Modal de eliminación
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [deletingInvoice, setDeletingInvoice] = useState<Invoice | null>(null);
+    const [deleting, setDeleting] = useState(false);
+    
     // Form state
     const [selectedCustomerId, setSelectedCustomerId] = useState<string>('');
     const [selectedCurrency, setSelectedCurrency] = useState<string>('PYG');
     const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>('cash');
     const [items, setItems] = useState<InvoiceItem[]>([{ productId: 0, quantity: 1 }]);
+    
+    // Validation errors state
+    const [formErrors, setFormErrors] = useState<{
+        customer?: string;
+        items?: string;
+    }>({});
 
     // Filtros
     const [searchText, setSearchText] = useState('');
@@ -125,6 +151,84 @@ const InvoiceList: React.FC = () => {
         }
     };
 
+    // Funciones para editar factura
+    const handleEditInvoice = (invoice: Invoice) => {
+        setEditingInvoice(invoice);
+        setEditCustomerId(String(invoice.customerId ?? ''));
+        setEditCurrency(invoice.currency ?? 'PYG');
+        setEditStatus(invoice.status ?? 'pending');
+        // Cargar los items de la factura
+        setEditItems(invoice.items?.map(item => ({
+            productId: item.productId ?? item.product?.id ?? 0,
+            quantity: item.quantity ?? 1,
+        })) || []);
+        setShowEditModal(true);
+    };
+
+    const handleConfirmEdit = async () => {
+        if (!editingInvoice) return;
+        try {
+            setSaving(true);
+            const customerIdValue = editCustomerId ? parseInt(editCustomerId, 10) : undefined;
+            await invoicesApi.update(editingInvoice.id, {
+                customerId: !isNaN(customerIdValue!) ? customerIdValue : undefined,
+                currency: editCurrency,
+                status: editStatus as 'pending' | 'paid' | 'cancelled',
+                items: editItems.filter(item => item.productId > 0).map(item => ({
+                    productId: item.productId,
+                    quantity: item.quantity,
+                })),
+            });
+            showToast('Factura actualizada correctamente', 'success');
+            setShowEditModal(false);
+            loadData(invoicePage);
+        } catch (err) {
+            alert(getErrorMessage(err, 'Error al actualizar factura'));
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    // Agregar item en modo edición
+    const addEditItem = () => {
+        setEditItems([...editItems, { productId: 0, quantity: 1 }]);
+    };
+
+    // Eliminar item en modo edición
+    const removeEditItem = (index: number) => {
+        if (editItems.length > 1) {
+            setEditItems(editItems.filter((_, i) => i !== index));
+        }
+    };
+
+    // Actualizar item en modo edición
+    const updateEditItem = (index: number, field: 'productId' | 'quantity', value: number) => {
+        const newItems = [...editItems];
+        newItems[index] = { ...newItems[index], [field]: value };
+        setEditItems(newItems);
+    };
+
+    // Funciones para eliminar factura
+    const handleDeleteInvoice = (invoice: Invoice) => {
+        setDeletingInvoice(invoice);
+        setShowDeleteModal(true);
+    };
+
+    const handleConfirmDelete = async () => {
+        if (!deletingInvoice) return;
+        try {
+            setDeleting(true);
+            await invoicesApi.remove(deletingInvoice.id);
+            showToast('Factura eliminada correctamente', 'success');
+            setShowDeleteModal(false);
+            loadData(invoicePage);
+        } catch (err) {
+            alert(getErrorMessage(err, 'Error al eliminar factura'));
+        } finally {
+            setDeleting(false);
+        }
+    };
+
     const loadData = async (page: number = invoicePage) => {
         try {
             setLoading(true);
@@ -153,6 +257,14 @@ const InvoiceList: React.FC = () => {
 
     useEffect(() => {
         loadData(invoicePage);
+        // Verificar si es admin
+        try {
+            const profileStr = localStorage.getItem('vevil_profile');
+            if (profileStr) {
+                const profile = JSON.parse(profileStr);
+                setIsAdmin(String(profile?.role ?? '').toLowerCase() === 'admin');
+            }
+        } catch (_) {}
     }, [invoicePage, searchText, filterCustomerId, filterStatus, filterDateFrom, filterDateTo]);
 
     const formatDate = (dateString: string) => {
@@ -208,14 +320,26 @@ const InvoiceList: React.FC = () => {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         
+        // Clear previous validation errors
+        setFormErrors({});
+        
+        // Validate customer
         if (!selectedCustomerId) {
-            alert('Selecciona un cliente');
+            setFormErrors({ customer: 'Selecciona un cliente' });
             return;
         }
 
+        // Validate items
         const validItems = items.filter(item => item.productId > 0 && item.quantity > 0);
         if (validItems.length === 0) {
-            alert('Agrega al menos un producto');
+            setFormErrors({ items: 'Agrega al menos un producto con cantidad válida' });
+            return;
+        }
+
+        // Check for duplicate products
+        const productIds = validItems.map(item => item.productId);
+        if (new Set(productIds).size !== productIds.length) {
+            setFormErrors({ items: 'No puedes agregar el mismo producto varias veces' });
             return;
         }
 
@@ -230,10 +354,10 @@ const InvoiceList: React.FC = () => {
                 items: validItems
             });
             closeModal();
-            setSuccessMessage('Factura creada');
+            showToast('Factura creada exitosamente', 'success');
             loadData(invoicePage);
         } catch (err) {
-            setError(getErrorMessage(err, 'Error al crear factura'));
+            showToast(getErrorMessage(err, 'Error al crear factura'), 'error');
         } finally {
             setSaving(false);
         }
@@ -297,7 +421,7 @@ const InvoiceList: React.FC = () => {
                 <div class="client-info">
                     <strong>Cliente:</strong> ${invoice.customer?.name || 'N/A'}<br>
                     <strong>RUC/CI:</strong> ${invoice.customer?.tax_id || 'N/A'}<br>
-                    <strong>Dirección:</strong> ${invoice.customer?.address || 'N/A'}<br>
+                    <strong>Dirección:</strong> ${invoice.customer?.address_street || 'N/A'}<br>
                     <strong>Fecha:</strong> ${formatDate(invoice.date)}
                 </div>
 
@@ -376,7 +500,13 @@ const InvoiceList: React.FC = () => {
     }
 
     return (
-        <div className="responsive-padding" style={{ padding: '32px' }}>
+        <motion.div 
+            className="responsive-padding" 
+            style={{ padding: '32px' }}
+            initial="hidden"
+            animate="visible"
+            variants={fadeInUp}
+        >
             {/* Header */}
             <div style={{ 
                 display: 'flex', 
@@ -402,7 +532,7 @@ const InvoiceList: React.FC = () => {
                 <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
                     <button
                         type="button"
-                        onClick={() => exportInvoicesToCsv(filteredInvoices, formatInvoiceNumber)}
+                        onClick={() => exportInvoicesToCsv(invoices, formatInvoiceNumber)}
                         style={{
                             ...buttonStyle,
                             padding: '10px 18px',
@@ -679,6 +809,34 @@ const InvoiceList: React.FC = () => {
                                                 >
                                                     🖨️
                                                 </button>
+                                                {isAdmin && (invoice.status === 'pending' || invoice.status === 'cancelled') && (
+                                                    <>
+                                                        <button
+                                                            onClick={() => handleEditInvoice(invoice)}
+                                                            style={{
+                                                                ...buttonStyle,
+                                                                backgroundColor: '#fef3c7',
+                                                                color: '#92400e',
+                                                                padding: '8px 12px'
+                                                            }}
+                                                            title="Editar"
+                                                        >
+                                                            ✏️
+                                                        </button>
+                                                        <button
+                                                            onClick={() => handleDeleteInvoice(invoice)}
+                                                            style={{
+                                                                ...buttonStyle,
+                                                                backgroundColor: '#fee2e2',
+                                                                color: '#991b1b',
+                                                                padding: '8px 12px'
+                                                            }}
+                                                            title="Eliminar"
+                                                        >
+                                                            🗑️
+                                                        </button>
+                                                    </>
+                                                )}
                                             </div>
                                         </td>
                                     </tr>
@@ -744,9 +902,15 @@ const InvoiceList: React.FC = () => {
                                     <label style={labelStyle}>Cliente *</label>
                                     <select
                                         value={selectedCustomerId}
-                                        onChange={(e) => setSelectedCustomerId(e.target.value)}
+                                        onChange={(e) => {
+                                            setSelectedCustomerId(e.target.value);
+                                            if (formErrors.customer) setFormErrors(prev => ({ ...prev, customer: undefined }));
+                                        }}
                                         required
-                                        style={inputStyle}
+                                        style={{
+                                            ...inputStyle,
+                                            borderColor: formErrors.customer ? '#ef4444' : '#d1d5db'
+                                        }}
                                     >
                                         <option value="">Seleccionar cliente...</option>
                                         {customers.map(customer => (
@@ -755,6 +919,11 @@ const InvoiceList: React.FC = () => {
                                             </option>
                                         ))}
                                     </select>
+                                    {formErrors.customer && (
+                                        <span style={{ color: '#ef4444', fontSize: '12px', marginTop: '4px', display: 'block' }}>
+                                            {formErrors.customer}
+                                        </span>
+                                    )}
                                 </div>
                                 <div>
                                     <label style={labelStyle}>Moneda *</label>
@@ -788,7 +957,7 @@ const InvoiceList: React.FC = () => {
 
                             {/* Items */}
                             <div style={{ marginBottom: '24px' }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: formErrors.items ? '4px' : '12px' }}>
                                     <label style={{ ...labelStyle, marginBottom: 0 }}>Productos *</label>
                                     <button
                                         type="button"
@@ -803,6 +972,11 @@ const InvoiceList: React.FC = () => {
                                         + Agregar producto
                                     </button>
                                 </div>
+                                {formErrors.items && (
+                                    <span style={{ color: '#ef4444', fontSize: '12px', marginBottom: '12px', display: 'block' }}>
+                                        {formErrors.items}
+                                    </span>
+                                )}
 
                                 {items.map((item, index) => (
                                     <div key={index} style={{ 
@@ -908,7 +1082,215 @@ const InvoiceList: React.FC = () => {
                     </div>
                 </div>
             )}
-        </div>
+
+            {/* Modal para editar factura */}
+            {showEditModal && editingInvoice && (
+                <div style={{
+                    position: 'fixed',
+                    top: 0, left: 0, right: 0, bottom: 0,
+                    backgroundColor: 'rgba(0,0,0,0.5)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    zIndex: 1000
+                }}>
+                    <div style={{
+                        backgroundColor: 'white',
+                        borderRadius: '12px',
+                        padding: '24px',
+                        width: '400px',
+                        maxHeight: '80vh',
+                        overflowY: 'auto'
+                    }}>
+                        <h3 style={{ marginTop: 0, marginBottom: '20px', color: '#1f2937' }}>
+                            Editar Factura #{formatInvoiceNumber(editingInvoice.id)}
+                        </h3>
+                        
+                        <div style={{ marginBottom: '16px' }}>
+                            <label style={labelStyle}>Cliente</label>
+                            <select
+                                value={editCustomerId}
+                                onChange={(e) => setEditCustomerId(e.target.value)}
+                                style={inputStyle}
+                            >
+                                <option value="">Seleccionar cliente...</option>
+                                {customers.map(customer => (
+                                    <option key={customer.id} value={customer.id}>
+                                        {customer.name}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+
+                        <div style={{ marginBottom: '16px' }}>
+                            <label style={labelStyle}>Moneda</label>
+                            <select
+                                value={editCurrency}
+                                onChange={(e) => setEditCurrency(e.target.value)}
+                                style={inputStyle}
+                            >
+                                {getEnabledCurrencies().map(currency => (
+                                    <option key={currency.code} value={currency.code}>
+                                        {currency.code} - {currency.name}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+
+                        <div style={{ marginBottom: '24px' }}>
+                            <label style={labelStyle}>Estado</label>
+                            <select
+                                value={editStatus}
+                                onChange={(e) => setEditStatus(e.target.value)}
+                                style={inputStyle}
+                            >
+                                <option value="pending">Pendiente</option>
+                                <option value="paid">Pagada</option>
+                                <option value="cancelled">Anulada</option>
+                            </select>
+                        </div>
+
+                        {/* Items de la factura */}
+                        <div style={{ marginBottom: '24px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                                <label style={{ ...labelStyle, marginBottom: 0 }}>Productos</label>
+                                <button
+                                    type="button"
+                                    onClick={addEditItem}
+                                    style={{
+                                        ...buttonStyle,
+                                        backgroundColor: '#f1f5f9',
+                                        color: '#475569',
+                                        fontSize: '12px'
+                                    }}
+                                >
+                                    + Agregar producto
+                                </button>
+                            </div>
+
+                            {editItems.map((item, index) => (
+                                <div key={index} style={{ 
+                                    display: 'grid', 
+                                    gridTemplateColumns: '2fr 1fr auto', 
+                                    gap: '12px', 
+                                    marginBottom: '12px',
+                                    padding: '12px',
+                                    backgroundColor: '#f8fafc',
+                                    borderRadius: '8px'
+                                }}>
+                                    <select
+                                        value={item.productId}
+                                        onChange={(e) => updateEditItem(index, 'productId', parseInt(e.target.value))}
+                                        style={inputStyle}
+                                    >
+                                        <option value={0}>Seleccionar producto...</option>
+                                        {products.map(product => (
+                                            <option key={product.id} value={product.id}>
+                                                {product.name} - {formatMoney(Number(product.price), product.currency ?? 'PYG')}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    <input
+                                        type="number"
+                                        min="1"
+                                        value={item.quantity}
+                                        onChange={(e) => updateEditItem(index, 'quantity', parseInt(e.target.value) || 1)}
+                                        style={inputStyle}
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => removeEditItem(index)}
+                                        style={{
+                                            ...buttonStyle,
+                                            backgroundColor: '#fee2e2',
+                                            color: '#991b1b',
+                                            padding: '8px 12px'
+                                        }}
+                                        disabled={editItems.length === 1}
+                                    >
+                                        ✕
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+
+                        <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+                            <button
+                                onClick={() => setShowEditModal(false)}
+                                style={{
+                                    ...buttonStyle,
+                                    backgroundColor: '#f1f5f9',
+                                    color: '#475569'
+                                }}
+                            >
+                                Cancelar
+                            </button>
+                            <button
+                                onClick={handleConfirmEdit}
+                                disabled={saving}
+                                style={{
+                                    ...buttonStyle,
+                                    backgroundColor: saving ? '#9ca3af' : '#f97316',
+                                    color: 'white'
+                                }}
+                            >
+                                {saving ? 'Guardando...' : 'Guardar'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Modal para eliminar factura */}
+            {showDeleteModal && deletingInvoice && (
+                <div style={{
+                    position: 'fixed',
+                    top: 0, left: 0, right: 0, bottom: 0,
+                    backgroundColor: 'rgba(0,0,0,0.5)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    zIndex: 1000
+                }}>
+                    <div style={{
+                        backgroundColor: 'white',
+                        borderRadius: '12px',
+                        padding: '24px',
+                        width: '400px'
+                    }}>
+                        <h3 style={{ marginTop: 0, color: '#991b1b' }}>Confirmar eliminación</h3>
+                        <p style={{ color: '#4b5563', marginBottom: '24px' }}>
+                            ¿Está seguro que desea eliminar la factura #{formatInvoiceNumber(deletingInvoice.id)}?
+                            <br /><br />
+                            <strong>Esta acción no se puede deshacer.</strong>
+                        </p>
+                        <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+                            <button
+                                onClick={() => setShowDeleteModal(false)}
+                                style={{
+                                    ...buttonStyle,
+                                    backgroundColor: '#f1f5f9',
+                                    color: '#475569'
+                                }}
+                            >
+                                Cancelar
+                            </button>
+                            <button
+                                onClick={handleConfirmDelete}
+                                disabled={deleting}
+                                style={{
+                                    ...buttonStyle,
+                                    backgroundColor: deleting ? '#9ca3af' : '#dc2626',
+                                    color: 'white'
+                                }}
+                            >
+                                {deleting ? 'Eliminando...' : 'Eliminar'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </motion.div>
     );
 };
 

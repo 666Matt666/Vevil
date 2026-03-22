@@ -1,4 +1,5 @@
 import React from 'react';
+import { motion } from 'framer-motion';
 
 export interface ErrorMessageProps {
     message: string;
@@ -14,9 +15,12 @@ export const ErrorMessage: React.FC<ErrorMessageProps> = ({
     onDismiss,
     className = '',
 }) => (
-    <div
+    <motion.div
         role="alert"
         className={className}
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
         style={{
             backgroundColor: '#fee2e2',
             border: '1px solid #fecaca',
@@ -31,7 +35,7 @@ export const ErrorMessage: React.FC<ErrorMessageProps> = ({
         }}
     >
         <p style={{ color: '#991b1b', margin: 0, flex: '1 1 200px' }}>❌ {message}</p>
-        <div style={{ display: 'flex', gap: '8px' }}>
+        <motion.div style={{ display: 'flex', gap: '8px' }}>
             {onRetry && (
                 <button
                     type="button"
@@ -67,6 +71,6 @@ export const ErrorMessage: React.FC<ErrorMessageProps> = ({
                     Cerrar
                 </button>
             )}
-        </div>
-    </div>
+        </motion.div>
+    </motion.div>
 );

@@ -1,8 +1,9 @@
-import { Controller, Get, Post, Patch, Body, Param, UseGuards, Request, Query } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Put, Delete, Body, Param, UseGuards, Request, Query } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { InvoicesService } from './invoices.service';
 import { CreateInvoiceDto } from './dto/create-invoice.dto';
 import { UpdateInvoiceStatusDto } from './dto/update-invoice-status.dto';
+import { UpdateInvoiceDto } from './dto/update-invoice.dto';
 import { CreatePaymentDto } from './dto/create-payment.dto';
 import { AuditService } from '../audit/audit.service';
 
@@ -93,6 +94,24 @@ export class InvoicesController {
         return payment;
     }
 
+    @Delete(':invoiceId/payments/:paymentId')
+    async deletePayment(
+        @Param('invoiceId') invoiceId: string,
+        @Param('paymentId') paymentId: string,
+        @Request() req: any
+    ) {
+        const payment = await this.invoicesService.deletePayment(+paymentId, +invoiceId);
+        await this.auditService.log({
+            ...this.userFromReq(req),
+            action: 'invoice.payment_deleted',
+            entityType: 'invoice',
+            entityId: invoiceId,
+            oldValue: { paymentId: payment.id, amount: payment.amount },
+            ip: req?.ip ?? req?.headers?.['x-forwarded-for'] ?? null,
+        }).catch(() => {});
+        return { success: true };
+    }
+
     @Get(':id')
     findOne(@Param('id') id: string) {
         return this.invoicesService.findOne(+id);
@@ -110,5 +129,36 @@ export class InvoicesController {
             ip: req?.ip ?? req?.headers?.['x-forwarded-for'] ?? null,
         }).catch(() => {});
         return result;
+    }
+
+    @Put(':id')
+    async update(@Param('id') id: string, @Body() dto: UpdateInvoiceDto, @Request() req: any) {
+        const previous = await this.invoicesService.findOne(+id);
+        const updated = await this.invoicesService.update(+id, dto);
+        await this.auditService.log({
+            ...this.userFromReq(req),
+            action: 'invoice.updated',
+            entityType: 'invoice',
+            entityId: id,
+            oldValue: { total: previous.total, status: previous.status, customerId: previous.customerId },
+            newValue: { total: updated.total, status: updated.status, customerId: updated.customerId },
+            ip: req?.ip ?? req?.headers?.['x-forwarded-for'] ?? null,
+        }).catch(() => {});
+        return updated;
+    }
+
+    @Delete(':id')
+    async remove(@Param('id') id: string, @Request() req: any) {
+        const invoice = await this.invoicesService.findOne(+id);
+        await this.invoicesService.remove(+id);
+        await this.auditService.log({
+            ...this.userFromReq(req),
+            action: 'invoice.deleted',
+            entityType: 'invoice',
+            entityId: id,
+            oldValue: { id: invoice.id, total: invoice.total, status: invoice.status },
+            ip: req?.ip ?? req?.headers?.['x-forwarded-for'] ?? null,
+        }).catch(() => {});
+        return { success: true };
     }
 }

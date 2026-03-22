@@ -6,6 +6,7 @@ import { InvoiceItem } from './invoice-item.entity';
 import { Payment } from './payment.entity';
 import { CreateInvoiceDto } from './dto/create-invoice.dto';
 import { CreatePaymentDto } from './dto/create-payment.dto';
+import { UpdateInvoiceDto } from './dto/update-invoice.dto';
 import { ProductsService } from '../products/products.service';
 import { CustomersService } from '../customers/customers.service';
 import { StockMovementsService } from '../stock-movements/stock-movements.service';
@@ -40,24 +41,54 @@ export class InvoicesService {
             let total = 0;
 
             for (const itemDto of createInvoiceDto.items) {
-                const product = await this.productsService.findOne(itemDto.productId);
+                // Pessimistic locking: SELECT ... FOR UPDATE para evitar race conditions
+                // Solo funciona en PostgreSQL. Para SQLite usamos método alternativo.
+                const databaseType = queryRunner.connection.options.type;
+                let productResult;
+                
+                if (databaseType === 'postgres') {
+                    // PostgreSQL: usar FOR UPDATE para locking pesimista
+                    const productQuery = `
+                        SELECT id, name, price, stock, currency 
+                        FROM product 
+                        WHERE id = $1 
+                        FOR UPDATE
+                    `;
+                    productResult = await queryRunner.query(productQuery, [itemDto.productId]);
+                } else {
+                    // SQLite/otros: obtener producto directamente (sin locking)
+                    // El transaction isolation previene problemas en la mayoría de casos
+                    const productQuery = `
+                        SELECT id, name, price, stock, currency 
+                        FROM product 
+                        WHERE id = $1
+                    `;
+                    productResult = await queryRunner.query(productQuery, [itemDto.productId]);
+                }
+                
+                if (!productResult || productResult.length === 0) {
+                    throw new NotFoundException(`Product with ID ${itemDto.productId} not found`);
+                }
+                
+                const product = productResult[0];
 
                 if (product.stock < itemDto.quantity) {
-                    throw new BadRequestException(`Insufficient stock for product ${product.name}`);
+                    throw new BadRequestException(`Insufficient stock for product ${product.name}. Available: ${product.stock}, Requested: ${itemDto.quantity}`);
                 }
 
-                // Deduct stock
-                await this.productsService.update(product.id, {
-                    stock: product.stock - itemDto.quantity,
-                });
+                // Deduct stock (update with new value)
+                await queryRunner.query(
+                    'UPDATE product SET stock = stock - $1 WHERE id = $2',
+                    [itemDto.quantity, itemDto.productId]
+                );
 
                 const invoiceItem = new InvoiceItem();
-                invoiceItem.product = product;
+                invoiceItem.product = product as any;
                 invoiceItem.quantity = itemDto.quantity;
                 invoiceItem.priceAtSale = product.price; // Snapshot price at time of invoice
 
                 invoice.items.push(invoiceItem);
-                total += parseFloat(product.price as any) * itemDto.quantity;
+                total += parseFloat(product.price) * itemDto.quantity;
             }
 
             invoice.total = total;
@@ -162,6 +193,20 @@ export class InvoicesService {
     }
 
     /**
+     * Elimina un pago de una factura.
+     */
+    async deletePayment(paymentId: number, invoiceId: number) {
+        const payment = await this.paymentsRepository.findOne({
+            where: { id: paymentId, invoiceId },
+        });
+        if (!payment) {
+            throw new NotFoundException('Pago no encontrado');
+        }
+        await this.paymentsRepository.remove(payment);
+        return payment;
+    }
+
+    /**
      * Envía recordatorio de cobro por email al cliente de la factura (solo facturas pendientes).
      * Retorna { sent: true } si se envió, { sent: false, reason } si no (sin email, no configurado, o no pendiente).
      */
@@ -180,5 +225,72 @@ export class InvoicesService {
         const customerName = invoice.customer?.name || 'Cliente';
         await this.mailService.sendPaymentReminderEmail(email, customerName, invoiceNumber, total, currency);
         return { sent: true };
+    }
+
+    async update(id: number, updateInvoiceDto: UpdateInvoiceDto): Promise<Invoice> {
+        const invoice = await this.findOne(id);
+        
+        // Solo se pueden editar facturas pendientes o canceladas
+        if (invoice.status === 'paid') {
+            throw new BadRequestException('No se puede editar una factura pagada. Cancele el pago primero.');
+        }
+        
+        // Actualizar cliente si se proporciona
+        if (updateInvoiceDto.customerId) {
+            const customer = await this.customersService.findOne(updateInvoiceDto.customerId);
+            invoice.customer = customer;
+        }
+        
+        // Actualizar moneda
+        if (updateInvoiceDto.currency) {
+            invoice.currency = updateInvoiceDto.currency;
+        }
+        
+        // Actualizar estado
+        if (updateInvoiceDto.status) {
+            invoice.status = updateInvoiceDto.status;
+        }
+        
+        // Actualizar items si se proporcionan
+        if (updateInvoiceDto.items && updateInvoiceDto.items.length > 0) {
+            // Eliminar items existentes
+            await this.invoicesRepository.manager.delete('invoice_items', { invoice: { id } });
+            
+            // Crear nuevos items
+            let total = 0;
+            const items: InvoiceItem[] = [];
+            
+            for (const itemDto of updateInvoiceDto.items) {
+                const product = itemDto.productId ? await this.productsService.findOne(itemDto.productId) : null;
+                const item = new InvoiceItem();
+                item.product = product;
+                item.quantity = itemDto.quantity || 1;
+                item.priceAtSale = itemDto.priceAtSale || (product?.price || 0);
+                total += item.priceAtSale * item.quantity;
+                items.push(item);
+            }
+            
+            invoice.items = items;
+            invoice.total = total;
+        }
+        
+        return this.invoicesRepository.save(invoice);
+    }
+
+    async remove(id: number): Promise<void> {
+        const invoice = await this.findOne(id);
+        
+        // Solo se pueden eliminar facturas pendientes o canceladas
+        if (invoice.status === 'paid') {
+            throw new BadRequestException('No se puede eliminar una factura pagada. Cancele el pago primero.');
+        }
+        
+        // Verificar si hay pagos asociados
+        const payments = await this.paymentsRepository.find({ where: { invoice: { id } } });
+        if (payments.length > 0) {
+            throw new BadRequestException('No se puede eliminar una factura con pagos asociados.');
+        }
+        
+        await this.invoicesRepository.remove(invoice);
     }
 }

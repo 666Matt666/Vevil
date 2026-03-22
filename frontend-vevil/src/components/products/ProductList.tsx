@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
 import { productsApi, Product, getErrorMessage } from '../../services/api';
 import { getEnabledCurrencies, formatMoney } from '../settings/Settings';
 import { LoadingSpinner } from '../ui/LoadingSpinner';
@@ -8,6 +9,7 @@ import { SuccessMessage } from '../ui/SuccessMessage';
 import { Pagination } from '../ui/Pagination';
 import { ConfirmModal } from '../ui/ConfirmModal';
 import { exportProductsToCsv } from '../../utils/exportCsv';
+import { fadeInUp, staggerContainer } from '../../hooks/useAnimations';
 
 // Estilos comunes
 const buttonStyle: React.CSSProperties = {
@@ -222,16 +224,22 @@ const ProductList: React.FC = () => {
     }
 
     return (
-        <div className="responsive-padding" style={{ padding: '32px' }}>
+        <motion.div 
+            className="responsive-padding" 
+            style={{ padding: '32px' }}
+            initial="hidden"
+            animate="visible"
+            variants={fadeInUp}
+        >
             {/* Header */}
-            <div style={{ 
+            <motion.div style={{ 
                 display: 'flex', 
                 justifyContent: 'space-between', 
                 alignItems: 'flex-start',
                 marginBottom: '24px',
                 flexWrap: 'wrap',
                 gap: '16px'
-            }}>
+            }} variants={fadeInUp}>
                 <div>
                     <h1 style={{ fontSize: 'clamp(22px, 5vw, 28px)', fontWeight: 700, color: '#1e293b', margin: 0 }}>
                         Productos
@@ -240,8 +248,8 @@ const ProductList: React.FC = () => {
                         {products.length} productos en inventario
                     </p>
                 </div>
-                <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-                    <button
+                <motion.div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }} variants={staggerContainer}>
+                    <motion.button
                         type="button"
                         onClick={() => exportProductsToCsv(products, getTypeLabel, (cat) => CATEGORY_OPTIONS.find((o) => o.value === cat)?.label ?? cat)}
                         style={{
@@ -252,10 +260,12 @@ const ProductList: React.FC = () => {
                             border: '1px solid #e2e8f0',
                         }}
                         title="Descargar listado en CSV (Excel)"
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
                     >
                         📥 Exportar CSV
-                    </button>
-                    <button 
+                    </motion.button>
+                    <motion.button 
                         onClick={openCreateModal}
                         style={{
                             ...buttonStyle,
@@ -264,11 +274,13 @@ const ProductList: React.FC = () => {
                             color: 'white',
                             whiteSpace: 'nowrap'
                         }}
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
                     >
                         + Nuevo Producto
-                    </button>
-                </div>
-            </div>
+                    </motion.button>
+                </motion.div>
+            </motion.div>
 
             {successMessage && (
                 <SuccessMessage
@@ -677,7 +689,7 @@ const ProductList: React.FC = () => {
                     </div>
                 </div>
             )}
-        </div>
+        </motion.div>
     );
 };
 

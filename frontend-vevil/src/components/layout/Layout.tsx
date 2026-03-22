@@ -1,9 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Outlet, Link, useLocation, useNavigate, Navigate } from 'react-router-dom';
-import { getProfile, pendingRegistrationsApi, clearTokens, type UserProfile } from '../../services/api';
+import { clearTokens, type UserProfile } from '../../services/api';
+import { useProfile, usePendingCount } from '../../hooks/useAuth';
+import { getErrorMessage } from '../../services/api';
 import { recordDashboardUsage } from '../../utils/dashboardUsage';
 import CurrencyRatesBar from './CurrencyRatesBar';
 import HelpPanel from '../help/HelpPanel';
+import { ToastContainer } from '../../hooks/useToast';
 
 const menuItems = [
     { label: 'Inicio', icon: '🏠', path: '/dashboard' },
@@ -13,11 +16,9 @@ const menuItems = [
     { label: 'Facturas', icon: '📄', path: '/invoices' },
     { label: 'Cuentas Corrientes', icon: '💳', path: '/accounts' },
     { label: 'Reportes', icon: '📊', path: '/reports' },
-    { label: 'Auditoría', icon: '📋', path: '/audit' },
-    { label: 'Configuración', icon: '⚙️', path: '/settings' },
 ];
 
-type MenuItem = { label: string; icon: string; path: string; badge?: number };
+type MenuItem = { label: string; icon: string; path: string; badge?: number; subItems?: MenuItem[] };
 
 const Layout: React.FC = () => {
     const location = useLocation();
@@ -25,6 +26,11 @@ const Layout: React.FC = () => {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
     const [isHelpOpen, setIsHelpOpen] = useState(false);
+    // Obtener profile con refetchOnMount=true para detectar cambios de usuario al montar
+    const { data: profileData, error: profileError, isLoading: profileLoading } = useProfile({ refetchOnMount: true });
+    const { data: pendingCountData } = usePendingCount();
+    
+    // Sincronizar profile del cache de React Query
     const [profile, setProfile] = useState<UserProfile | null>(() => {
         try {
             const stored = localStorage.getItem('vevil_profile');
@@ -33,78 +39,87 @@ const Layout: React.FC = () => {
             return null;
         }
     });
-    const [pendingCount, setPendingCount] = useState(0);
 
-    // Ya no verificamos el token en localStorage - ahora usamos HttpOnly cookies
-    // El navegador maneja automáticamente las cookies, así que confiamos en getProfile()
+    // Actualizar profile cuando React Query devuelve datos
+    // Solo actualizar si el usuario es diferente (por ID) para detectar cambios de sesión
+    useEffect(() => {
+        // Si profileData es null pero tenemos un ID de usuario nuevo, es un logout - limpiar
+        if (!profileData && profile?.id) {
+            // Esto es un caso de logout, no hacer nada aquí
+            return;
+        }
+        
+        if (profileData) {
+            const newUserId = String(profileData.id ?? '');
+            const currentUserId = String(profile?.id ?? '');
+            
+            // Forzar actualización siempre que haya nuevos datos del perfil
+            // Esto asegura que el menú se actualice cuando cambia el usuario
+            setProfile(profileData);
+            try {
+                localStorage.setItem('vevil_profile', JSON.stringify(profileData));
+            } catch (_) {}
+        }
+    }, [profileData]);
+
+    // Manejar errores de red
+    useEffect(() => {
+        if (profileError) {
+            const errorMsg = getErrorMessage(profileError);
+            console.error('[Layout] Profile error:', errorMsg);
+            
+            // Si hay error, verificar si tenemos un admin en localStorage
+            let stored = profile;
+            if (!stored) {
+                try {
+                    const s = localStorage.getItem('vevil_profile');
+                    stored = s ? JSON.parse(s) : null;
+                } catch { /* ignore */ }
+            }
+            
+            const trustedAdmin = stored && (
+                String(stored?.role ?? '').toLowerCase() === 'admin' ||
+                stored?.email?.toLowerCase() === 'admin@vevil.com'
+            );
+            
+            if (!trustedAdmin) {
+                // Solo redirigir si no tenemos un admin de confianza
+                clearTokens();
+                localStorage.removeItem('vevil_profile');
+                navigate('/login', { replace: true });
+            }
+        }
+    }, [profileError, navigate, profile]);
 
     const isAdmin =
-        String(profile?.role ?? '').toLowerCase() === 'admin' ||
-        (profile?.email?.toLowerCase() === 'admin@vevil.com');
-    const adminMenuItems: MenuItem[] =
-        isAdmin
-            ? [
-                  ...menuItems.slice(0, 7),
-                  { label: 'Solicitudes de registro', icon: '📩', path: '/pending-registrations', badge: pendingCount },
-                  ...menuItems.slice(7),
-              ]
-            : menuItems;
+        String(profileData?.role ?? profile?.role ?? '').toLowerCase() === 'admin' ||
+        (profileData?.email?.toLowerCase() === 'admin@vevil.com' || profile?.email?.toLowerCase() === 'admin@vevil.com');
+    
+    // Pending count de React Query - solo admins ven el badge
+    const pendingCount = isAdmin ? (pendingCountData ?? 0) : 0;
+    
+    // Menú para todos los usuarios: muestra "Configuración"
+    const baseMenuItems: MenuItem[] = [
+        ...menuItems,
+        { label: 'Configuración', icon: '⚙️', path: '/settings' },
+    ];
+    
+    // Agregar elementos de solo admin: "Usuarios" (todos los usuarios), "Auditoría"
+    // Si es admin, agrega los items de admin; si no, usa el menú base
+    const menuToRender = isAdmin ? [
+        ...baseMenuItems,
+        { label: 'Usuarios', icon: '👥', path: '/admin/users' },
+        { label: 'Auditoría', icon: '📋', path: '/audit' },
+    ] : baseMenuItems;
 
-    useEffect(() => {
-        if (!profile) {
-            try {
-                const s = localStorage.getItem('vevil_profile');
-                if (s) {
-                    const parsed = JSON.parse(s);
-                    if (parsed && typeof parsed === 'object' && (String((parsed as UserProfile).role ?? '').toLowerCase() === 'admin' || (parsed as UserProfile).email?.toLowerCase() === 'admin@vevil.com')) {
-                        setProfile(parsed as UserProfile);
-                    }
-                }
-            } catch { /* ignore */ }
-        }
-        getProfile()
-            .then((user) => {
-                setProfile(user);
-                try {
-                    localStorage.setItem('vevil_profile', JSON.stringify(user));
-                } catch (_) {}
-                if (String(user?.role ?? '').toLowerCase() === 'admin') {
-                    return pendingRegistrationsApi.getCount();
-                }
-            })
-            .then((count) => {
-                if (typeof count === 'number') setPendingCount(count);
-            })
-            .catch(() => {
-                let current = profile;
-                if (!current) {
-                    try {
-                        const s = localStorage.getItem('vevil_profile');
-                        current = s ? JSON.parse(s) : null;
-                    } catch { /* ignore */ }
-                }
-                const trustedAdmin = current && (
-                    String(current?.role ?? '').toLowerCase() === 'admin' ||
-                    current?.email?.toLowerCase() === 'admin@vevil.com'
-                );
-                if (trustedAdmin) {
-                    setProfile(current);
-                } else {
-                    // Usar clearTokens para limpiar las cookies HttpOnly
-                    clearTokens();
-                    localStorage.removeItem('vevil_profile');
-                    navigate('/login', { replace: true });
-                }
-            });
-    }, [navigate]);
-
-    useEffect(() => {
-        if (!isAdmin) return;
-        const interval = setInterval(() => {
-            pendingRegistrationsApi.getCount().then(setPendingCount);
-        }, 60000);
-        return () => clearInterval(interval);
-    }, [isAdmin]);
+    // Mostrar loading solo si está cargando y no hay profile guardado
+    if (profileLoading && !profile) {
+        return (
+            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+                <div>Cargando...</div>
+            </div>
+        );
+    }
 
     // Detectar cambio de tamaño de pantalla
     useEffect(() => {
@@ -146,7 +161,7 @@ const Layout: React.FC = () => {
         location.pathname.startsWith('/reports');
 
     const getCurrentPageTitle = () => {
-        const items = adminMenuItems as { label: string; icon: string; path: string }[];
+        const items = menuToRender as { label: string; icon: string; path: string }[];
         const current = items.find(
             (item) =>
                 location.pathname === item.path ||
@@ -235,11 +250,12 @@ const Layout: React.FC = () => {
 
                 {/* Navigation */}
                 <nav style={{ flex: 1, padding: '16px 0', overflowY: 'auto' }}>
-                    {adminMenuItems.map((item) => {
+                    {menuToRender.map((item) => {
                         const isActive =
                             location.pathname === item.path ||
                             (item.path !== '/dashboard' && location.pathname.startsWith(item.path));
                         const badge = 'badge' in item ? (item as MenuItem).badge : undefined;
+                        
                         return (
                             <Link
                                 key={item.path}
@@ -464,6 +480,9 @@ const Layout: React.FC = () => {
             </button>
 
             <HelpPanel isOpen={isHelpOpen} onClose={() => setIsHelpOpen(false)} />
+
+            {/* Toast notifications global */}
+            <ToastContainer />
 
             {/* Estilos globales responsive */}
             <style>{`

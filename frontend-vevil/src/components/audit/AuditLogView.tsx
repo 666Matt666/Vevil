@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { auditApi, type AuditLogItem } from '../../services/api';
 import { getErrorMessage } from '../../services/api';
 import { LoadingSpinner } from '../ui/LoadingSpinner';
 import { ErrorMessage } from '../ui/ErrorMessage';
 import { Pagination } from '../ui/Pagination';
 import { exportAuditToCsv } from '../../utils/exportCsv';
+import { useProfile } from '../../hooks/useAuth';
 
 const ENTITY_TYPES = [
     { value: '', label: 'Todos' },
@@ -17,6 +19,16 @@ const ENTITY_TYPES = [
 const LIMIT_OPTIONS = [20, 50, 100, 200];
 
 const AuditLogView: React.FC = () => {
+    const navigate = useNavigate();
+    const { data: profile } = useProfile();
+    const isAdmin = String(profile?.role ?? '').toLowerCase() === 'admin' || profile?.email?.toLowerCase() === 'admin@vevil.com';
+
+    // Redirect non-admin users
+    useEffect(() => {
+        if (profile && !isAdmin) {
+            navigate('/dashboard', { replace: true });
+        }
+    }, [profile, isAdmin, navigate]);
     const [logs, setLogs] = useState<AuditLogItem[]>([]);
     const [total, setTotal] = useState(0);
     const [page, setPage] = useState(1);

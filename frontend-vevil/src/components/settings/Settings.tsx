@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { startRegistration, browserSupportsWebAuthn } from '@simplewebauthn/browser';
 import { getConversionTarget, getRates, convert, fetchRates, setConversionTarget } from '../../services/currencyRates';
-import { webauthnRegisterOptions, webauthnRegisterVerify, changePassword } from '../../services/api';
+import { webauthnRegisterOptions, webauthnRegisterVerify, changePassword, type WebAuthnRegisterOptions as WebAuthnOptions } from '../../services/api';
 import { copy } from '../../copy';
+import UserManagement from '../admin/UserManagement';
 
 // ============== TIPOS ==============
 
@@ -284,10 +285,10 @@ const cardStyle: React.CSSProperties = {
 
 // ============== SECCIONES DEL MENÚ ==============
 
-type Section = 'account' | 'company' | 'invoice' | 'currencies' | 'tax' | 'productTypes' | 'units' | 'payments' | 'alerts' | 'appearance';
+type Section = 'profile' | 'company' | 'invoice' | 'currencies' | 'tax' | 'productTypes' | 'units' | 'payments' | 'alerts' | 'appearance';
 
 const menuSections = [
-    { id: 'account' as Section, label: 'Cuenta', icon: '👤' },
+    { id: 'profile' as Section, label: 'Mi Perfil', icon: '👤' },
     { id: 'company' as Section, label: 'Datos de Empresa', icon: '🏢' },
     { id: 'invoice' as Section, label: 'Facturación', icon: '🧾' },
     { id: 'currencies' as Section, label: 'Monedas', icon: '💰' },
@@ -302,7 +303,7 @@ const menuSections = [
 // ============== COMPONENTE PRINCIPAL ==============
 
 const Settings: React.FC = () => {
-    const [activeSection, setActiveSection] = useState<Section>('company');
+    const [activeSection, setActiveSection] = useState<Section>('profile');
     const [saved, setSaved] = useState(false);
     const [supportsWebAuthn, setSupportsWebAuthn] = useState(false);
     const [webauthnAdding, setWebauthnAdding] = useState(false);
@@ -344,8 +345,10 @@ const Settings: React.FC = () => {
         setWebauthnMessage(null);
         setWebauthnAdding(true);
         try {
-            const options = await webauthnRegisterOptions();
-            const credential = await startRegistration({ optionsJSON: options });
+            const options: WebAuthnOptions = await webauthnRegisterOptions();
+            // simplewebauthn expects PublicKeyCredentialCreationOptionsJSON format
+            // Cast to the expected type - this is safe as the backend returns compatible data
+            const credential = await startRegistration({ optionsJSON: options as never });
             const result = await webauthnRegisterVerify(
                 credential as unknown as Record<string, unknown>,
                 options.challenge
@@ -407,10 +410,13 @@ const Settings: React.FC = () => {
 
     // ============== RENDER SECCIONES ==============
 
-    const renderAccountSection = () => (
+    const renderProfileSection = () => (
         <div>
+            {/* Perfil del usuario con UserManagement */}
+            <UserManagement />
+
             {/* Sección: Cambiar Contraseña */}
-            <h2 style={{ fontSize: '20px', fontWeight: 600, color: '#1e293b', margin: '0 0 8px 0' }}>
+            <h2 style={{ fontSize: '20px', fontWeight: 600, color: '#1e293b', margin: '32px 0 8px 0' }}>
                 🔐 Cambiar Contraseña
             </h2>
             <p style={{ fontSize: '14px', color: '#64748b', margin: '0 0 16px 0' }}>
@@ -1223,7 +1229,7 @@ const Settings: React.FC = () => {
 
     const renderContent = () => {
         switch (activeSection) {
-            case 'account': return renderAccountSection();
+            case 'profile': return renderProfileSection();
             case 'company': return renderCompanySection();
             case 'invoice': return renderInvoiceSection();
             case 'currencies': return renderCurrenciesSection();
@@ -1260,7 +1266,7 @@ const Settings: React.FC = () => {
                     {menuSections.map(section => (
                         <button
                             key={section.id}
-                            data-testid={section.id === 'account' ? 'settings-section-cuenta' : undefined}
+                            data-testid={section.id === 'profile' ? 'settings-section-mi-perfil' : undefined}
                             onClick={() => setActiveSection(section.id)}
                             style={{
                                 display: 'flex',

@@ -19,7 +19,7 @@ function formatMoney(value: number, currency: string = 'PYG'): string {
 export function exportInvoiceToPdf(invoice: Invoice): void {
     const company = getCompanyConfig();
     const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-    const pageW = doc.getPageWidth();
+    const pageW = doc.internal.pageSize.getWidth();
     let y = 20;
     const lineH = 6;
     const margin = 20;

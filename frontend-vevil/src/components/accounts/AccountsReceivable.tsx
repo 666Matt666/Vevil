@@ -45,6 +45,8 @@ const AccountsReceivable: React.FC = () => {
     const [error, setError] = useState<string | null>(null);
     const [selectedCustomerId, setSelectedCustomerId] = useState<number | null>(null);
     const [showPaymentModal, setShowPaymentModal] = useState(false);
+    const [paymentToDelete, setPaymentToDelete] = useState<{ invoiceId: number; paymentId: number; amount: number } | null>(null);
+    const [deletingPayment, setDeletingPayment] = useState(false);
     const [paymentForm, setPaymentForm] = useState({
         invoiceId: '' as string,
         amount: '',
@@ -128,6 +130,20 @@ const AccountsReceivable: React.FC = () => {
             loadData();
         } catch (err) {
             alert(getErrorMessage(err, 'Error al actualizar'));
+        }
+    };
+
+    const handleDeletePayment = async () => {
+        if (!paymentToDelete) return;
+        try {
+            setDeletingPayment(true);
+            await invoicesApi.deletePayment(paymentToDelete.invoiceId, paymentToDelete.paymentId);
+            setPaymentToDelete(null);
+            loadData();
+        } catch (err) {
+            alert(getErrorMessage(err, 'Error al eliminar pago'));
+        } finally {
+            setDeletingPayment(false);
         }
     };
 
@@ -271,9 +287,9 @@ const AccountsReceivable: React.FC = () => {
                                     <p style={{ margin: '4px 0 0 0', fontSize: '14px', color: '#64748b' }}>
                                         {selectedAccount.customer.email}
                                     </p>
-                                    {selectedAccount.customer.phone && (
+                                    {selectedAccount.customer.phones?.[0] && (
                                         <p style={{ margin: '4px 0 0 0', fontSize: '14px', color: '#64748b' }}>
-                                            📞 {selectedAccount.customer.phone}
+                                            📞 {selectedAccount.customer.phones[0].number}
                                         </p>
                                     )}
                                 </div>
@@ -428,9 +444,25 @@ const AccountsReceivable: React.FC = () => {
                                                     {payment.method === 'transfer' && '🏦 Transferencia'}
                                                 </span>
                                             </div>
-                                            <span style={{ fontWeight: 700, color: '#22c55e' }}>
-                                                + {formatMoney(payment.amount, 'PYG')}
-                                            </span>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                <span style={{ fontWeight: 700, color: '#22c55e' }}>
+                                                    + {formatMoney(payment.amount, 'PYG')}
+                                                </span>
+                                                <button
+                                                    onClick={() => setPaymentToDelete({ invoiceId: payment.invoiceId, paymentId: payment.id, amount: payment.amount })}
+                                                    style={{
+                                                        background: 'none',
+                                                        border: 'none',
+                                                        cursor: 'pointer',
+                                                        color: '#ef4444',
+                                                        padding: '4px',
+                                                        fontSize: '16px'
+                                                    }}
+                                                    title="Eliminar pago"
+                                                >
+                                                    🗑️
+                                                </button>
+                                            </div>
                                         </div>
                                     ))}
                                 </div>
@@ -546,6 +578,73 @@ const AccountsReceivable: React.FC = () => {
                                 </button>
                             </div>
                         </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Modal de confirmación para eliminar pago */}
+            {paymentToDelete && (
+                <div style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    zIndex: 1000
+                }}>
+                    <div style={{
+                        backgroundColor: 'white',
+                        borderRadius: '12px',
+                        padding: '24px',
+                        maxWidth: '400px',
+                        width: '90%',
+                        boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)'
+                    }}>
+                        <h3 style={{ margin: '0 0 16px 0', fontSize: '18px', fontWeight: 600, color: '#1f2937' }}>
+                            Confirmar eliminación
+                        </h3>
+                        <p style={{ margin: '0 0 24px 0', color: '#64748b', fontSize: '14px' }}>
+                            ¿Estás seguro de que deseas eliminar el pago de <strong>{formatMoney(paymentToDelete.amount, 'PYG')}</strong>?
+                            <br /><br />
+                            Esta acción no se puede deshacer.
+                        </p>
+                        <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+                            <button
+                                onClick={() => setPaymentToDelete(null)}
+                                disabled={deletingPayment}
+                                style={{
+                                    padding: '10px 20px',
+                                    borderRadius: '8px',
+                                    border: 'none',
+                                    backgroundColor: '#f1f5f9',
+                                    color: '#475569',
+                                    cursor: deletingPayment ? 'not-allowed' : 'pointer',
+                                    fontWeight: 500
+                                }}
+                            >
+                                Cancelar
+                            </button>
+                            <button
+                                onClick={handleDeletePayment}
+                                disabled={deletingPayment}
+                                style={{
+                                    padding: '10px 20px',
+                                    borderRadius: '8px',
+                                    border: 'none',
+                                    backgroundColor: '#ef4444',
+                                    color: 'white',
+                                    cursor: deletingPayment ? 'not-allowed' : 'pointer',
+                                    fontWeight: 500,
+                                    opacity: deletingPayment ? 0.7 : 1
+                                }}
+                            >
+                                {deletingPayment ? 'Eliminando...' : 'Eliminar'}
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}

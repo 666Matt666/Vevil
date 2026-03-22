@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { statsApi, metricsApi, productsApi, customersApi, invoicesApi, getProfile } from '../../services/api';
 import type { DashboardMetrics } from '../../services/api';
 import { formatMoney } from '../settings/Settings';
 import { copy } from '../../copy';
 import { loadUsage, saveUsage, recordDashboardUsage, type DashboardUsageKey } from '../../utils/dashboardUsage';
+import { fadeInUp, staggerContainer } from '../../hooks/useAnimations';
 
 type ProfileUser = { name?: string; lastName?: string; gender?: 'male' | 'female' };
 
@@ -311,9 +313,18 @@ const Dashboard: React.FC = () => {
     };
 
     return (
-        <div className="responsive-padding" style={{ padding: '32px' }}>
+        <motion.div 
+            className="responsive-padding" 
+            style={{ padding: '32px' }}
+            initial="hidden"
+            animate="visible"
+            variants={fadeInUp}
+        >
             {/* Header */}
-            <div style={{ marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px' }}>
+            <motion.div 
+                style={{ marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px' }}
+                variants={fadeInUp}
+            >
                 <div>
                     <h1 style={{ 
                         fontSize: 'clamp(24px, 5vw, 32px)', 
@@ -346,7 +357,7 @@ const Dashboard: React.FC = () => {
                         {seeding ? `⏳ ${copy.dashboard.loadingData}` : `📦 ${copy.dashboard.loadExampleData}`}
                     </button>
                 )}
-            </div>
+            </motion.div>
 
             {/* Mensaje de resultado */}
             {seedMessage && (
@@ -806,8 +817,8 @@ const Dashboard: React.FC = () => {
                     0%, 100% { opacity: 1; }
                     50% { opacity: 0.5; }
                 }
-            `}</style>
-        </div>
+            `}            </style>
+        </motion.div>
     );
 };
 

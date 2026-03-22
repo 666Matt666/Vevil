@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
 import { customersApi, Customer, getErrorMessage } from '../../services/api';
 import { TableSkeleton } from '../ui/TableSkeleton';
 import { ErrorMessage } from '../ui/ErrorMessage';
@@ -6,6 +7,7 @@ import { SuccessMessage } from '../ui/SuccessMessage';
 import { Pagination } from '../ui/Pagination';
 import { ConfirmModal } from '../ui/ConfirmModal';
 import { exportCustomersToCsv } from '../../utils/exportCsv';
+import { fadeInUp } from '../../hooks/useAnimations';
 
 const PAGE_SIZE = 20;
 
@@ -95,6 +97,8 @@ const CustomerList: React.FC = () => {
     const [searchText, setSearchText] = useState('');
     const [filterCity, setFilterCity] = useState('all');
     const [departments, setDepartments] = useState<string[]>([]);
+    const [customerToDelete, setCustomerToDelete] = useState<Customer | null>(null);
+    const [deleting, setDeleting] = useState(false);
 
     const loadCustomers = async (pageNum: number = page) => {
         try {
@@ -211,6 +215,11 @@ const CustomerList: React.FC = () => {
         return phones[0].number;
     };
 
+    // Wrapper para exportar CSV (toma Customer en lugar de phones)
+    const getCustomerMainPhone = (customer: Customer): string => {
+        return getMainPhone(customer.phones as undefined | { type: string; number: string }[] | undefined);
+    };
+
     if (loading) {
         return (
             <div className="responsive-padding" style={{ padding: '32px' }}>
@@ -223,7 +232,13 @@ const CustomerList: React.FC = () => {
     }
 
     return (
-        <div className="responsive-padding" style={{ padding: '32px' }}>
+        <motion.div 
+            className="responsive-padding" 
+            style={{ padding: '32px' }}
+            initial="hidden"
+            animate="visible"
+            variants={fadeInUp}
+        >
             {/* Header */}
             <div style={{ 
                 display: 'flex', 
@@ -244,7 +259,7 @@ const CustomerList: React.FC = () => {
                 <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
                     <button
                         type="button"
-                        onClick={() => exportCustomersToCsv(filteredCustomers, getMainPhone)}
+                        onClick={() => exportCustomersToCsv(filteredCustomers, getCustomerMainPhone)}
                         style={{
                             ...buttonStyle,
                             padding: '10px 18px',
@@ -605,7 +620,7 @@ const CustomerList: React.FC = () => {
                     </div>
                 </div>
             )}
-        </div>
+        </motion.div>
     );
 };
 

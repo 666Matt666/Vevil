@@ -63,9 +63,14 @@ const Login: React.FC = () => {
             } catch (_) {}
             // Obtener el perfil después del login exitoso
             const user = await getProfile();
-            const profile = { ...user, role: user.role ?? (user.email?.toLowerCase() === 'admin@vevil.com' ? 'admin' : undefined) };
+            // Usar el rol real del usuario desde el backend
+            const profile = { ...user };
             localStorage.setItem('vevil_profile', JSON.stringify(profile));
+            // Notificar a otros componentes que el usuario ha iniciado sesión
+            window.dispatchEvent(new CustomEvent('vevil-login', { detail: { profile } }));
             navigate('/dashboard');
+            // Recargar la página para asegurar que el Layout se actualice con el nuevo usuario
+            setTimeout(() => window.location.reload(), 100);
         } catch (err: any) {
             setError(err.message || 'Error al iniciar sesión');
         } finally {
@@ -112,9 +117,13 @@ const Login: React.FC = () => {
             } catch (_) {}
             // Obtener el perfil después del login exitoso
             const user = await getProfile();
-            const profile = { ...user, role: user.role ?? (user.email?.toLowerCase() === 'admin@vevil.com' ? 'admin' : undefined) };
+            const profile = { ...user };
             localStorage.setItem('vevil_profile', JSON.stringify(profile));
+            // Notificar a otros componentes que el usuario ha iniciado sesión
+            window.dispatchEvent(new CustomEvent('vevil-login', { detail: { profile } }));
             navigate('/dashboard');
+            // Recargar la página para asegurar que el Layout se actualice con el nuevo usuario
+            setTimeout(() => window.location.reload(), 100);
         } catch (err: unknown) {
             const msg = err instanceof Error ? err.message : copy.errors.generic;
             const isNoCredential =
@@ -376,26 +385,39 @@ const Login: React.FC = () => {
                             {supportsWebAuthn && email.trim() && (
                                 <button
                                     type="button"
-                                    disabled={isLoading || isWebAuthnLoading}
                                     onClick={handleWebAuthnLogin}
+                                    disabled={isLoading || isWebAuthnLoading}
                                     style={{
-                                        width: '100%',
+                                        width: '56px',
+                                        height: '56px',
                                         marginTop: '12px',
-                                        padding: '12px',
-                                        fontSize: '14px',
-                                        fontWeight: 600,
-                                        color: '#4f46e5',
-                                        background: 'transparent',
-                                        border: '1px solid #c7d2fe',
-                                        borderRadius: '12px',
+                                        marginLeft: 'auto',
+                                        marginRight: 'auto',
+                                        padding: '0',
+                                        fontSize: '28px',
+                                        color: isWebAuthnLoading ? '#9ca3af' : '#4f46e5',
+                                        background: isWebAuthnLoading ? '#f3f4f6' : 'linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%)',
+                                        border: '2px solid #c7d2fe',
+                                        borderRadius: '50%',
                                         cursor: isLoading || isWebAuthnLoading ? 'not-allowed' : 'pointer',
                                         display: 'flex',
                                         alignItems: 'center',
                                         justifyContent: 'center',
-                                        gap: '8px'
+                                        boxShadow: isWebAuthnLoading ? 'none' : '0 4px 12px rgba(79, 70, 229, 0.25)',
+                                        transition: 'all 0.2s ease',
                                     }}
+                                    title={isWebAuthnLoading ? 'Verificando...' : 'Iniciar con huella digital'}
                                 >
-                                    {isWebAuthnLoading ? copy.webauthn.addingFingerprint : copy.webauthn.loginWithFingerprint}
+                                    <img 
+                                        src="/huella.gif" 
+                                        alt="Huella digital" 
+                                        style={{ 
+                                            width: '32px', 
+                                            height: '32px',
+                                            opacity: isWebAuthnLoading ? 0.5 : 1,
+                                            transition: 'opacity 0.2s'
+                                        }} 
+                                    />
                                 </button>
                             )}
                             {typeof window !== 'undefined' && window.location.hostname.includes('vercel.app') && (

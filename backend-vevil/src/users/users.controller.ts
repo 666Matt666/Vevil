@@ -40,9 +40,25 @@ export class UsersController {
   @ApiResponse({ status: 200, description: 'Lista de usuarios paginada.', type: PaginatedUsersResponseDto })
   @UseInterceptors(CacheInterceptor) // ¡Aquí está la magia!
   @ApiBearerAuth() // Indica a Swagger que este endpoint requiere un token
-  async findAll(@Query() paginationQuery: PaginationQueryDto): Promise<PaginatedUsersResponseDto> {
+  async findAll(
+    @Query() paginationQuery: PaginationQueryDto,
+    @GetUser() user: User,
+  ): Promise<PaginatedUsersResponseDto> {
+    // Obtener el usuario actual de la base de datos para verificar el rol más reciente
+    const currentUser = await this.usersService.findOne(user.id);
+    // Solo administradores pueden ver la lista de usuarios
+    if (currentUser.role !== UserRole.ADMIN) {
+      throw new ForbiddenException('Solo los administradores pueden ver la lista de usuarios');
+    }
     const [users, total] = await this.usersService.findAll(paginationQuery);
     return { data: users, total };
+  }
+
+  @Get('me')
+  @ApiBearerAuth()
+  async getMe(@GetUser() user: User): Promise<User> {
+    // Cualquier usuario autenticado puede ver su propio perfil
+    return this.usersService.findOne(user.id);
   }
 
   @Post('avatar')
@@ -104,5 +120,22 @@ export class UsersController {
   @HttpCode(HttpStatus.NO_CONTENT) // Devuelve 204 No Content en caso de éxito
   remove(@Param('id') id: string): Promise<void> {
     return this.usersService.remove(id);
+  }
+
+  @Patch(':id/toggle-active')
+  @Roles(UserRole.ADMIN)
+  @ApiOperation({ summary: 'Activar o desactivar un usuario (Solo Admin)' })
+  @ApiResponse({ status: 200, description: 'Usuario activado/desactivado exitosamente.' })
+  @ApiResponse({ status: 404, description: 'Usuario no encontrado.' })
+  @ApiResponse({ status: 400, description: 'No puedes desactivar tu propia cuenta.' })
+  async toggleActive(
+    @Param('id') id: string,
+    @GetUser() user: User,
+  ): Promise<{ isActive: boolean; message: string }> {
+    const userResult = await this.usersService.toggleActive(id, user.id);
+    return {
+      isActive: userResult.isActive,
+      message: userResult.isActive ? 'Usuario activado' : 'Usuario desactivado',
+    };
   }
 }

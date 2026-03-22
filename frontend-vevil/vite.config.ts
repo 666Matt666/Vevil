@@ -7,16 +7,27 @@ export default defineConfig({
   plugins: [
     react(),
   ],
+  server: {
+    proxy: {
+      '/api': {
+        target: 'http://localhost:3000',
+        changeOrigin: true,
+        configure: (proxy) => {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          proxy.on('proxyReq', (proxyReq: any) => {
+            // Usar el origin del request para evitar problemas en producción
+            const requestOrigin = proxyReq.getHeader('origin');
+            if (requestOrigin) {
+              proxyReq.setHeader('Origin', requestOrigin);
+            }
+          });
+        },
+      },
+    },
+  },
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
     }
-  },
-  test: {
-    environment: 'jsdom',
-    globals: true,
-    setupFiles: ['./src/test/setup.ts'],
-    include: ['src/**/*.spec.{ts,tsx}'],
-    exclude: ['e2e/**', 'node_modules/**', '**/HelloWorld.spec.ts'],
   },
 })

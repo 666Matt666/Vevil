@@ -3,6 +3,7 @@ import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import cookieParser from 'cookie-parser';
+import { AllExceptionsFilter } from './http-exception.filter';
 
 async function bootstrap() {
   try {
@@ -54,6 +55,9 @@ async function bootstrap() {
         transform: true,
       }),
     );
+
+    // Filtro global de excepciones
+    app.useGlobalFilters(new AllExceptionsFilter());
 
     // Configuración de Swagger (documentación de API)
     const config = new DocumentBuilder()

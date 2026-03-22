@@ -10,7 +10,8 @@ const getApiBaseUrl = (): string => {
         return String(viteApiUrl).trim();
     }
     if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
-        return 'http://localhost:3000/api';
+        // Usar proxy de Vite para mismo origen (facilita cookies)
+        return '/api';
     }
     if (typeof window !== 'undefined') return `http://${window.location.hostname}:3000/api`;
     return RENDER_API_URL;
@@ -72,15 +73,15 @@ export const hasActiveSession = async (): Promise<boolean> => {
 // Logout: llama al endpoint para invalidar el refresh token en el servidor
 // y limpiar las cookies (el servidor envía cookies vacías con fecha pasada)
 export const clearTokens = async (): Promise<void> => {
-    console.log('[API] clearTokens: Starting logout...');
+    if (import.meta.env.DEV) console.log('[API] clearTokens: Starting logout...');
     try {
         await fetch(`${API_BASE_URL}/auth/logout`, {
             method: 'POST',
             credentials: 'include',
         });
-        console.log('[API] clearTokens: Logout request sent');
+        if (import.meta.env.DEV) console.log('[API] clearTokens: Logout request sent');
     } catch (e) {
-        console.error('[API] clearTokens: Error', e);
+        if (import.meta.env.DEV) console.error('[API] clearTokens: Error', e);
         // Ignorar errores en logout
     }
 };
@@ -123,12 +124,19 @@ export interface UserProfile {
     id?: string;
     email?: string;
     name?: string;
+    lastName?: string;
     role?: string;
+    isActive?: boolean;
 }
 export interface LoginResponse {
     access_token: string;
     refresh_token?: string;
     user?: UserProfile;
+}
+export interface RegisterResponse {
+    id: string;
+    email: string;
+    name: string;
 }
 export const login = async (email: string, password: string): Promise<LoginResponse> => {
     const loginUrl = `${API_BASE_URL}/auth/login`;
@@ -166,7 +174,7 @@ export const login = async (email: string, password: string): Promise<LoginRespo
     }
 };
 
-export const register = async (name: string, email: string, password: string): Promise<any> => {
+export const register = async (name: string, email: string, password: string): Promise<RegisterResponse> => {
     try {
         const response = await fetch(`${API_BASE_URL}/auth/register`, {
             method: 'POST',
@@ -293,10 +301,10 @@ export const resetPassword = async (token: string, newPassword: string): Promise
 // El navegador envía automáticamente las cookies HttpOnly con cada request
 // =====================================================
 const refreshAuth = async (): Promise<boolean> => {
-    console.log('[API] refreshAuth: Starting...');
+    if (import.meta.env.DEV) console.log('[API] refreshAuth: Starting...');
     const token = getRefreshToken();
     if (!token) {
-        console.log('[API] refreshAuth: No refresh token available');
+        if (import.meta.env.DEV) console.log('[API] refreshAuth: No refresh token available');
         return false;
     }
     try {
@@ -306,7 +314,7 @@ const refreshAuth = async (): Promise<boolean> => {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ refresh_token: token }),
         });
-        console.log('[API] refreshAuth: Response status:', res.status);
+        if (import.meta.env.DEV) console.log('[API] refreshAuth: Response status:', res.status);
         if (!res.ok) return false;
         
         // Obtener nuevos tokens del body
@@ -319,7 +327,7 @@ const refreshAuth = async (): Promise<boolean> => {
         }
         return true;
     } catch (e) {
-        console.error('[API] refreshAuth: Error', e);
+        if (import.meta.env.DEV) console.error('[API] refreshAuth: Error', e);
         return false;
     }
 };
@@ -342,14 +350,15 @@ const fetchWithAuth = async (
 
     let response: Response;
     try {
-        console.log('[API] fetchWithAuth:', endpoint, 'method:', options.method || 'GET');
+        if (import.meta.env.DEV) console.log('[API] fetchWithAuth:', endpoint, 'method:', options.method || 'GET');
         response = await fetch(`${API_BASE_URL}${endpoint}`, { 
             ...options, 
             headers,
+            credentials: 'include',
         });
-        console.log('[API] fetchWithAuth response:', endpoint, 'status:', response.status);
+        if (import.meta.env.DEV) console.log('[API] fetchWithAuth response:', endpoint, 'status:', response.status);
     } catch (e: any) {
-        console.error('[API] fetchWithAuth error:', endpoint, e);
+        if (import.meta.env.DEV) console.error('[API] fetchWithAuth error:', endpoint, e);
         if (e?.message?.includes('Failed to fetch') || e?.name === 'TypeError' || e?.name === 'AbortError') {
             throw new Error('No se pudo conectar al servidor. Si usás el plan gratis de Render, esperá ~1 minuto y probá de nuevo.');
         }
@@ -358,7 +367,7 @@ const fetchWithAuth = async (
 
     // Intentar refresh si hay 401
     if (response.status === 401) {
-        console.log('[API] fetchWithAuth: Got 401 for', endpoint, 'trying refresh...');
+        if (import.meta.env.DEV) console.log('[API] fetchWithAuth: Got 401 for', endpoint, 'trying refresh...');
         if (await refreshAuth()) {
             // Reintentar request con nuevo token
             const newToken = getAccessToken();
@@ -371,12 +380,12 @@ const fetchWithAuth = async (
                 ...options, 
                 headers: newHeaders,
             });
-            console.log('[API] fetchWithAuth after refresh:', endpoint, 'status:', response.status);
+            if (import.meta.env.DEV) console.log('[API] fetchWithAuth after refresh:', endpoint, 'status:', response.status);
         }
     }
 
     if (response.status === 401) {
-        console.log('[API] fetchWithAuth: Still 401 after refresh, redirecting to login');
+        if (import.meta.env.DEV) console.log('[API] fetchWithAuth: Still 401 after refresh, redirecting to login');
         if (!config.skipRedirectOn401 && typeof window !== 'undefined') {
             await clearTokens();
             const base = (import.meta.env.BASE_URL || '/').replace(/\/$/, '');
@@ -387,7 +396,7 @@ const fetchWithAuth = async (
     return response;
 };
 
-export const getProfile = async () => {
+export const getProfile = async (): Promise<UserProfile> => {
     const r = await fetchWithAuth('/auth/profile', {}, { skipRedirectOn401: true });
     if (!r.ok) throw new Error('No autorizado');
     return r.json();
@@ -425,12 +434,35 @@ export const webauthnLoginVerify = async (
     return r.json();
 };
 
+/**
+ * Tipo para opciones de registro WebAuthn (compatible con simplewebauthn)
+ * Basado en PublicKeyCredentialCreationOptionsJSON
+ */
+export interface WebAuthnRegisterOptions {
+    challenge: string;
+    rp: { name: string; id: string };
+    user: { id: string; name: string; displayName: string };
+    pubKeyCredParams: Array<{ type: 'public-key'; alg: number }>;
+    timeout?: number;
+    excludeCredentials?: Array<{ id: string; type: 'public-key' }>;
+    authenticatorSelection?: {
+        authenticatorAttachment?: 'platform' | 'cross-platform';
+        requireResidentKey?: boolean;
+        userVerification?: 'required' | 'preferred' | 'discouraged';
+    };
+    attestation?: 'none' | 'indirect' | 'direct' | 'enterprise';
+    extensions?: Record<string, unknown>;
+}
+
 /** Opciones para registrar huella (requiere sesión). */
-export const webauthnRegisterOptions = async (): Promise<{ challenge: string; [k: string]: unknown }> => {
+export const webauthnRegisterOptions = async (): Promise<WebAuthnRegisterOptions> => {
     const r = await fetchWithAuth('/auth/webauthn/register/options', { method: 'POST' });
     if (!r.ok) throw new Error('Error al obtener opciones');
     return r.json();
 };
+
+// Alias para compatibilidad
+export const webauthnRegisterOptionsTyped = webauthnRegisterOptions;
 
 /** Verificar y guardar credencial de huella (requiere sesión). */
 export const webauthnRegisterVerify = async (
@@ -709,10 +741,38 @@ export const invoicesApi = {
         return response.json();
     },
 
+    /** Elimina un pago de una factura. */
+    deletePayment: async (invoiceId: number, paymentId: number): Promise<{ success: boolean }> => {
+        const response = await fetchWithAuth(`/invoices/${invoiceId}/payments/${paymentId}`, {
+            method: 'DELETE',
+        });
+        if (!response.ok) throw new Error('Error al eliminar pago');
+        return response.json();
+    },
+
     /** Envía recordatorio de cobro por email al cliente. Solo facturas pendientes. */
     sendReminder: async (id: number): Promise<{ sent: boolean; reason?: string }> => {
         const response = await fetchWithAuth(`/invoices/${id}/send-reminder`, { method: 'POST' });
         if (!response.ok) throw new Error('Error al enviar recordatorio');
+        return response.json();
+    },
+
+    /** Actualiza una factura (solo facturas pending o cancelled pueden editarsi). */
+    update: async (id: number, invoice: { customerId?: number; currency?: string; status?: string; items?: { productId?: number; quantity?: number; priceAtSale?: number }[] }): Promise<Invoice> => {
+        const response = await fetchWithAuth(`/invoices/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify(invoice),
+        });
+        if (!response.ok) throw new Error('Error al actualizar factura');
+        return response.json();
+    },
+
+    /** Elimina una factura (solo facturas pending o cancelled pueden eliminarse). */
+    remove: async (id: number): Promise<{ success: boolean }> => {
+        const response = await fetchWithAuth(`/invoices/${id}`, {
+            method: 'DELETE',
+        });
+        if (!response.ok) throw new Error('Error al eliminar factura');
         return response.json();
     },
 };
@@ -803,6 +863,80 @@ export const auditApi = {
         const url = qs ? `/audit?${qs}` : '/audit';
         const response = await fetchWithAuth(url);
         if (!response.ok) throw new Error('Error al cargar auditoría');
+        return response.json();
+    },
+};
+
+// ============ USUARIOS (Admin) ============
+export interface SystemUser {
+    id: string;
+    email: string;
+    name: string;
+    lastName?: string;
+    role: string;
+    isActive: boolean;
+    createdAt: string;
+    updatedAt: string;
+}
+
+// Tipos de respuesta para usersApi
+export interface UsersListResponse {
+    data: SystemUser[];
+    total: number;
+}
+
+export interface ToggleActiveResponse {
+    isActive: boolean;
+    message: string;
+}
+
+export const usersApi = {
+    getAll: async (params?: { page?: number; limit?: number; search?: string }): Promise<UsersListResponse> => {
+        const queryParams = new URLSearchParams();
+        if (params?.page) queryParams.set('page', String(params.page));
+        if (params?.limit) queryParams.set('limit', String(params.limit));
+        if (params?.search) queryParams.set('search', params.search);
+        const query = queryParams.toString();
+        const response = await fetchWithAuth(`/users${query ? '?' + query : ''}`);
+        return response.json();
+    },
+    
+    toggleActive: async (userId: string): Promise<ToggleActiveResponse> => {
+        const response = await fetchWithAuth(`/users/${userId}/toggle-active`, { method: 'PATCH' });
+        return response.json();
+    },
+    
+    delete: async (userId: string): Promise<void> => {
+        await fetchWithAuth(`/users/${userId}`, { method: 'DELETE' });
+    },
+    
+    create: async (userData: { email: string; name: string; password: string; role?: string }): Promise<SystemUser> => {
+        const response = await fetchWithAuth('/users', {
+            method: 'POST',
+            body: JSON.stringify(userData),
+        });
+        if (!response.ok) {
+            const err = await response.json().catch(() => ({}));
+            throw new Error(err.message || 'Error al crear usuario');
+        }
+        return response.json();
+    },
+    
+    update: async (userId: string, userData: { email?: string; name?: string; password?: string; role?: string }): Promise<SystemUser> => {
+        const response = await fetchWithAuth(`/users/${userId}`, {
+            method: 'PATCH',
+            body: JSON.stringify(userData),
+        });
+        if (!response.ok) {
+            const err = await response.json().catch(() => ({}));
+            throw new Error(err.message || 'Error al actualizar usuario');
+        }
+        return response.json();
+    },
+    
+    // Get current user's profile (for regular users to see only their own data)
+    getMe: async (): Promise<SystemUser> => {
+        const response = await fetchWithAuth('/users/me');
         return response.json();
     },
 };

@@ -169,6 +169,26 @@ const helpItems: HelpItem[] = [
         ),
     },
     {
+        id: 'editar-factura',
+        title: 'Editar o eliminar una factura',
+        content: (
+            <>
+                <p style={{ margin: '0 0 8px 0' }}>Los administradores pueden editar y eliminar facturas que estén en estado <strong>Pendiente</strong> o <strong>Anulada</strong>. Las facturas <strong>Pagadas</strong> no pueden modificarse.</p>
+                <p style={{ margin: '0 0 8px 0' }}>En la lista de facturas, hacé clic en <strong>✏️</strong> para editar. Se abre un modal donde podés cambiar:</p>
+                <ul style={{ margin: '0 0 8px 0', paddingLeft: '20px' }}>
+                    <li>Cliente</li>
+                    <li>Moneda</li>
+                    <li>Estado</li>
+                    <li>Productos (agregar, eliminar o modificar cantidades)</li>
+                </ul>
+                <p style={{ margin: '0 0 8px 0' }}>Para eliminar, hacé clic en <strong>🗑️</strong> y confirmá en el modal que aparece. Esta acción no se puede deshacer.</p>
+                <p style={{ margin: 0 }}>
+                    <Link to="/invoices" style={{ color: '#6366f1', fontWeight: 600 }}>Ir a Facturas →</Link>
+                </p>
+            </>
+        ),
+    },
+    {
         id: 'sesion-expirada',
         title: 'Me sacó de la sesión o dice que no estoy logueado',
         content: (

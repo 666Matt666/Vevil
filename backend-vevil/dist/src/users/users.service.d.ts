@@ -23,6 +23,7 @@ export declare class UsersService {
         gender?: "male" | "female";
         avatar?: string;
         role: UserRole;
+        isActive: boolean;
         resetPasswordToken?: string;
         resetPasswordExpires?: Date;
         createdAt: Date;
@@ -31,4 +32,5 @@ export declare class UsersService {
     setResetPasswordToken(email: string, token: string, expires: Date): Promise<boolean>;
     findOneByResetToken(token: string): Promise<User | null>;
     clearResetPasswordToken(userId: string): Promise<void>;
+    toggleActive(id: string, requestingUserId?: string): Promise<User>;
 }

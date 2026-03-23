@@ -36,6 +36,7 @@ export declare class AuthController {
         gender?: "male" | "female";
         avatar?: string;
         role: import("../users/entities/user-role.enum").UserRole;
+        isActive: boolean;
         hashedRefreshToken?: string;
         resetPasswordToken?: string;
         resetPasswordExpires?: Date;
@@ -52,6 +53,7 @@ export declare class AuthController {
         lastName?: string;
         gender?: "male" | "female";
         avatar?: string;
+        isActive: boolean;
         createdAt: Date;
         updatedAt: Date;
     }>;

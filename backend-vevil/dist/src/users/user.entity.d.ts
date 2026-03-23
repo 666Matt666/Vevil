@@ -8,6 +8,7 @@ export declare class User {
     password?: string;
     avatar?: string;
     role: UserRole;
+    isActive: boolean;
     hashedRefreshToken?: string;
     resetPasswordToken?: string;
     resetPasswordExpires?: Date;

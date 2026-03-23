@@ -9,9 +9,14 @@ export declare class UsersController {
     private readonly usersService;
     constructor(usersService: UsersService);
     create(createUserDto: CreateUserDto): Promise<User>;
-    findAll(paginationQuery: PaginationQueryDto): Promise<PaginatedUsersResponseDto>;
+    findAll(paginationQuery: PaginationQueryDto, user: User): Promise<PaginatedUsersResponseDto>;
+    getMe(user: User): Promise<User>;
     uploadAvatar(user: User, file: Express.Multer.File): Promise<User>;
     findOne(id: string): Promise<User>;
     update(id: string, updateUserDto: UpdateUserDto, user: User): Promise<User>;
     remove(id: string): Promise<void>;
+    toggleActive(id: string, user: User): Promise<{
+        isActive: boolean;
+        message: string;
+    }>;
 }

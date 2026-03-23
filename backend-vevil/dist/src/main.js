@@ -8,6 +8,7 @@ const app_module_1 = require("./app.module");
 const common_1 = require("@nestjs/common");
 const swagger_1 = require("@nestjs/swagger");
 const cookie_parser_1 = __importDefault(require("cookie-parser"));
+const http_exception_filter_1 = require("./http-exception.filter");
 async function bootstrap() {
     try {
         if (process.env.NODE_ENV !== 'production') {
@@ -45,6 +46,7 @@ async function bootstrap() {
             forbidNonWhitelisted: true,
             transform: true,
         }));
+        app.useGlobalFilters(new http_exception_filter_1.AllExceptionsFilter());
         const config = new swagger_1.DocumentBuilder()
             .setTitle('Vevil API')
             .setDescription('API del sistema Vevil')

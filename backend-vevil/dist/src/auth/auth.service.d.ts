@@ -20,6 +20,7 @@ export declare class AuthService {
             email: string;
             name: string;
             role: string;
+            isActive: boolean;
         };
     }>;
     updateRefreshToken(userId: string, refreshToken: string): Promise<void>;
@@ -31,6 +32,7 @@ export declare class AuthService {
             email: string;
             name: string;
             role: string;
+            isActive: boolean;
         };
     }>;
     logout(userId: string): Promise<void>;
@@ -42,6 +44,7 @@ export declare class AuthService {
         gender?: "male" | "female";
         avatar?: string;
         role: UserRole;
+        isActive: boolean;
         hashedRefreshToken?: string;
         resetPasswordToken?: string;
         resetPasswordExpires?: Date;

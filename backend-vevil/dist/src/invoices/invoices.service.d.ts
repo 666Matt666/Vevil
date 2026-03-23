@@ -3,6 +3,7 @@ import { Invoice } from './invoice.entity';
 import { Payment } from './payment.entity';
 import { CreateInvoiceDto } from './dto/create-invoice.dto';
 import { CreatePaymentDto } from './dto/create-payment.dto';
+import { UpdateInvoiceDto } from './dto/update-invoice.dto';
 import { ProductsService } from '../products/products.service';
 import { CustomersService } from '../customers/customers.service';
 import { StockMovementsService } from '../stock-movements/stock-movements.service';
@@ -32,8 +33,11 @@ export declare class InvoicesService {
     updateStatus(id: number, status: string): Promise<Invoice>;
     getPayments(invoiceId: number): Promise<Payment[]>;
     addPayment(invoiceId: number, dto: CreatePaymentDto): Promise<Payment>;
+    deletePayment(paymentId: number, invoiceId: number): Promise<Payment>;
     sendReminder(invoiceId: number): Promise<{
         sent: boolean;
         reason?: string;
     }>;
+    update(id: number, updateInvoiceDto: UpdateInvoiceDto): Promise<Invoice>;
+    remove(id: number): Promise<void>;
 }

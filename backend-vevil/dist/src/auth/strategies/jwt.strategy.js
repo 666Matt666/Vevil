@@ -19,13 +19,9 @@ let JwtStrategy = class JwtStrategy extends (0, passport_1.PassportStrategy)(pas
     constructor(configService) {
         super({
             jwtFromRequest: (req) => {
-                console.log('[JWT Strategy] Cookies received:', req?.cookies ? Object.keys(req.cookies) : 'no cookies');
-                console.log('[JWT Strategy] All headers:', req?.headers?.cookie);
                 if (req && req.cookies && req.cookies[auth_controller_1.ACCESS_TOKEN_COOKIE]) {
-                    console.log('[JWT Strategy] Found access token in cookie');
                     return req.cookies[auth_controller_1.ACCESS_TOKEN_COOKIE];
                 }
-                console.log('[JWT Strategy] No cookie found, trying Authorization header');
                 return passport_jwt_1.ExtractJwt.fromAuthHeaderAsBearerToken()(req);
             },
             ignoreExpiration: false,
@@ -34,7 +30,7 @@ let JwtStrategy = class JwtStrategy extends (0, passport_1.PassportStrategy)(pas
         this.configService = configService;
     }
     async validate(payload) {
-        return { userId: payload.sub, email: payload.username, role: payload.role };
+        return { id: payload.sub, email: payload.username, role: payload.role };
     }
 };
 exports.JwtStrategy = JwtStrategy;

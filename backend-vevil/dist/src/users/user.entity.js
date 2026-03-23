@@ -54,6 +54,10 @@ __decorate([
     __metadata("design:type", String)
 ], User.prototype, "role", void 0);
 __decorate([
+    (0, typeorm_1.Column)({ default: true }),
+    __metadata("design:type", Boolean)
+], User.prototype, "isActive", void 0);
+__decorate([
     (0, typeorm_1.Column)({ nullable: true }),
     (0, class_transformer_1.Exclude)(),
     __metadata("design:type", String)

@@ -43,25 +43,22 @@ let AuthController = class AuthController {
     }
     setTokenCookies(res, accessToken, refreshToken) {
         const isProduction = process.env.NODE_ENV === 'production';
+        const sameSiteValue = isProduction ? 'strict' : 'lax';
         const cookieOptions = {
             httpOnly: true,
             secure: isProduction,
             maxAge: 15 * 60 * 1000,
             path: '/',
+            sameSite: sameSiteValue,
         };
-        if (isProduction) {
-            cookieOptions.sameSite = 'strict';
-        }
         res.cookie(exports.ACCESS_TOKEN_COOKIE, accessToken, cookieOptions);
         const refreshCookieOptions = {
             httpOnly: true,
             secure: isProduction,
             maxAge: exports.COOKIE_MAX_AGE,
             path: '/',
+            sameSite: sameSiteValue,
         };
-        if (isProduction) {
-            refreshCookieOptions.sameSite = 'strict';
-        }
         res.cookie(exports.REFRESH_TOKEN_COOKIE, refreshToken, refreshCookieOptions);
     }
     clearTokenCookies(res) {
@@ -69,23 +66,12 @@ let AuthController = class AuthController {
         res.clearCookie(exports.REFRESH_TOKEN_COOKIE, { path: '/' });
     }
     async login(user, _loginDto, req, res) {
-        console.log('[AUTH] Login request for user:', user?.email);
         const result = await this.authService.login(user);
         this.clearTokenCookies(res);
+        this.setTokenCookies(res, result.access_token, result.refresh_token);
         return res.json({
             access_token: result.access_token,
             refresh_token: result.refresh_token,
-            user: result.user,
-        });
-        await this.auditService.log({
-            userId: user?.id ?? null,
-            userEmail: user?.email ?? null,
-            action: 'auth.login',
-            entityType: 'auth',
-            entityId: user?.id ?? '',
-            ip: req?.ip ?? req?.headers?.['x-forwarded-for'] ?? null,
-        }).catch(() => { });
-        return res.json({
             user: result.user,
         });
     }
@@ -108,16 +94,12 @@ let AuthController = class AuthController {
     }
     async logout(user, res) {
         const userId = user.id ?? user.userId;
-        console.log('[AUTH] Logout for user:', userId);
         await this.authService.logout(userId);
         this.clearTokenCookies(res);
-        console.log('[AUTH] Logout complete for user:', userId);
         return res.json({ message: 'Sesión cerrada correctamente' });
     }
     async refreshTokens(user, res) {
-        console.log('[AUTH] Refresh tokens for user:', user.id, 'refreshToken present:', !!user.refreshToken);
         const result = await this.authService.refreshTokens(user.id, user.refreshToken);
-        console.log('[AUTH] Tokens refreshed successfully for user:', user.id);
         return res.json({
             access_token: result.access_token,
             refresh_token: result.refresh_token,

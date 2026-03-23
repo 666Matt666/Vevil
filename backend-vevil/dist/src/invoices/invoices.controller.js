@@ -18,6 +18,7 @@ const passport_1 = require("@nestjs/passport");
 const invoices_service_1 = require("./invoices.service");
 const create_invoice_dto_1 = require("./dto/create-invoice.dto");
 const update_invoice_status_dto_1 = require("./dto/update-invoice-status.dto");
+const update_invoice_dto_1 = require("./dto/update-invoice.dto");
 const create_payment_dto_1 = require("./dto/create-payment.dto");
 const audit_service_1 = require("../audit/audit.service");
 let InvoicesController = class InvoicesController {
@@ -85,6 +86,18 @@ let InvoicesController = class InvoicesController {
         }).catch(() => { });
         return payment;
     }
+    async deletePayment(invoiceId, paymentId, req) {
+        const payment = await this.invoicesService.deletePayment(+paymentId, +invoiceId);
+        await this.auditService.log({
+            ...this.userFromReq(req),
+            action: 'invoice.payment_deleted',
+            entityType: 'invoice',
+            entityId: invoiceId,
+            oldValue: { paymentId: payment.id, amount: payment.amount },
+            ip: req?.ip ?? req?.headers?.['x-forwarded-for'] ?? null,
+        }).catch(() => { });
+        return { success: true };
+    }
     findOne(id) {
         return this.invoicesService.findOne(+id);
     }
@@ -99,6 +112,33 @@ let InvoicesController = class InvoicesController {
             ip: req?.ip ?? req?.headers?.['x-forwarded-for'] ?? null,
         }).catch(() => { });
         return result;
+    }
+    async update(id, dto, req) {
+        const previous = await this.invoicesService.findOne(+id);
+        const updated = await this.invoicesService.update(+id, dto);
+        await this.auditService.log({
+            ...this.userFromReq(req),
+            action: 'invoice.updated',
+            entityType: 'invoice',
+            entityId: id,
+            oldValue: { total: previous.total, status: previous.status, customerId: previous.customerId },
+            newValue: { total: updated.total, status: updated.status, customerId: updated.customerId },
+            ip: req?.ip ?? req?.headers?.['x-forwarded-for'] ?? null,
+        }).catch(() => { });
+        return updated;
+    }
+    async remove(id, req) {
+        const invoice = await this.invoicesService.findOne(+id);
+        await this.invoicesService.remove(+id);
+        await this.auditService.log({
+            ...this.userFromReq(req),
+            action: 'invoice.deleted',
+            entityType: 'invoice',
+            entityId: id,
+            oldValue: { id: invoice.id, total: invoice.total, status: invoice.status },
+            ip: req?.ip ?? req?.headers?.['x-forwarded-for'] ?? null,
+        }).catch(() => { });
+        return { success: true };
     }
 };
 exports.InvoicesController = InvoicesController;
@@ -149,6 +189,15 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], InvoicesController.prototype, "addPayment", null);
 __decorate([
+    (0, common_1.Delete)(':invoiceId/payments/:paymentId'),
+    __param(0, (0, common_1.Param)('invoiceId')),
+    __param(1, (0, common_1.Param)('paymentId')),
+    __param(2, (0, common_1.Request)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String, Object]),
+    __metadata("design:returntype", Promise)
+], InvoicesController.prototype, "deletePayment", null);
+__decorate([
     (0, common_1.Get)(':id'),
     __param(0, (0, common_1.Param)('id')),
     __metadata("design:type", Function),
@@ -163,6 +212,23 @@ __decorate([
     __metadata("design:paramtypes", [String, Object]),
     __metadata("design:returntype", Promise)
 ], InvoicesController.prototype, "sendReminder", null);
+__decorate([
+    (0, common_1.Put)(':id'),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, common_1.Body)()),
+    __param(2, (0, common_1.Request)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, update_invoice_dto_1.UpdateInvoiceDto, Object]),
+    __metadata("design:returntype", Promise)
+], InvoicesController.prototype, "update", null);
+__decorate([
+    (0, common_1.Delete)(':id'),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, common_1.Request)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, Object]),
+    __metadata("design:returntype", Promise)
+], InvoicesController.prototype, "remove", null);
 exports.InvoicesController = InvoicesController = __decorate([
     (0, common_1.Controller)('invoices'),
     (0, common_1.UseGuards)((0, passport_1.AuthGuard)('jwt')),

@@ -38,9 +38,16 @@ let UsersController = class UsersController {
     create(createUserDto) {
         return this.usersService.create(createUserDto);
     }
-    async findAll(paginationQuery) {
+    async findAll(paginationQuery, user) {
+        const currentUser = await this.usersService.findOne(user.id);
+        if (currentUser.role !== user_role_enum_1.UserRole.ADMIN) {
+            throw new common_1.ForbiddenException('Solo los administradores pueden ver la lista de usuarios');
+        }
         const [users, total] = await this.usersService.findAll(paginationQuery);
         return { data: users, total };
+    }
+    async getMe(user) {
+        return this.usersService.findOne(user.id);
     }
     uploadAvatar(user, file) {
         return this.usersService.setAvatar(user.id, file.filename);
@@ -59,6 +66,13 @@ let UsersController = class UsersController {
     }
     remove(id) {
         return this.usersService.remove(id);
+    }
+    async toggleActive(id, user) {
+        const userResult = await this.usersService.toggleActive(id, user.id);
+        return {
+            isActive: userResult.isActive,
+            message: userResult.isActive ? 'Usuario activado' : 'Usuario desactivado',
+        };
     }
 };
 exports.UsersController = UsersController;
@@ -80,10 +94,20 @@ __decorate([
     (0, common_1.UseInterceptors)(cache_manager_1.CacheInterceptor),
     (0, swagger_1.ApiBearerAuth)(),
     __param(0, (0, common_1.Query)()),
+    __param(1, (0, get_user_decorator_1.GetUser)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [pagination_query_dto_1.PaginationQueryDto]),
+    __metadata("design:paramtypes", [pagination_query_dto_1.PaginationQueryDto,
+        user_entity_1.User]),
     __metadata("design:returntype", Promise)
 ], UsersController.prototype, "findAll", null);
+__decorate([
+    (0, common_1.Get)('me'),
+    (0, swagger_1.ApiBearerAuth)(),
+    __param(0, (0, get_user_decorator_1.GetUser)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [user_entity_1.User]),
+    __metadata("design:returntype", Promise)
+], UsersController.prototype, "getMe", null);
 __decorate([
     (0, common_1.Post)('avatar'),
     (0, common_1.UseInterceptors)((0, platform_express_1.FileInterceptor)('avatar', {
@@ -129,6 +153,19 @@ __decorate([
     __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", Promise)
 ], UsersController.prototype, "remove", null);
+__decorate([
+    (0, common_1.Patch)(':id/toggle-active'),
+    (0, roles_decorator_1.Roles)(user_role_enum_1.UserRole.ADMIN),
+    (0, swagger_1.ApiOperation)({ summary: 'Activar o desactivar un usuario (Solo Admin)' }),
+    (0, swagger_1.ApiResponse)({ status: 200, description: 'Usuario activado/desactivado exitosamente.' }),
+    (0, swagger_1.ApiResponse)({ status: 404, description: 'Usuario no encontrado.' }),
+    (0, swagger_1.ApiResponse)({ status: 400, description: 'No puedes desactivar tu propia cuenta.' }),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, get_user_decorator_1.GetUser)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, user_entity_1.User]),
+    __metadata("design:returntype", Promise)
+], UsersController.prototype, "toggleActive", null);
 exports.UsersController = UsersController = __decorate([
     (0, swagger_1.ApiTags)('Users'),
     (0, common_1.Controller)('users'),

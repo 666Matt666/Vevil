@@ -154,6 +154,14 @@ let UsersService = class UsersService {
             resetPasswordExpires: null,
         });
     }
+    async toggleActive(id, requestingUserId) {
+        if (requestingUserId && id === requestingUserId) {
+            throw new common_1.BadRequestException('No puedes desactivar tu propia cuenta');
+        }
+        const user = await this.findOne(id);
+        user.isActive = !user.isActive;
+        return this.userRepository.save(user);
+    }
 };
 exports.UsersService = UsersService;
 exports.UsersService = UsersService = __decorate([

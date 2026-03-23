@@ -51,6 +51,9 @@ let AuthService = class AuthService {
     async validateUser(email, pass) {
         const user = await this.usersService.findOneByEmail(email);
         if (user && user.password) {
+            if (!user.isActive) {
+                throw new common_1.UnauthorizedException('Tu cuenta está desactivada. Contacta al administrador.');
+            }
             const passwordMatches = await bcrypt.compare(pass, user.password);
             if (passwordMatches) {
                 const { password, ...result } = user;
@@ -80,6 +83,7 @@ let AuthService = class AuthService {
                 email: user.email,
                 name: user.name,
                 role: user.role != null ? String(user.role) : undefined,
+                isActive: user.isActive,
             },
         };
     }
@@ -104,6 +108,7 @@ let AuthService = class AuthService {
             name: user.name,
             createdAt: user.createdAt,
             updatedAt: user.updatedAt,
+            isActive: user.isActive ?? true,
         };
         return this.login(userPayloadForLogin);
     }

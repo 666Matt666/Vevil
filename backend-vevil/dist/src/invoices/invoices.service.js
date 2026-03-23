@@ -46,13 +46,33 @@ let InvoicesService = class InvoicesService {
             invoice.items = [];
             let total = 0;
             for (const itemDto of createInvoiceDto.items) {
-                const product = await this.productsService.findOne(itemDto.productId);
-                if (product.stock < itemDto.quantity) {
-                    throw new common_1.BadRequestException(`Insufficient stock for product ${product.name}`);
+                const databaseType = queryRunner.connection.options.type;
+                let productResult;
+                if (databaseType === 'postgres') {
+                    const productQuery = `
+                        SELECT id, name, price, stock, currency 
+                        FROM product 
+                        WHERE id = $1 
+                        FOR UPDATE
+                    `;
+                    productResult = await queryRunner.query(productQuery, [itemDto.productId]);
                 }
-                await this.productsService.update(product.id, {
-                    stock: product.stock - itemDto.quantity,
-                });
+                else {
+                    const productQuery = `
+                        SELECT id, name, price, stock, currency 
+                        FROM product 
+                        WHERE id = $1
+                    `;
+                    productResult = await queryRunner.query(productQuery, [itemDto.productId]);
+                }
+                if (!productResult || productResult.length === 0) {
+                    throw new common_1.NotFoundException(`Product with ID ${itemDto.productId} not found`);
+                }
+                const product = productResult[0];
+                if (product.stock < itemDto.quantity) {
+                    throw new common_1.BadRequestException(`Insufficient stock for product ${product.name}. Available: ${product.stock}, Requested: ${itemDto.quantity}`);
+                }
+                await queryRunner.query('UPDATE product SET stock = stock - $1 WHERE id = $2', [itemDto.quantity, itemDto.productId]);
                 const invoiceItem = new invoice_item_entity_1.InvoiceItem();
                 invoiceItem.product = product;
                 invoiceItem.quantity = itemDto.quantity;
@@ -141,6 +161,16 @@ let InvoicesService = class InvoicesService {
         });
         return this.paymentsRepository.save(payment);
     }
+    async deletePayment(paymentId, invoiceId) {
+        const payment = await this.paymentsRepository.findOne({
+            where: { id: paymentId, invoiceId },
+        });
+        if (!payment) {
+            throw new common_1.NotFoundException('Pago no encontrado');
+        }
+        await this.paymentsRepository.remove(payment);
+        return payment;
+    }
     async sendReminder(invoiceId) {
         const invoice = await this.findOne(invoiceId);
         if (invoice.status !== 'pending') {
@@ -156,6 +186,50 @@ let InvoicesService = class InvoicesService {
         const customerName = invoice.customer?.name || 'Cliente';
         await this.mailService.sendPaymentReminderEmail(email, customerName, invoiceNumber, total, currency);
         return { sent: true };
+    }
+    async update(id, updateInvoiceDto) {
+        const invoice = await this.findOne(id);
+        if (invoice.status === 'paid') {
+            throw new common_1.BadRequestException('No se puede editar una factura pagada. Cancele el pago primero.');
+        }
+        if (updateInvoiceDto.customerId) {
+            const customer = await this.customersService.findOne(updateInvoiceDto.customerId);
+            invoice.customer = customer;
+        }
+        if (updateInvoiceDto.currency) {
+            invoice.currency = updateInvoiceDto.currency;
+        }
+        if (updateInvoiceDto.status) {
+            invoice.status = updateInvoiceDto.status;
+        }
+        if (updateInvoiceDto.items && updateInvoiceDto.items.length > 0) {
+            await this.invoicesRepository.manager.delete('invoice_items', { invoice: { id } });
+            let total = 0;
+            const items = [];
+            for (const itemDto of updateInvoiceDto.items) {
+                const product = itemDto.productId ? await this.productsService.findOne(itemDto.productId) : null;
+                const item = new invoice_item_entity_1.InvoiceItem();
+                item.product = product;
+                item.quantity = itemDto.quantity || 1;
+                item.priceAtSale = itemDto.priceAtSale || (product?.price || 0);
+                total += item.priceAtSale * item.quantity;
+                items.push(item);
+            }
+            invoice.items = items;
+            invoice.total = total;
+        }
+        return this.invoicesRepository.save(invoice);
+    }
+    async remove(id) {
+        const invoice = await this.findOne(id);
+        if (invoice.status === 'paid') {
+            throw new common_1.BadRequestException('No se puede eliminar una factura pagada. Cancele el pago primero.');
+        }
+        const payments = await this.paymentsRepository.find({ where: { invoice: { id } } });
+        if (payments.length > 0) {
+            throw new common_1.BadRequestException('No se puede eliminar una factura con pagos asociados.');
+        }
+        await this.invoicesRepository.remove(invoice);
     }
 };
 exports.InvoicesService = InvoicesService;

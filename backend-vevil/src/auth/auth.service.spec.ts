@@ -27,6 +27,7 @@ describe('AuthService', () => {
     name: 'Test User',
     password: 'hashed',
     role: UserRole.USER,
+    isActive: true,
     createdAt: new Date(),
     updatedAt: new Date(),
   } as User;
@@ -120,9 +121,20 @@ describe('AuthService', () => {
         email: mockUser.email,
         name: mockUser.name,
         role: mockUser.role,
+        isActive: true,
       } as any);
 
-      expect(result).toEqual({ access_token: 'access', refresh_token: 'refresh' });
+      expect(result).toEqual({
+        access_token: 'access',
+        refresh_token: 'refresh',
+        user: {
+          id: mockUser.id,
+          email: mockUser.email,
+          name: mockUser.name,
+          role: mockUser.role,
+          isActive: true,
+        },
+      });
       expect(usersService.update).toHaveBeenCalledWith(mockUser.id, expect.objectContaining({ hashedRefreshToken: expect.any(String) }));
     });
   });

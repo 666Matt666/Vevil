@@ -140,6 +140,7 @@ describe('AuditService', () => {
       expect(repo.find).toHaveBeenCalledWith({
         order: { createdAt: 'DESC' },
         take: 50,
+        skip: 0,
       });
       expect(result).toEqual([mockAuditLog]);
     });
@@ -150,6 +151,7 @@ describe('AuditService', () => {
       expect(repo.find).toHaveBeenCalledWith({
         order: { createdAt: 'DESC' },
         take: 25,
+        skip: 0,
       });
     });
   });

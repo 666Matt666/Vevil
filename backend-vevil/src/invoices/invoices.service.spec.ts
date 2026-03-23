@@ -47,11 +47,17 @@ describe('InvoicesService', () => {
     queryRunner = {
       connect: jest.fn(),
       startTransaction: jest.fn(),
-      commitTransaction: jest.fn(),
-      rollbackTransaction: jest.fn(),
-      release: jest.fn(),
+      commitTransaction: jest.fn().mockResolvedValue(undefined),
+      rollbackTransaction: jest.fn().mockResolvedValue(undefined),
+      release: jest.fn().mockResolvedValue(undefined),
+      query: jest.fn(),
       manager: {
         save: jest.fn().mockResolvedValue(mockInvoice),
+      },
+      connection: {
+        options: {
+          type: 'sqlite',
+        },
       },
     };
 
@@ -201,8 +207,8 @@ describe('InvoicesService', () => {
   describe('create', () => {
     it('should create invoice and deduct stock when stock is sufficient', async () => {
       customersService.findOne.mockResolvedValue(mockCustomer as Customer);
-      productsService.findOne.mockResolvedValue(mockProduct as Product);
-      productsService.update.mockResolvedValue(undefined);
+      // Mock query to return product for SELECT and succeed for UPDATE
+      queryRunner.query.mockResolvedValueOnce([{ id: 1, name: 'Producto', price: 100, stock: 10 }]);
 
       const result = await service.create({
         customerId: 1,
@@ -211,13 +217,18 @@ describe('InvoicesService', () => {
 
       expect(queryRunner.manager.save).toHaveBeenCalled();
       expect(queryRunner.commitTransaction).toHaveBeenCalled();
-      expect(productsService.update).toHaveBeenCalledWith(1, { stock: 8 });
+      // Verify stock was deducted via query
+      expect(queryRunner.query).toHaveBeenCalledWith(
+        'UPDATE product SET stock = stock - $1 WHERE id = $2',
+        [2, 1],
+      );
       expect(result).toEqual(mockInvoice);
     });
 
     it('should throw BadRequestException and rollback when stock insufficient', async () => {
       customersService.findOne.mockResolvedValue(mockCustomer as Customer);
-      productsService.findOne.mockResolvedValue({ ...mockProduct, stock: 1 } as Product);
+      // Mock query to return product with insufficient stock
+      queryRunner.query.mockResolvedValueOnce([{ id: 1, name: 'Producto', price: 100, stock: 1 }]);
 
       await expect(
         service.create({
@@ -226,7 +237,6 @@ describe('InvoicesService', () => {
         } as CreateInvoiceDto),
       ).rejects.toThrow(BadRequestException);
       expect(queryRunner.rollbackTransaction).toHaveBeenCalled();
-      expect(productsService.update).not.toHaveBeenCalled();
     });
 
     it('should throw NotFoundException when customer does not exist', async () => {

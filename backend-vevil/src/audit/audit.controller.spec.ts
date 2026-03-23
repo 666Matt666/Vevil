@@ -22,6 +22,7 @@ describe('AuditController', () => {
     findByUser: jest.fn().mockResolvedValue(mockLogs),
     findByEntity: jest.fn().mockResolvedValue(mockLogs),
     findRecent: jest.fn().mockResolvedValue(mockLogs),
+    getTotalCount: jest.fn().mockResolvedValue(mockLogs.length),
   };
 
   beforeEach(async () => {
@@ -46,7 +47,7 @@ describe('AuditController', () => {
       expect(service.findByUser).toHaveBeenCalledWith('user-uuid', 50);
       expect(service.findByEntity).not.toHaveBeenCalled();
       expect(service.findRecent).not.toHaveBeenCalled();
-      expect(result).toEqual(mockLogs);
+      expect(result).toEqual({ data: mockLogs, total: mockLogs.length });
     });
 
     it('should call findByEntity when entityType and entityId are provided', async () => {
@@ -60,24 +61,24 @@ describe('AuditController', () => {
       expect(service.findByEntity).toHaveBeenCalledWith('invoice', '1', 30);
       expect(service.findByUser).not.toHaveBeenCalled();
       expect(service.findRecent).not.toHaveBeenCalled();
-      expect(result).toEqual(mockLogs);
+      expect(result).toEqual({ data: mockLogs, total: mockLogs.length });
     });
 
     it('should call findRecent when no filters are provided', async () => {
       const result = await controller.list(undefined, undefined, undefined, undefined);
 
-      expect(service.findRecent).toHaveBeenCalledWith(50);
+      expect(service.findRecent).toHaveBeenCalledWith(50, 0);
       expect(service.findByUser).not.toHaveBeenCalled();
       expect(service.findByEntity).not.toHaveBeenCalled();
-      expect(result).toEqual(mockLogs);
+      expect(result).toEqual({ data: mockLogs, total: mockLogs.length });
     });
 
     it('should cap limit at 200 and use default 50 for invalid values', async () => {
       await controller.list(undefined, undefined, undefined, '999');
-      expect(service.findRecent).toHaveBeenCalledWith(200);
+      expect(service.findRecent).toHaveBeenCalledWith(200, 0);
 
       await controller.list(undefined, undefined, undefined, 'invalid');
-      expect(service.findRecent).toHaveBeenCalledWith(50);
+      expect(service.findRecent).toHaveBeenCalledWith(50, 0);
     });
 
     it('userId takes precedence over entity params', async () => {

@@ -52,6 +52,7 @@ describe('MetricsService', () => {
       createQueryBuilder: jest.fn(() => ({
         innerJoin: jest.fn().mockReturnThis(),
         select: jest.fn().mockReturnThis(),
+        addSelect: jest.fn().mockReturnThis(),
         where: jest.fn().mockReturnThis(),
         groupBy: jest.fn().mockReturnThis(),
         addGroupBy: jest.fn().mockReturnThis(),

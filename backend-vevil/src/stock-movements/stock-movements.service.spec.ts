@@ -51,7 +51,7 @@ describe('StockMovementsService', () => {
       productsService.findOne.mockResolvedValue({ ...mockProduct });
       productsService.update.mockResolvedValue({});
 
-      const dto = { productId: 1, type: 'in' as const, quantity: 50, reason: 'purchase' };
+      const dto = { productId: 1, type: 'in' as const, quantity: 50, reason: 'purchase' as const };
       const result = await service.create(dto);
 
       expect(productsService.findOne).toHaveBeenCalledWith(1);
@@ -65,7 +65,7 @@ describe('StockMovementsService', () => {
       productsService.findOne.mockResolvedValue({ ...mockProduct });
       productsService.update.mockResolvedValue({});
 
-      const dto = { productId: 1, type: 'out' as const, quantity: 30, reason: 'adjustment_out' };
+      const dto = { productId: 1, type: 'out' as const, quantity: 30, reason: 'adjustment_out' as const };
       const result = await service.create(dto);
 
       expect(productsService.update).toHaveBeenCalledWith(1, { stock: 70 });
@@ -75,7 +75,7 @@ describe('StockMovementsService', () => {
     it('should throw BadRequestException when stock is insufficient', async () => {
       productsService.findOne.mockResolvedValue({ ...mockProduct, stock: 10 });
 
-      const dto = { productId: 1, type: 'out' as const, quantity: 50, reason: 'adjustment_out' };
+      const dto = { productId: 1, type: 'out' as const, quantity: 50, reason: 'adjustment_out' as const };
 
       await expect(service.create(dto)).rejects.toThrow(BadRequestException);
       await expect(service.create(dto)).rejects.toThrow('Stock insuficiente');
@@ -84,7 +84,7 @@ describe('StockMovementsService', () => {
     it('should throw NotFoundException when product not found', async () => {
       productsService.findOne.mockRejectedValue(new NotFoundException());
 
-      const dto = { productId: 999, type: 'in' as const, quantity: 10, reason: 'purchase' };
+      const dto = { productId: 999, type: 'in' as const, quantity: 10, reason: 'purchase' as const };
 
       await expect(service.create(dto)).rejects.toThrow(NotFoundException);
     });

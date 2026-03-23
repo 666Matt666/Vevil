@@ -4,6 +4,7 @@ import { AuthService } from "./auth.service";
 import { PendingRegistrationsService } from "@/pending-registrations/pending-registrations.service";
 import { UsersService } from "@/users/users.service";
 import { AuditService } from "@/audit/audit.service";
+import { UserRole } from "@/users/entities/user-role.enum";
 
 describe("AuthController", () => {
   let controller: AuthController;
@@ -13,8 +14,12 @@ describe("AuthController", () => {
     id: "1",
     email: "test@test.com",
     name: "Test",
-    role: "user",
+    role: UserRole.USER,
     isActive: true,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    password: 'hashed',
+    hashedRefreshToken: 'token',
   };
 
   const mockAuthService = {
@@ -41,7 +46,7 @@ describe("AuthController", () => {
   };
 
   const mockUsersService = {
-    findOne: jest.fn().mockResolvedValue(mockUser),
+    findOne: jest.fn().mockResolvedValue({ ...mockUser }),
     findOneByEmail: jest.fn().mockResolvedValue(mockUser),
   };
 
@@ -98,7 +103,7 @@ describe("AuthController", () => {
 
   describe("changePassword", () => {
     it("should call authService.changePassword", async () => {
-      const user = { ...mockUser, id: "1" };
+      const user = { ...mockUser, id: "1" } as any;
       const dto = { currentPassword: "oldpass", newPassword: "newpass123" };
       const result = await controller.changePassword(user, dto);
       expect(authService.changePassword).toHaveBeenCalledWith("1", dto.currentPassword, dto.newPassword);
@@ -108,11 +113,13 @@ describe("AuthController", () => {
 
   describe("getProfile", () => {
     it("should return user profile without sensitive data", async () => {
-      const user = { ...mockUser, id: "1" };
+      const user = { ...mockUser, id: "1" } as any;
+      mockUsersService.findOne.mockResolvedValueOnce({ ...mockUser });
       const result = await controller.getProfile(user);
       expect(mockUsersService.findOne).toHaveBeenCalledWith("1");
-      expect(result.password).toBeUndefined();
-      expect(result.hashedRefreshToken).toBeUndefined();
+      // The controller returns the user without password and hashedRefreshToken
+      expect((result as any).password).toBeUndefined();
+      expect((result as any).hashedRefreshToken).toBeUndefined();
     });
   });
 });

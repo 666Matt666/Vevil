@@ -29,7 +29,7 @@ const Layout: React.FC = () => {
     // Obtener profile con refetchOnMount=true para detectar cambios de usuario al montar
     const { data: profileData, error: profileError, isLoading: profileLoading } = useProfile({ refetchOnMount: true });
     const { data: pendingCountData } = usePendingCount();
-    
+
     // Sincronizar profile del cache de React Query
     const [profile, setProfile] = useState<UserProfile | null>(() => {
         try {
@@ -48,17 +48,17 @@ const Layout: React.FC = () => {
             // Esto es un caso de logout, no hacer nada aquí
             return;
         }
-        
+
         if (profileData) {
             const newUserId = String(profileData.id ?? '');
             const currentUserId = String(profile?.id ?? '');
-            
+
             // Forzar actualización siempre que haya nuevos datos del perfil
             // Esto asegura que el menú se actualice cuando cambia el usuario
             setProfile(profileData);
             try {
                 localStorage.setItem('vevil_profile', JSON.stringify(profileData));
-            } catch (_) {}
+            } catch (_) { }
         }
     }, [profileData]);
 
@@ -67,7 +67,7 @@ const Layout: React.FC = () => {
         if (profileError) {
             const errorMsg = getErrorMessage(profileError);
             console.error('[Layout] Profile error:', errorMsg);
-            
+
             // Si hay error, verificar si tenemos un admin en localStorage
             let stored = profile;
             if (!stored) {
@@ -76,12 +76,12 @@ const Layout: React.FC = () => {
                     stored = s ? JSON.parse(s) : null;
                 } catch { /* ignore */ }
             }
-            
+
             const trustedAdmin = stored && (
                 String(stored?.role ?? '').toLowerCase() === 'admin' ||
                 stored?.email?.toLowerCase() === 'admin@vevil.com'
             );
-            
+
             if (!trustedAdmin) {
                 // Solo redirigir si no tenemos un admin de confianza
                 clearTokens();
@@ -94,21 +94,21 @@ const Layout: React.FC = () => {
     const isAdmin =
         String(profileData?.role ?? profile?.role ?? '').toLowerCase() === 'admin' ||
         (profileData?.email?.toLowerCase() === 'admin@vevil.com' || profile?.email?.toLowerCase() === 'admin@vevil.com');
-    
+
     // Pending count de React Query - solo admins ven el badge
     const pendingCount = isAdmin ? (pendingCountData ?? 0) : 0;
-    
+
     // Menú para todos los usuarios: muestra "Configuración"
     const baseMenuItems: MenuItem[] = [
         ...menuItems,
         { label: 'Configuración', icon: '⚙️', path: '/settings' },
     ];
-    
+
     // Agregar elementos de solo admin: "Usuarios" (todos los usuarios), "Auditoría"
     // Si es admin, agrega los items de admin; si no, usa el menú base
     const menuToRender = isAdmin ? [
         ...baseMenuItems,
-        { label: 'Usuarios', icon: '👥', path: '/admin/users' },
+        { label: 'Usuarios', icon: '👥', path: '/admin/users', description: 'Gestión de usuarios' },
         { label: 'Auditoría', icon: '📋', path: '/audit' },
     ] : baseMenuItems;
 
@@ -174,7 +174,7 @@ const Layout: React.FC = () => {
         <div style={{ display: 'flex', minHeight: '100vh' }}>
             {/* Overlay para cerrar menú en móvil */}
             {isMobile && isMobileMenuOpen && (
-                <div 
+                <div
                     onClick={() => setIsMobileMenuOpen(false)}
                     style={{
                         position: 'fixed',
@@ -214,18 +214,18 @@ const Layout: React.FC = () => {
                     alignItems: 'center'
                 }}>
                     <div>
-                        <h1 style={{ 
-                            fontSize: '24px', 
-                            fontWeight: 700, 
+                        <h1 style={{
+                            fontSize: '24px',
+                            fontWeight: 700,
                             margin: 0,
                             color: '#818cf8'
                         }}>
                             Vevil
                         </h1>
-                        <p style={{ 
-                            fontSize: '12px', 
-                            color: '#94a3b8', 
-                            margin: '4px 0 0 0' 
+                        <p style={{
+                            fontSize: '12px',
+                            color: '#94a3b8',
+                            margin: '4px 0 0 0'
                         }}>
                             Sistema de Gestión
                         </p>
@@ -255,7 +255,7 @@ const Layout: React.FC = () => {
                             location.pathname === item.path ||
                             (item.path !== '/dashboard' && location.pathname.startsWith(item.path));
                         const badge = 'badge' in item ? (item as MenuItem).badge : undefined;
-                        
+
                         return (
                             <Link
                                 key={item.path}
@@ -352,8 +352,8 @@ const Layout: React.FC = () => {
             </aside>
 
             {/* Main Content */}
-            <main style={{ 
-                flex: 1, 
+            <main style={{
+                flex: 1,
                 backgroundColor: '#f1f5f9',
                 overflow: 'auto',
                 marginLeft: isMobile ? 0 : '260px',
@@ -392,26 +392,26 @@ const Layout: React.FC = () => {
                             }}
                             aria-label="Menú"
                         >
-                            <span style={{ 
-                                width: '24px', 
-                                height: '3px', 
-                                backgroundColor: 'white', 
+                            <span style={{
+                                width: '24px',
+                                height: '3px',
+                                backgroundColor: 'white',
                                 borderRadius: '2px',
                                 transition: 'all 0.3s',
                                 transform: isMobileMenuOpen ? 'rotate(45deg) translate(5px, 5px)' : 'none'
                             }} />
-                            <span style={{ 
-                                width: '24px', 
-                                height: '3px', 
-                                backgroundColor: 'white', 
+                            <span style={{
+                                width: '24px',
+                                height: '3px',
+                                backgroundColor: 'white',
                                 borderRadius: '2px',
                                 transition: 'all 0.3s',
                                 opacity: isMobileMenuOpen ? 0 : 1
                             }} />
-                            <span style={{ 
-                                width: '24px', 
-                                height: '3px', 
-                                backgroundColor: 'white', 
+                            <span style={{
+                                width: '24px',
+                                height: '3px',
+                                backgroundColor: 'white',
                                 borderRadius: '2px',
                                 transition: 'all 0.3s',
                                 transform: isMobileMenuOpen ? 'rotate(-45deg) translate(5px, -5px)' : 'none'
@@ -419,19 +419,19 @@ const Layout: React.FC = () => {
                         </button>
 
                         {/* Título de página */}
-                        <span style={{ 
-                            color: 'white', 
-                            fontSize: '16px', 
-                            fontWeight: 600 
+                        <span style={{
+                            color: 'white',
+                            fontSize: '16px',
+                            fontWeight: 600
                         }}>
                             {getCurrentPageTitle()}
                         </span>
 
                         {/* Logo pequeño */}
-                        <span style={{ 
-                            color: '#818cf8', 
-                            fontSize: '18px', 
-                            fontWeight: 700 
+                        <span style={{
+                            color: '#818cf8',
+                            fontSize: '18px',
+                            fontWeight: 700
                         }}>
                             V
                         </span>

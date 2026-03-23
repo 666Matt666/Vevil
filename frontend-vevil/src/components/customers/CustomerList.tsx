@@ -260,7 +260,7 @@ const CustomerList: React.FC = () => {
                 <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
                     <button
                         type="button"
-                        onClick={() => exportCustomersToCsv(filteredCustomers, getCustomerMainPhone)}
+                        onClick={() => exportCustomersToCsv(customers, getCustomerMainPhone)}
                         style={{
                             ...buttonStyle,
                             padding: '10px 18px',

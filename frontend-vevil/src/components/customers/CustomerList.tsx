@@ -82,6 +82,7 @@ const emptyForm: CustomerFormData = {
     ruc: ''
 };
 
+// CustomerList component - displays and manages customers
 const CustomerList: React.FC = () => {
     const [customers, setCustomers] = useState<Customer[]>([]);
     const [total, setTotal] = useState(0);
@@ -93,7 +94,7 @@ const CustomerList: React.FC = () => {
     const [formData, setFormData] = useState<CustomerFormData>(emptyForm);
     const [saving, setSaving] = useState(false);
     const [successMessage, setSuccessMessage] = useState<string | null>(null);
-    
+
     const [searchText, setSearchText] = useState('');
     const [filterCity, setFilterCity] = useState('all');
     const [departments, setDepartments] = useState<string[]>([]);
@@ -118,7 +119,7 @@ const CustomerList: React.FC = () => {
     };
 
     useEffect(() => {
-        customersApi.getDepartments().then(setDepartments).catch(() => {});
+        customersApi.getDepartments().then(setDepartments).catch(() => { });
     }, []);
 
     useEffect(() => {
@@ -232,17 +233,17 @@ const CustomerList: React.FC = () => {
     }
 
     return (
-        <motion.div 
-            className="responsive-padding" 
+        <motion.div
+            className="responsive-padding"
             style={{ padding: '32px' }}
             initial="hidden"
             animate="visible"
             variants={fadeInUp}
         >
             {/* Header */}
-            <div style={{ 
-                display: 'flex', 
-                justifyContent: 'space-between', 
+            <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
                 alignItems: 'flex-start',
                 marginBottom: '24px',
                 flexWrap: 'wrap',
@@ -271,7 +272,7 @@ const CustomerList: React.FC = () => {
                     >
                         📥 Exportar CSV
                     </button>
-                    <button 
+                    <button
                         onClick={openCreateModal}
                         style={{
                             ...buttonStyle,

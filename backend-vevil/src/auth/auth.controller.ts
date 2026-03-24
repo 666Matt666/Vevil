@@ -52,11 +52,9 @@ export class AuthController {
     const isProduction = process.env.NODE_ENV === 'production';
     console.log('[Auth] setTokenCookies: isProduction:', isProduction);
 
-    // Configuración de cookies con seguridad apropiada para cada entorno
-    // 'lax' permite cookies en navegaciones de primer nivel (ideal para desarrollo)
-    // 'strict' es más seguro pero puede bloquear redirectos
-    // IMPORTANTE: Usar 'lax' en producción hasta que funcione bien, luego cambiar a 'strict'
-    const sameSiteValue = 'lax'; // Cambiar a 'strict' si todo funciona
+    // Configuración de cookies para cross-site (Vercel -> Render)
+    // 'none' permite cookies en cross-site requests pero requiere secure (HTTPS)
+    const sameSiteValue = 'none'; // Cambiar a 'strict' si todo funciona
 
     const cookieOptions: any = {
       httpOnly: true,

@@ -299,10 +299,10 @@ export const resetPassword = async (token: string, newPassword: string): Promise
 // El navegador envía automáticamente las cookies HttpOnly con cada request
 // =====================================================
 const refreshAuth = async (): Promise<boolean> => {
-    if (import.meta.env.DEV) console.log('[API] refreshAuth: Starting...');
+    console.log('[API] refreshAuth: Starting...');
     const token = getRefreshToken();
     if (!token) {
-        if (import.meta.env.DEV) console.log('[API] refreshAuth: No refresh token available');
+        console.log('[API] refreshAuth: No refresh token available');
         return false;
     }
     try {
@@ -312,7 +312,7 @@ const refreshAuth = async (): Promise<boolean> => {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ refresh_token: token }),
         });
-        if (import.meta.env.DEV) console.log('[API] refreshAuth: Response status:', res.status);
+        console.log('[API] refreshAuth: Response status:', res.status);
         if (!res.ok) return false;
 
         // Obtener nuevos tokens del body
@@ -325,7 +325,7 @@ const refreshAuth = async (): Promise<boolean> => {
         }
         return true;
     } catch (e) {
-        if (import.meta.env.DEV) console.error('[API] refreshAuth: Error', e);
+        console.error('[API] refreshAuth: Error', e);
         return false;
     }
 };

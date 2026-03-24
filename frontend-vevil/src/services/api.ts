@@ -300,9 +300,11 @@ export const resetPassword = async (token: string, newPassword: string): Promise
 // =====================================================
 const refreshAuth = async (): Promise<boolean> => {
     console.log('[API] refreshAuth: Starting...');
-    const token = getRefreshToken();
-    if (!token) {
-        console.log('[API] refreshAuth: No refresh token available');
+    const currentRefreshToken = getRefreshToken();
+    console.log('[API] refreshAuth: Current refresh token:', currentRefreshToken ? 'EXISTS' : 'MISSING');
+
+    if (!currentRefreshToken) {
+        console.log('[API] refreshAuth: No refresh token available - returning false');
         return false;
     }
     try {
@@ -310,19 +312,26 @@ const refreshAuth = async (): Promise<boolean> => {
         const res = await fetch(`${API_BASE_URL}/auth/refresh`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ refresh_token: token }),
+            body: JSON.stringify({ refresh_token: currentRefreshToken }),
         });
         console.log('[API] refreshAuth: Response status:', res.status);
-        if (!res.ok) return false;
+        if (!res.ok) {
+            console.log('[API] refreshAuth: Response not OK, returning false');
+            return false;
+        }
 
         // Obtener nuevos tokens del body
         const data = await res.json();
+        console.log('[API] refreshAuth: New tokens received:', data.access_token ? 'YES' : 'NO');
         if (data.access_token) {
             setAccessToken(data.access_token);
+            console.log('[API] refreshAuth: New access token set');
         }
         if (data.refresh_token) {
             setRefreshToken(data.refresh_token);
+            console.log('[API] refreshAuth: New refresh token set');
         }
+        console.log('[API] refreshAuth: Success, returning true');
         return true;
     } catch (e) {
         console.error('[API] refreshAuth: Error', e);

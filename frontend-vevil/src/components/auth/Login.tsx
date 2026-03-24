@@ -26,8 +26,8 @@ const Login: React.FC = () => {
     const navigate = useNavigate();
 
     useEffect(() => {
-        // Verificar si hay sesión activa usando el perfil guardado o intentando obtenerlo
-        // Con HttpOnly cookies, el navegador maneja la sesión automáticamente
+        // Verificar si hay sesión activa usando el perfil guardado
+        // Solo intentar obtener perfil si hay algo en localStorage
         const profile = localStorage.getItem('vevil_profile');
         if (profile) {
             // Hay un perfil guardado, intentamos obtener el perfil del servidor para verificar la sesión
@@ -38,10 +38,14 @@ const Login: React.FC = () => {
     }, [navigate]);
 
     useEffect(() => {
-        if (showSessionExpired && searchParams.get('expired') === '1') {
-            setSearchParams({}, { replace: true });
+        // Limpiar el parámetro expired solo si existe, pero mantenerlo en la URL un momento
+        const expiredParam = searchParams.get('expired');
+        if (expiredParam === '1') {
+            // Mostrar el mensaje pero no redirigir automáticamente
+            setShowSessionExpired(true);
+            // No limpiar la URL inmediatamente para que el usuario pueda ver el mensaje
         }
-    }, [showSessionExpired, searchParams, setSearchParams]);
+    }, [searchParams]);
 
     useEffect(() => {
         setSupportsWebAuthn(typeof window !== 'undefined' && browserSupportsWebAuthn());
@@ -60,7 +64,7 @@ const Login: React.FC = () => {
             await login(email, password);
             try {
                 localStorage.setItem(LOGIN_EMAIL_KEY, email.trim());
-            } catch (_) {}
+            } catch (_) { }
             // Obtener el perfil después del login exitoso
             const user = await getProfile();
             // Usar el rol real del usuario desde el backend
@@ -114,7 +118,7 @@ const Login: React.FC = () => {
             );
             try {
                 localStorage.setItem(LOGIN_EMAIL_KEY, email.trim());
-            } catch (_) {}
+            } catch (_) { }
             // Obtener el perfil después del login exitoso
             const user = await getProfile();
             const profile = { ...user };
@@ -408,15 +412,15 @@ const Login: React.FC = () => {
                                     }}
                                     title={isWebAuthnLoading ? 'Verificando...' : 'Iniciar con huella digital'}
                                 >
-                                    <img 
-                                        src="/huella.gif" 
-                                        alt="Huella digital" 
-                                        style={{ 
-                                            width: '32px', 
+                                    <img
+                                        src="/huella.gif"
+                                        alt="Huella digital"
+                                        style={{
+                                            width: '32px',
                                             height: '32px',
                                             opacity: isWebAuthnLoading ? 0.5 : 1,
                                             transition: 'opacity 0.2s'
-                                        }} 
+                                        }}
                                     />
                                 </button>
                             )}

@@ -43,19 +43,21 @@ export class AuthController {
     private pendingRegistrationsService: PendingRegistrationsService,
     private usersService: UsersService,
     private auditService: AuditService,
-  ) {}
+  ) { }
 
   /**
    * Configura las cookies HttpOnly con los tokens de autenticación.
    */
   private setTokenCookies(res: Response, accessToken: string, refreshToken: string): void {
     const isProduction = process.env.NODE_ENV === 'production';
-    
+    console.log('[Auth] setTokenCookies: isProduction:', isProduction);
+
     // Configuración de cookies con seguridad apropiada para cada entorno
     // 'lax' permite cookies en navegaciones de primer nivel (ideal para desarrollo)
     // 'strict' es más seguro pero puede bloquear redirectos
-    const sameSiteValue = isProduction ? 'strict' : 'lax';
-    
+    // IMPORTANTE: Usar 'lax' en producción hasta que funcione bien, luego cambiar a 'strict'
+    const sameSiteValue = 'lax'; // Cambiar a 'strict' si todo funciona
+
     const cookieOptions: any = {
       httpOnly: true,
       secure: isProduction,
@@ -63,8 +65,9 @@ export class AuthController {
       path: '/',
       sameSite: sameSiteValue,
     };
-    
+
     res.cookie(ACCESS_TOKEN_COOKIE, accessToken, cookieOptions);
+    console.log('[Auth] Access cookie set, options:', JSON.stringify(cookieOptions));
 
     // Para el refresh token - configuración similar
     const refreshCookieOptions: any = {
@@ -74,8 +77,9 @@ export class AuthController {
       path: '/',
       sameSite: sameSiteValue,
     };
-    
+
     res.cookie(REFRESH_TOKEN_COOKIE, refreshToken, refreshCookieOptions);
+    console.log('[Auth] Refresh cookie set, options:', JSON.stringify(refreshCookieOptions));
   }
 
   /**
@@ -100,14 +104,17 @@ export class AuthController {
     @Request() req: any,
     @Res() res: Response,
   ) {
+    console.log('[Auth] Login attempt for:', user?.email);
     const result = await this.authService.login(user);
-    
+    console.log('[Auth] Login result, user:', result.user?.email);
+
     // Limpiar cookies si existen de intentos anteriores
     this.clearTokenCookies(res);
-    
+
     // Configurar cookies con los tokens
     this.setTokenCookies(res, result.access_token, result.refresh_token);
-    
+    console.log('[Auth] Cookies set, sending response...');
+
     // Enviar tokens en el body (sistema original que funciona)
     return res.json({
       access_token: result.access_token,
@@ -155,8 +162,10 @@ export class AuthController {
   @ApiResponse({ status: 401, description: 'No autorizado.' })
   async getProfile(@GetUser() user: User & { userId?: string }) {
     const id = user.id ?? (user as any).userId;
+    console.log('[Auth] getProfile called, userId:', id);
     const full = await this.usersService.findOne(id);
     const { password, hashedRefreshToken, resetPasswordToken, resetPasswordExpires, ...profile } = full;
+    console.log('[Auth] getProfile returning:', profile.email);
     return { ...profile, role: full.role != null ? String(full.role) : undefined };
   }
 

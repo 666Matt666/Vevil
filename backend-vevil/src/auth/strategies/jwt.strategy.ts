@@ -13,9 +13,12 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       jwtFromRequest: (req: Request) => {
         // Primero intentar desde cookie
         if (req && req.cookies && req.cookies[ACCESS_TOKEN_COOKIE]) {
+          console.log('[JWT Strategy] Token from cookie:', req.cookies[ACCESS_TOKEN_COOKIE].substring(0, 20) + '...');
           return req.cookies[ACCESS_TOKEN_COOKIE];
         }
         // Fallback: desde header Authorization (Bearer token)
+        const authHeader = req?.headers?.authorization;
+        console.log('[JWT Strategy] Token from header:', authHeader ? authHeader.substring(0, 20) + '...' : 'NONE');
         return ExtractJwt.fromAuthHeaderAsBearerToken()(req);
       },
       ignoreExpiration: false,
@@ -24,6 +27,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   }
 
   async validate(payload: any) {
+    console.log('[JWT Strategy] Payload validated:', payload);
     return { id: payload.sub, email: payload.username, role: payload.role };
   }
 }

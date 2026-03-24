@@ -115,6 +115,17 @@ export class AuthController {
     this.setTokenCookies(res, result.access_token, result.refresh_token);
     console.log('[Auth] Cookies set, sending response...');
 
+    // Log de auditoría
+    await this.auditService.log({
+      userId: result.user?.id,
+      userEmail: result.user?.email,
+      action: 'auth.login_success',
+      entityType: 'auth',
+      entityId: result.user?.id?.toString(),
+      newValue: { email: result.user?.email },
+      ip: req?.ip ?? req?.headers?.['x-forwarded-for'] ?? null,
+    }).catch(() => { });
+
     // Enviar tokens en el body (sistema original que funciona)
     return res.json({
       access_token: result.access_token,
@@ -164,6 +175,17 @@ export class AuthController {
     const id = user.id ?? (user as any).userId;
     console.log('[Auth] getProfile called, userId:', id);
     const full = await this.usersService.findOne(id);
+
+    // Log de auditoría
+    await this.auditService.log({
+      userId: id,
+      userEmail: full?.email,
+      action: 'auth.profile_accessed',
+      entityType: 'auth',
+      entityId: id?.toString(),
+      newValue: { email: full?.email },
+    }).catch(() => { });
+
     const { password, hashedRefreshToken, resetPasswordToken, resetPasswordExpires, ...profile } = full;
     console.log('[Auth] getProfile returning:', profile.email);
     return { ...profile, role: full.role != null ? String(full.role) : undefined };
@@ -178,6 +200,17 @@ export class AuthController {
     @Res() res: Response,
   ) {
     const userId = user.id ?? (user as any).userId;
+    console.log('[Auth] Logout called, userId:', userId);
+
+    // Log de auditoría
+    await this.auditService.log({
+      userId,
+      userEmail: user.email,
+      action: 'auth.logout',
+      entityType: 'auth',
+      entityId: userId?.toString(),
+    }).catch(() => { });
+
     await this.authService.logout(userId);
     this.clearTokenCookies(res);
     return res.json({ message: 'Sesión cerrada correctamente' });

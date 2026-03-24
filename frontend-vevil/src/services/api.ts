@@ -392,11 +392,14 @@ const fetchWithAuth = async (
     }
 
     if (response.status === 401) {
-        console.log('[API] fetchWithAuth: Still 401 after refresh, redirecting to login');
+        console.log('[API] fetchWithAuth: Got 401 after refresh, but NOT redirecting to login');
+        // Don't redirect automatically - let the component handle it
+        // Just throw error without redirecting
         if (!config.skipRedirectOn401 && typeof window !== 'undefined') {
+            // Simply clear tokens but stay on current page
             await clearTokens();
-            const base = (import.meta.env.BASE_URL || '/').replace(/\/$/, '');
-            window.location.assign(`${base}/login?expired=1`);
+            // Dispatch event for components to handle
+            window.dispatchEvent(new CustomEvent('vevil-session-expired'));
         }
         throw new Error('Sesión expirada');
     }

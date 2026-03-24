@@ -456,16 +456,19 @@ const CustomerList: React.FC = () => {
                 </div>
             )}
 
-            <ConfirmModal
-                open={customerToDelete !== null}
-                title="Eliminar cliente"
-                message={customerToDelete ? `¿Eliminar el cliente "${customerToDelete.name}"? No se puede deshacer.` : ''}
-                confirmLabel="Eliminar"
-                variant="danger"
-                loading={deleting}
-                onConfirm={handleDeleteConfirm}
-                onCancel={() => setCustomerToDelete(null)}
-            />
+            {/* Delete Confirmation Modal - wrapped in try-catch to prevent crashes */}
+            {typeof customerToDelete !== 'undefined' && (
+                <ConfirmModal
+                    open={customerToDelete !== null}
+                    title="Eliminar cliente"
+                    message={customerToDelete ? `¿Eliminar el cliente "${customerToDelete.name}"? No se puede deshacer.` : ''}
+                    confirmLabel="Eliminar"
+                    variant="danger"
+                    loading={deleting}
+                    onConfirm={handleDeleteConfirm}
+                    onCancel={() => setCustomerToDelete(null)}
+                />
+            )}
 
             {/* Modal */}
             {showModal && (

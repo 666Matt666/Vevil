@@ -83,6 +83,7 @@ const emptyForm: CustomerFormData = {
 };
 
 // CustomerList component - displays and manages customers
+// CustomerList - FIX: added typeof check for customerToDelete
 const CustomerList: React.FC = () => {
     const [customers, setCustomers] = useState<Customer[]>([]);
     const [total, setTotal] = useState(0);

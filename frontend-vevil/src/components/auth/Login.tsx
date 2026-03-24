@@ -38,14 +38,11 @@ const Login: React.FC = () => {
     }, [navigate]);
 
     useEffect(() => {
-        // Limpiar el parámetro expired solo si existe, pero mantenerlo en la URL un momento
-        const expiredParam = searchParams.get('expired');
-        if (expiredParam === '1') {
-            // Mostrar el mensaje pero no redirigir automáticamente
-            setShowSessionExpired(true);
-            // No limpiar la URL inmediatamente para que el usuario pueda ver el mensaje
+        // Limpiar el parámetro expired al montar el componente
+        if (searchParams.get('expired') === '1') {
+            setSearchParams({}, { replace: true });
         }
-    }, [searchParams]);
+    }, []);
 
     useEffect(() => {
         setSupportsWebAuthn(typeof window !== 'undefined' && browserSupportsWebAuthn());

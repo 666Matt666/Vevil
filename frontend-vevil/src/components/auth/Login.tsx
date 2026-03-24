@@ -26,16 +26,10 @@ const Login: React.FC = () => {
     const navigate = useNavigate();
 
     useEffect(() => {
-        // Verificar si hay sesión activa usando el perfil guardado
-        // Solo intentar obtener perfil si hay algo en localStorage
-        const profile = localStorage.getItem('vevil_profile');
-        if (profile) {
-            // Hay un perfil guardado, intentamos obtener el perfil del servidor para verificar la sesión
-            getProfile()
-                .then(() => navigate('/dashboard'))
-                .catch(() => { /* session expired, stay on login */ });
-        }
-    }, [navigate]);
+        // NO verificar sesión automáticamente al montar
+        // El usuario debe hacer login explícitamente
+        // Esto evita el loop de redirect cuando no hay sesión
+    }, []);
 
     useEffect(() => {
         // Limpiar el parámetro expired al montar el componente

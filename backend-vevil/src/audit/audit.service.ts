@@ -19,9 +19,10 @@ export class AuditService {
   constructor(
     @InjectRepository(AuditLog)
     private readonly repo: Repository<AuditLog>,
-  ) {}
+  ) { }
 
   async log(payload: AuditPayload): Promise<AuditLog> {
+    console.log('[AUDIT] Logging action:', payload.action, '| Entity:', payload.entityType, '| ID:', payload.entityId, '| User:', payload.userEmail);
     const entity = this.repo.create({
       userId: payload.userId ?? null,
       userEmail: payload.userEmail ?? null,

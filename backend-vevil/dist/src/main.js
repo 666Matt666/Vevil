@@ -14,6 +14,9 @@ async function bootstrap() {
         if (process.env.NODE_ENV !== 'production') {
             console.log('🚀 Iniciando aplicación Vevil...');
         }
+        else {
+            console.log('🚀 Iniciando en PRODUCCIÓN...');
+        }
         const app = await core_1.NestFactory.create(app_module_1.AppModule);
         app.use((0, cookie_parser_1.default)());
         const defaultOrigins = [
@@ -33,13 +36,11 @@ async function bootstrap() {
             allowedHeaders: ['Content-Type', 'Authorization', 'Cookie'],
             exposedHeaders: ['Set-Cookie'],
         });
-        if (process.env.NODE_ENV !== 'production') {
-            app.use((req, _res, next) => {
-                const origin = req.headers?.origin ?? req.headers?.Origin ?? '(none)';
-                console.log(`[Vevil] ${req.method} ${req.url} | Origin: ${origin}`);
-                next();
-            });
-        }
+        app.use((req, _res, next) => {
+            const origin = req.headers?.origin ?? req.headers?.Origin ?? '(none)';
+            console.log(`[Vevil] ${req.method} ${req.url} | Origin: ${origin}`);
+            next();
+        });
         app.setGlobalPrefix('api');
         app.useGlobalPipes(new common_1.ValidationPipe({
             whitelist: true,

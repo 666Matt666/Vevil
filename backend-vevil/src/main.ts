@@ -9,6 +9,8 @@ async function bootstrap() {
   try {
     if (process.env.NODE_ENV !== 'production') {
       console.log('🚀 Iniciando aplicación Vevil...');
+    } else {
+      console.log('🚀 Iniciando en PRODUCCIÓN...');
     }
     const app = await NestFactory.create(AppModule);
 
@@ -35,14 +37,12 @@ async function bootstrap() {
       exposedHeaders: ['Set-Cookie'],
     });
 
-    // Log de peticiones solo en desarrollo (en producción llenaría los logs de Render)
-    if (process.env.NODE_ENV !== 'production') {
-      app.use((req: any, _res, next) => {
-        const origin = req.headers?.origin ?? req.headers?.Origin ?? '(none)';
-        console.log(`[Vevil] ${req.method} ${req.url} | Origin: ${origin}`);
-        next();
-      });
-    }
+    // Log de peticiones
+    app.use((req: any, _res, next) => {
+      const origin = req.headers?.origin ?? req.headers?.Origin ?? '(none)';
+      console.log(`[Vevil] ${req.method} ${req.url} | Origin: ${origin}`);
+      next();
+    });
 
     // Prefijo global para la API
     app.setGlobalPrefix('api');
@@ -73,7 +73,7 @@ async function bootstrap() {
     const port = process.env.PORT || 3000;
     // Escuchar en todas las interfaces (0.0.0.0) para permitir acceso desde otros dispositivos
     await app.listen(port, '0.0.0.0');
-    
+
     console.log('✅ Aplicación iniciada correctamente');
     if (process.env.NODE_ENV !== 'production') {
       console.log(`🚀 Servidor en http://localhost:${port}`);
@@ -83,7 +83,7 @@ async function bootstrap() {
     }
   } catch (error) {
     console.error('❌ Error al iniciar la aplicación:', error.message);
-    
+
     // Mensajes de ayuda según el tipo de error
     if (error.message?.includes('ECONNREFUSED') || error.message?.includes('Connection refused')) {
       console.error('\n💡 PROBLEMA: No se puede conectar a la base de datos');
@@ -103,7 +103,7 @@ async function bootstrap() {
       console.error('   2. Configura las variables en tu plataforma de despliegue');
       console.error('   3. Revisa el archivo .env.example para ver qué variables necesitas');
     }
-    
+
     process.exit(1);
   }
 }

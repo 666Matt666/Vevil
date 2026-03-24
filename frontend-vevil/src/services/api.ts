@@ -23,18 +23,16 @@ export { getApiBaseUrl };
 // Red de seguridad: si por caché o build viejo quedó Fly.io, usar Render cuando estamos en Vercel
 if (typeof window !== 'undefined' && window.location.hostname.includes('vercel.app') && API_BASE_URL.includes('fly.dev')) {
     API_BASE_URL = RENDER_API_URL;
-    if (import.meta.env.DEV) console.warn('[Vevil] URL era Fly.io, usando Render:', RENDER_API_URL);
+    console.warn('[Vevil] URL era Fly.io, usando Render:', RENDER_API_URL);
 }
 
-if (typeof window !== 'undefined' && import.meta.env.DEV) {
-    console.log('[Vevil] API base URL:', API_BASE_URL);
-}
+console.log('[Vevil] API base URL:', API_BASE_URL, '| hostname:', typeof window !== 'undefined' ? window.location.hostname : 'N/A');
 
 /** Llama al backend en frío para que Render lo despierte (sin esperar resultado). */
 export function wakeBackend(): void {
     try {
-        fetch(API_BASE_URL, { method: 'GET', signal: AbortSignal.timeout(12000) }).catch(() => {});
-    } catch (_) {}
+        fetch(API_BASE_URL, { method: 'GET', signal: AbortSignal.timeout(12000) }).catch(() => { });
+    } catch (_) { }
 }
 
 /** Espera a que el backend responda (para “despertarlo” antes de login). Resuelve cuando responde o tras timeoutMs. */
@@ -42,7 +40,7 @@ export function wakeBackendAndWait(timeoutMs: number = 65000): Promise<void> {
     return new Promise((resolve) => {
         const t = setTimeout(resolve, timeoutMs);
         fetch(API_BASE_URL, { method: 'GET', signal: AbortSignal.timeout(timeoutMs) })
-            .catch(() => {})
+            .catch(() => { })
             .finally(() => {
                 clearTimeout(t);
                 resolve();
@@ -152,7 +150,7 @@ export const login = async (email: string, password: string): Promise<LoginRespo
             const error = await response.json().catch(() => ({ message: 'Credenciales inválidas' }));
             throw new Error(error.message || 'Error al iniciar sesión');
         }
-        
+
         // Guardar tokens en memoria después del login exitoso
         const data = await response.json();
         if (data.access_token) {
@@ -163,7 +161,7 @@ export const login = async (email: string, password: string): Promise<LoginRespo
             setRefreshToken(data.refresh_token);
             if (import.meta.env.DEV) console.log('[Vevil] Refresh token guardado en memoria');
         }
-        
+
         return data;
     } catch (error: any) {
         if (import.meta.env.DEV) console.warn('[Vevil] Login error:', error?.name, error?.message);
@@ -316,7 +314,7 @@ const refreshAuth = async (): Promise<boolean> => {
         });
         if (import.meta.env.DEV) console.log('[API] refreshAuth: Response status:', res.status);
         if (!res.ok) return false;
-        
+
         // Obtener nuevos tokens del body
         const data = await res.json();
         if (data.access_token) {
@@ -341,7 +339,7 @@ const fetchWithAuth = async (
 ): Promise<Response> => {
     // Obtener token de memoria (no de localStorage por seguridad)
     const token = getAccessToken();
-    
+
     const headers: HeadersInit = {
         'Content-Type': 'application/json',
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -350,15 +348,15 @@ const fetchWithAuth = async (
 
     let response: Response;
     try {
-        if (import.meta.env.DEV) console.log('[API] fetchWithAuth:', endpoint, 'method:', options.method || 'GET');
-        response = await fetch(`${API_BASE_URL}${endpoint}`, { 
-            ...options, 
+        console.log('[API] fetchWithAuth:', endpoint, 'method:', options.method || 'GET');
+        response = await fetch(`${API_BASE_URL}${endpoint}`, {
+            ...options,
             headers,
             credentials: 'include',
         });
-        if (import.meta.env.DEV) console.log('[API] fetchWithAuth response:', endpoint, 'status:', response.status);
+        console.log('[API] fetchWithAuth response:', endpoint, 'status:', response.status);
     } catch (e: any) {
-        if (import.meta.env.DEV) console.error('[API] fetchWithAuth error:', endpoint, e);
+        console.error('[API] fetchWithAuth error:', endpoint, e);
         if (e?.message?.includes('Failed to fetch') || e?.name === 'TypeError' || e?.name === 'AbortError') {
             throw new Error('No se pudo conectar al servidor. Si usás el plan gratis de Render, esperá ~1 minuto y probá de nuevo.');
         }
@@ -367,7 +365,7 @@ const fetchWithAuth = async (
 
     // Intentar refresh si hay 401
     if (response.status === 401) {
-        if (import.meta.env.DEV) console.log('[API] fetchWithAuth: Got 401 for', endpoint, 'trying refresh...');
+        console.log('[API] fetchWithAuth: Got 401 for', endpoint, 'trying refresh...');
         if (await refreshAuth()) {
             // Reintentar request con nuevo token
             const newToken = getAccessToken();
@@ -376,16 +374,16 @@ const fetchWithAuth = async (
                 ...(newToken ? { Authorization: `Bearer ${newToken}` } : {}),
                 ...options.headers,
             };
-            response = await fetch(`${API_BASE_URL}${endpoint}`, { 
-                ...options, 
+            response = await fetch(`${API_BASE_URL}${endpoint}`, {
+                ...options,
                 headers: newHeaders,
             });
-            if (import.meta.env.DEV) console.log('[API] fetchWithAuth after refresh:', endpoint, 'status:', response.status);
+            console.log('[API] fetchWithAuth after refresh:', endpoint, 'status:', response.status);
         }
     }
 
     if (response.status === 401) {
-        if (import.meta.env.DEV) console.log('[API] fetchWithAuth: Still 401 after refresh, redirecting to login');
+        console.log('[API] fetchWithAuth: Still 401 after refresh, redirecting to login');
         if (!config.skipRedirectOn401 && typeof window !== 'undefined') {
             await clearTokens();
             const base = (import.meta.env.BASE_URL || '/').replace(/\/$/, '');
@@ -404,7 +402,7 @@ export const getProfile = async (): Promise<UserProfile> => {
 
 // ============ WEBAUTHN (huella / passkey) ============
 /** Opciones para iniciar sesión con huella (email debe tener credencial registrada). */
-export const webauthnLoginOptions = async (email: string): Promise<{ challenge: string; [k: string]: unknown }> => {
+export const webauthnLoginOptions = async (email: string): Promise<{ challenge: string;[k: string]: unknown }> => {
     const r = await fetch(`${API_BASE_URL}/auth/webauthn/login/options`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -516,13 +514,13 @@ export const productsApi = {
         if (!response.ok) throw new Error('Error al obtener productos');
         return response.json();
     },
-    
+
     getById: async (id: number): Promise<Product> => {
         const response = await fetchWithAuth(`/products/${id}`);
         if (!response.ok) throw new Error('Error al obtener producto');
         return response.json();
     },
-    
+
     create: async (product: Omit<Product, 'id'>): Promise<Product> => {
         const response = await fetchWithAuth('/products', {
             method: 'POST',
@@ -531,7 +529,7 @@ export const productsApi = {
         if (!response.ok) throw new Error('Error al crear producto');
         return response.json();
     },
-    
+
     update: async (id: number, product: Partial<Product>): Promise<Product> => {
         const response = await fetchWithAuth(`/products/${id}`, {
             method: 'PATCH',
@@ -540,7 +538,7 @@ export const productsApi = {
         if (!response.ok) throw new Error('Error al actualizar producto');
         return response.json();
     },
-    
+
     delete: async (id: number): Promise<void> => {
         const response = await fetchWithAuth(`/products/${id}`, {
             method: 'DELETE',
@@ -625,7 +623,7 @@ export const customersApi = {
         if (!response.ok) throw new Error('Error al obtener cliente');
         return response.json();
     },
-    
+
     create: async (customer: Omit<Customer, 'id'>): Promise<Customer> => {
         const response = await fetchWithAuth('/customers', {
             method: 'POST',
@@ -634,7 +632,7 @@ export const customersApi = {
         if (!response.ok) throw new Error('Error al crear cliente');
         return response.json();
     },
-    
+
     update: async (id: number, customer: Partial<Customer>): Promise<Customer> => {
         const response = await fetchWithAuth(`/customers/${id}`, {
             method: 'PATCH',
@@ -643,7 +641,7 @@ export const customersApi = {
         if (!response.ok) throw new Error('Error al actualizar cliente');
         return response.json();
     },
-    
+
     delete: async (id: number): Promise<void> => {
         const response = await fetchWithAuth(`/customers/${id}`, {
             method: 'DELETE',
@@ -707,7 +705,7 @@ export const invoicesApi = {
         if (!response.ok) throw new Error('Error al obtener factura');
         return response.json();
     },
-    
+
     create: async (invoice: { customerId: number; currency?: string; status?: string; items: { productId: number; quantity: number }[] }): Promise<Invoice> => {
         const response = await fetchWithAuth('/invoices', {
             method: 'POST',
@@ -785,7 +783,7 @@ export const statsApi = {
             customersApi.getAll(),
             invoicesApi.getAll(),
         ]);
-        
+
         return {
             totalProducts: products.length,
             totalCustomers: customers.length,
@@ -900,16 +898,16 @@ export const usersApi = {
         const response = await fetchWithAuth(`/users${query ? '?' + query : ''}`);
         return response.json();
     },
-    
+
     toggleActive: async (userId: string): Promise<ToggleActiveResponse> => {
         const response = await fetchWithAuth(`/users/${userId}/toggle-active`, { method: 'PATCH' });
         return response.json();
     },
-    
+
     delete: async (userId: string): Promise<void> => {
         await fetchWithAuth(`/users/${userId}`, { method: 'DELETE' });
     },
-    
+
     create: async (userData: { email: string; name: string; password: string; role?: string }): Promise<SystemUser> => {
         const response = await fetchWithAuth('/users', {
             method: 'POST',
@@ -921,7 +919,7 @@ export const usersApi = {
         }
         return response.json();
     },
-    
+
     update: async (userId: string, userData: { email?: string; name?: string; password?: string; role?: string }): Promise<SystemUser> => {
         const response = await fetchWithAuth(`/users/${userId}`, {
             method: 'PATCH',
@@ -933,7 +931,7 @@ export const usersApi = {
         }
         return response.json();
     },
-    
+
     // Get current user's profile (for regular users to see only their own data)
     getMe: async (): Promise<SystemUser> => {
         const response = await fetchWithAuth('/users/me');

@@ -53,8 +53,8 @@ export class AuthController {
     console.log('[Auth] setTokenCookies: isProduction:', isProduction);
 
     // Configuración de cookies para cross-site (Vercel -> Render)
-    // 'none' permite cookies en cross-site requests pero requiere secure (HTTPS)
-    const sameSiteValue = 'none'; // Cambiar a 'strict' si todo funciona
+    // Usar 'lax' que funciona mejor en la mayoría de los casos
+    const sameSiteValue = 'lax';
 
     const cookieOptions: any = {
       httpOnly: true,

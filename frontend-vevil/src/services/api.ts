@@ -80,10 +80,12 @@ const clearStoredToken = (key: string): void => {
 let accessToken: string | null = getStoredToken('vevil_access_token');
 let refreshToken: string | null = getStoredToken('vevil_refresh_token');
 
-// Debug: Log what we loaded from localStorage
+// Debug: Log what we loaded from localStorage - ALWAYS log, not just DEV mode
 if (typeof window !== 'undefined') {
     console.log('[Vevil] Initial tokens loaded:', { accessToken: accessToken ? 'EXISTS' : 'NULL', refreshToken: refreshToken ? 'EXISTS' : 'NULL' });
-    console.log('[Vevil] localStorage keys:', Object.keys(localStorage).filter(k => k.includes('vevil')));
+    console.log('[Vevil] localStorage vevil keys:', Object.keys(localStorage).filter(k => k.startsWith('vevil')));
+    // Also log all localStorage for debugging
+    console.log('[Vevil] All localStorage:', JSON.stringify(localStorage));
 }
 
 export const getAccessToken = (): string | null => {

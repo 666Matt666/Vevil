@@ -80,17 +80,32 @@ const clearStoredToken = (key: string): void => {
 let accessToken: string | null = getStoredToken('vevil_access_token');
 let refreshToken: string | null = getStoredToken('vevil_refresh_token');
 
+// Debug: Log what we loaded from localStorage
+if (typeof window !== 'undefined') {
+    console.log('[Vevil] Initial tokens loaded:', { accessToken: accessToken ? 'EXISTS' : 'NULL', refreshToken: refreshToken ? 'EXISTS' : 'NULL' });
+    console.log('[Vevil] localStorage keys:', Object.keys(localStorage).filter(k => k.includes('vevil')));
+}
+
 export const getAccessToken = (): string | null => accessToken;
 export const setAccessToken = (token: string | null): void => {
     accessToken = token;
     if (token) setStoredToken('vevil_access_token', token);
     else clearStoredToken('vevil_access_token');
 };
-export const getRefreshToken = (): string | null => refreshToken;
+export const getRefreshToken = (): string | null => {
+    const token = refreshToken;
+    console.log('[Vevil] getRefreshToken called, returning:', token ? 'EXISTS' : 'NULL');
+    return token;
+};
 export const setRefreshToken = (token: string | null): void => {
+    console.log('[Vevil] setRefreshToken called with:', token ? 'TOKEN' : 'NULL');
     refreshToken = token;
-    if (token) setStoredToken('vevil_refresh_token', token);
-    else clearStoredToken('vevil_refresh_token');
+    if (token) {
+        setStoredToken('vevil_refresh_token', token);
+        console.log('[Vevil] Token saved to localStorage');
+    } else {
+        clearStoredToken('vevil_refresh_token');
+    }
 };
 
 // Verificar si hay sesión activa
@@ -183,6 +198,7 @@ export const login = async (email: string, password: string): Promise<LoginRespo
 
         // Guardar tokens en memoria después del login exitoso
         const data = await response.json();
+        console.log('[Vevil] Login response:', data);
         if (data.access_token) {
             setAccessToken(data.access_token);
             if (import.meta.env.DEV) console.log('[Vevil] Access token guardado en memoria');

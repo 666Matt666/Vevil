@@ -407,7 +407,7 @@ const fetchWithAuth = async (
 };
 
 export const getProfile = async (): Promise<UserProfile> => {
-    const r = await fetchWithAuth('/auth/profile', {}, { skipRedirectOn401: true });
+    const r = await fetchWithAuth('/auth/profile');
     if (!r.ok) throw new Error('No autorizado');
     return r.json();
 };

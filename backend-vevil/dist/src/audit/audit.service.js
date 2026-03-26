@@ -22,6 +22,7 @@ let AuditService = class AuditService {
         this.repo = repo;
     }
     async log(payload) {
+        console.log('[AUDIT] Logging action:', payload.action, '| Entity:', payload.entityType, '| ID:', payload.entityId, '| User:', payload.userEmail);
         const entity = this.repo.create({
             userId: payload.userId ?? null,
             userEmail: payload.userEmail ?? null,

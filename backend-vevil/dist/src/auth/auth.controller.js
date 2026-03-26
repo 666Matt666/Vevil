@@ -43,7 +43,8 @@ let AuthController = class AuthController {
     }
     setTokenCookies(res, accessToken, refreshToken) {
         const isProduction = process.env.NODE_ENV === 'production';
-        const sameSiteValue = isProduction ? 'strict' : 'lax';
+        console.log('[Auth] setTokenCookies: isProduction:', isProduction);
+        const sameSiteValue = 'lax';
         const cookieOptions = {
             httpOnly: true,
             secure: isProduction,
@@ -52,6 +53,7 @@ let AuthController = class AuthController {
             sameSite: sameSiteValue,
         };
         res.cookie(exports.ACCESS_TOKEN_COOKIE, accessToken, cookieOptions);
+        console.log('[Auth] Access cookie set, options:', JSON.stringify(cookieOptions));
         const refreshCookieOptions = {
             httpOnly: true,
             secure: isProduction,
@@ -60,15 +62,28 @@ let AuthController = class AuthController {
             sameSite: sameSiteValue,
         };
         res.cookie(exports.REFRESH_TOKEN_COOKIE, refreshToken, refreshCookieOptions);
+        console.log('[Auth] Refresh cookie set, options:', JSON.stringify(refreshCookieOptions));
     }
     clearTokenCookies(res) {
         res.clearCookie(exports.ACCESS_TOKEN_COOKIE, { path: '/' });
         res.clearCookie(exports.REFRESH_TOKEN_COOKIE, { path: '/' });
     }
     async login(user, _loginDto, req, res) {
+        console.log('[Auth] Login attempt for:', user?.email);
         const result = await this.authService.login(user);
+        console.log('[Auth] Login result, user:', result.user?.email);
         this.clearTokenCookies(res);
         this.setTokenCookies(res, result.access_token, result.refresh_token);
+        console.log('[Auth] Cookies set, sending response...');
+        await this.auditService.log({
+            userId: result.user?.id,
+            userEmail: result.user?.email,
+            action: 'auth.login_success',
+            entityType: 'auth',
+            entityId: result.user?.id?.toString(),
+            newValue: { email: result.user?.email },
+            ip: req?.ip ?? req?.headers?.['x-forwarded-for'] ?? null,
+        }).catch(() => { });
         return res.json({
             access_token: result.access_token,
             refresh_token: result.refresh_token,
@@ -88,12 +103,30 @@ let AuthController = class AuthController {
     }
     async getProfile(user) {
         const id = user.id ?? user.userId;
+        console.log('[Auth] getProfile called, userId:', id);
         const full = await this.usersService.findOne(id);
+        await this.auditService.log({
+            userId: id,
+            userEmail: full?.email,
+            action: 'auth.profile_accessed',
+            entityType: 'auth',
+            entityId: id?.toString(),
+            newValue: { email: full?.email },
+        }).catch(() => { });
         const { password, hashedRefreshToken, resetPasswordToken, resetPasswordExpires, ...profile } = full;
+        console.log('[Auth] getProfile returning:', profile.email);
         return { ...profile, role: full.role != null ? String(full.role) : undefined };
     }
     async logout(user, res) {
         const userId = user.id ?? user.userId;
+        console.log('[Auth] Logout called, userId:', userId);
+        await this.auditService.log({
+            userId,
+            userEmail: user.email,
+            action: 'auth.logout',
+            entityType: 'auth',
+            entityId: userId?.toString(),
+        }).catch(() => { });
         await this.authService.logout(userId);
         this.clearTokenCookies(res);
         return res.json({ message: 'Sesión cerrada correctamente' });

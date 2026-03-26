@@ -20,8 +20,11 @@ let JwtStrategy = class JwtStrategy extends (0, passport_1.PassportStrategy)(pas
         super({
             jwtFromRequest: (req) => {
                 if (req && req.cookies && req.cookies[auth_controller_1.ACCESS_TOKEN_COOKIE]) {
+                    console.log('[JWT Strategy] Token from cookie:', req.cookies[auth_controller_1.ACCESS_TOKEN_COOKIE].substring(0, 20) + '...');
                     return req.cookies[auth_controller_1.ACCESS_TOKEN_COOKIE];
                 }
+                const authHeader = req?.headers?.authorization;
+                console.log('[JWT Strategy] Token from header:', authHeader ? authHeader.substring(0, 20) + '...' : 'NONE');
                 return passport_jwt_1.ExtractJwt.fromAuthHeaderAsBearerToken()(req);
             },
             ignoreExpiration: false,
@@ -30,6 +33,7 @@ let JwtStrategy = class JwtStrategy extends (0, passport_1.PassportStrategy)(pas
         this.configService = configService;
     }
     async validate(payload) {
+        console.log('[JWT Strategy] Payload validated:', payload);
         return { id: payload.sub, email: payload.username, role: payload.role };
     }
 };

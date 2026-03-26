@@ -54,14 +54,44 @@ export function wakeBackendAndWait(timeoutMs: number = 65000): Promise<void> {
 // El refresh token se usa para revalidar la sesión
 // =====================================================
 
-// Almacenar tokens en memoria (no en localStorage por seguridad)
-let accessToken: string | null = null;
-let refreshToken: string | null = null;
+// Almacenar tokens en localStorage para que persistan entre recargas de página
+// Esto es menos seguro que memoria pero funciona entre dominios diferentes
+const getStoredToken = (key: string): string | null => {
+    try {
+        return localStorage.getItem(key);
+    } catch {
+        return null;
+    }
+};
+
+const setStoredToken = (key: string, value: string): void => {
+    try {
+        localStorage.setItem(key, value);
+    } catch { }
+};
+
+const clearStoredToken = (key: string): void => {
+    try {
+        localStorage.removeItem(key);
+    } catch { }
+};
+
+// Initialize tokens from localStorage
+let accessToken: string | null = getStoredToken('vevil_access_token');
+let refreshToken: string | null = getStoredToken('vevil_refresh_token');
 
 export const getAccessToken = (): string | null => accessToken;
-export const setAccessToken = (token: string | null): void => { accessToken = token; };
+export const setAccessToken = (token: string | null): void => {
+    accessToken = token;
+    if (token) setStoredToken('vevil_access_token', token);
+    else clearStoredToken('vevil_access_token');
+};
 export const getRefreshToken = (): string | null => refreshToken;
-export const setRefreshToken = (token: string | null): void => { refreshToken = token; };
+export const setRefreshToken = (token: string | null): void => {
+    refreshToken = token;
+    if (token) setStoredToken('vevil_refresh_token', token);
+    else clearStoredToken('vevil_refresh_token');
+};
 
 // Verificar si hay sesión activa
 export const hasActiveSession = async (): Promise<boolean> => {

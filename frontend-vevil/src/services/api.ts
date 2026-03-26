@@ -65,9 +65,14 @@ const getStoredToken = (key: string): string | null => {
 };
 
 const setStoredToken = (key: string, value: string): void => {
+    console.log('[Vevil] setStoredToken: Attempting to save key:', key);
     try {
         localStorage.setItem(key, value);
-    } catch { }
+        console.log('[Vevil] setStoredToken: SUCCESS, key saved:', key);
+        console.log('[Vevil] setStoredToken: Verifying by reading back:', localStorage.getItem(key) ? 'EXISTS' : 'NULL');
+    } catch (e) {
+        console.error('[Vevil] setStoredToken: ERROR saving token:', e);
+    }
 };
 
 const clearStoredToken = (key: string): void => {

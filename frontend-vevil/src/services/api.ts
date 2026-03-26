@@ -308,10 +308,15 @@ const refreshAuth = async (): Promise<boolean> => {
         return false;
     }
     try {
-        // Enviar refresh token en el body
+        // Also include current access token in header for the refresh endpoint
+        const accessToken = getAccessToken();
+        // Enviar refresh token en el body y header
         const res = await fetch(`${API_BASE_URL}/auth/refresh`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+                'Content-Type': 'application/json',
+                ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+            },
             body: JSON.stringify({ refresh_token: currentRefreshToken }),
         });
         console.log('[API] refreshAuth: Response status:', res.status);

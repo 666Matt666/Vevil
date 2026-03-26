@@ -86,11 +86,20 @@ if (typeof window !== 'undefined') {
     console.log('[Vevil] localStorage keys:', Object.keys(localStorage).filter(k => k.includes('vevil')));
 }
 
-export const getAccessToken = (): string | null => accessToken;
+export const getAccessToken = (): string | null => {
+    const token = accessToken;
+    console.log('[Vevil] getAccessToken called, returning:', token ? 'EXISTS' : 'NULL');
+    return token;
+};
 export const setAccessToken = (token: string | null): void => {
+    console.log('[Vevil] setAccessToken called with:', token ? 'TOKEN' : 'NULL');
     accessToken = token;
-    if (token) setStoredToken('vevil_access_token', token);
-    else clearStoredToken('vevil_access_token');
+    if (token) {
+        setStoredToken('vevil_access_token', token);
+        console.log('[Vevil] Access token saved to localStorage');
+    } else {
+        clearStoredToken('vevil_access_token');
+    }
 };
 export const getRefreshToken = (): string | null => {
     const token = refreshToken;
@@ -183,14 +192,14 @@ export interface RegisterResponse {
 }
 export const login = async (email: string, password: string): Promise<LoginResponse> => {
     const loginUrl = `${API_BASE_URL}/auth/login`;
-    if (import.meta.env.DEV) console.log('[Vevil] Login → POST', loginUrl);
+    console.log('[Vevil] Login → POST', loginUrl);
     try {
         const response = await fetchWithRetry(loginUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email, password }),
         });
-        if (import.meta.env.DEV) console.log('[Vevil] Login response status:', response.status, response.statusText);
+        console.log('[Vevil] Login response status:', response.status, response.statusText);
         if (!response.ok) {
             const error = await response.json().catch(() => ({ message: 'Credenciales inválidas' }));
             throw new Error(error.message || 'Error al iniciar sesión');
@@ -201,11 +210,11 @@ export const login = async (email: string, password: string): Promise<LoginRespo
         console.log('[Vevil] Login response:', data);
         if (data.access_token) {
             setAccessToken(data.access_token);
-            if (import.meta.env.DEV) console.log('[Vevil] Access token guardado en memoria');
+            console.log('[Vevil] Access token guardado en memoria');
         }
         if (data.refresh_token) {
             setRefreshToken(data.refresh_token);
-            if (import.meta.env.DEV) console.log('[Vevil] Refresh token guardado en memoria');
+            console.log('[Vevil] Refresh token guardado en memoria');
         }
 
         return data;

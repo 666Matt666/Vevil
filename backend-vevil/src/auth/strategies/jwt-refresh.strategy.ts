@@ -12,9 +12,14 @@ export class JwtRefreshStrategy extends PassportStrategy(
 ) {
   constructor(private configService: ConfigService) {
     super({
-      // Extraer JWT desde cookie o body (fallback para compatibilidad)
+      // Extraer JWT desde header Authorization, cookie o body
       jwtFromRequest: (req: Request) => {
-        // Primero intentar desde cookie
+        // Primero intentar desde header Authorization (Bearer token)
+        const authHeader = req?.headers?.authorization;
+        if (authHeader && authHeader.startsWith('Bearer ')) {
+          return authHeader.substring(7);
+        }
+        // Segundo: desde cookie
         if (req && req.cookies && req.cookies[REFRESH_TOKEN_COOKIE]) {
           return req.cookies[REFRESH_TOKEN_COOKIE];
         }
@@ -27,8 +32,11 @@ export class JwtRefreshStrategy extends PassportStrategy(
   }
 
   validate(req: Request, payload: any) {
-    // Extraer refresh token desde cookie o body
-    const refreshToken = req.cookies?.[REFRESH_TOKEN_COOKIE] || req.body?.refresh_token;
+    // Extraer refresh token desde header, cookie o body
+    const refreshToken =
+      req.headers?.authorization?.substring(7) ||
+      req.cookies?.[REFRESH_TOKEN_COOKIE] ||
+      req.body?.refresh_token;
     return { ...payload, refreshToken };
   }
 }

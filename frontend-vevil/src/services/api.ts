@@ -361,7 +361,7 @@ const fetchWithAuth = async (
         response = await fetch(`${API_BASE_URL}${endpoint}`, {
             ...options,
             headers,
-            credentials: 'include',
+            // No credentials: include - we're using Authorization header, not cookies
         });
         console.log('[API] fetchWithAuth response:', endpoint, 'status:', response.status);
     } catch (e: any) {

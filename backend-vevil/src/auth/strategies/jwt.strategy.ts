@@ -9,16 +9,21 @@ import { ACCESS_TOKEN_COOKIE } from '../auth.controller';
 export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor(private configService: ConfigService) {
     super({
-      // Extraer JWT desde cookie o header Authorization (fallback para compatibilidad)
+      // Extraer JWT desde cookie O header Authorization (prioridad al header)
       jwtFromRequest: (req: Request) => {
-        // Primero intentar desde cookie
+        // Primero intentar desde header Authorization (Bearer token)
+        const authHeader = req?.headers?.authorization;
+        if (authHeader && authHeader.startsWith('Bearer ')) {
+          const token = authHeader.substring(7);
+          console.log('[JWT Strategy] Token from header:', token.substring(0, 20) + '...');
+          return token;
+        }
+        // Fallback: desde cookie
         if (req && req.cookies && req.cookies[ACCESS_TOKEN_COOKIE]) {
           console.log('[JWT Strategy] Token from cookie:', req.cookies[ACCESS_TOKEN_COOKIE].substring(0, 20) + '...');
           return req.cookies[ACCESS_TOKEN_COOKIE];
         }
-        // Fallback: desde header Authorization (Bearer token)
-        const authHeader = req?.headers?.authorization;
-        console.log('[JWT Strategy] Token from header:', authHeader ? authHeader.substring(0, 20) + '...' : 'NONE');
+        // Último fallback: desde header Authorization
         return ExtractJwt.fromAuthHeaderAsBearerToken()(req);
       },
       ignoreExpiration: false,

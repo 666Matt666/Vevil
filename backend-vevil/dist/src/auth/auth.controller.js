@@ -102,6 +102,9 @@ let AuthController = class AuthController {
         return this.authService.register(createUserDto);
     }
     async getProfile(user) {
+        if (!user) {
+            throw new common_1.UnauthorizedException('No hay sesión activa');
+        }
         const id = user.id ?? user.userId;
         console.log('[Auth] getProfile called, userId:', id);
         const full = await this.usersService.findOne(id);
@@ -206,7 +209,6 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], AuthController.prototype, "register", null);
 __decorate([
-    (0, common_1.UseGuards)((0, passport_1.AuthGuard)('jwt')),
     (0, common_1.Get)('profile'),
     (0, swagger_1.ApiOperation)({ summary: 'Obtener el perfil del usuario actual' }),
     (0, swagger_1.ApiResponse)({ status: 200, description: 'Perfil del usuario.', type: user_entity_1.User }),

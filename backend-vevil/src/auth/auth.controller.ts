@@ -10,6 +10,7 @@ import {
   HttpCode,
   HttpStatus,
   Res,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { Response } from 'express';
@@ -170,6 +171,10 @@ export class AuthController {
   @ApiResponse({ status: 200, description: 'Perfil del usuario.', type: User })
   @ApiResponse({ status: 401, description: 'No autorizado.' })
   async getProfile(@GetUser() user: User & { userId?: string }) {
+    // If no user, return unauthorized
+    if (!user) {
+      throw new UnauthorizedException('No hay sesión activa');
+    }
     const id = user.id ?? (user as any).userId;
     console.log('[Auth] getProfile called, userId:', id);
     const full = await this.usersService.findOne(id);

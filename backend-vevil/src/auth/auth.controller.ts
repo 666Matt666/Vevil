@@ -165,7 +165,7 @@ export class AuthController {
     return this.authService.register(createUserDto);
   }
 
-  // @UseGuards(AuthGuard('jwt')) // DISABLED FOR TESTING
+  @UseGuards(AuthGuard('jwt'))
   @Get('profile')
   @ApiOperation({ summary: 'Obtener el perfil del usuario actual' })
   @ApiResponse({ status: 200, description: 'Perfil del usuario.', type: User })
@@ -263,5 +263,23 @@ export class AuthController {
     @Body() dto: ChangePasswordDto,
   ) {
     return this.authService.changePassword(user.id, dto.currentPassword, dto.newPassword);
+  }
+
+  @Public()
+  @Post('enable-user')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Habilitar usuario por email (temporal)' })
+  @ApiResponse({ status: 200, description: 'Usuario habilitado exitosamente.' })
+  @ApiResponse({ status: 404, description: 'Usuario no encontrado.' })
+  async enableUser(@Body() body: { email: string }) {
+    const user = await this.usersService.findOneByEmail(body.email);
+    if (!user) {
+      throw new BadRequestException('Usuario no encontrado');
+    }
+    if (user.isActive) {
+      return { message: 'El usuario ya está habilitado' };
+    }
+    await this.usersService.update(user.id, { isActive: true });
+    return { message: 'Usuario habilitado exitosamente' };
   }
 }

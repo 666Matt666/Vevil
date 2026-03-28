@@ -143,6 +143,13 @@ export const clearTokens = async (): Promise<void> => {
         if (import.meta.env.DEV) console.error('[API] clearTokens: Error', e);
         // Ignorar errores en logout
     }
+    // Limpiar tokens de localStorage
+    clearStoredToken('vevil_access_token');
+    clearStoredToken('vevil_refresh_token');
+    // Limpiar variables en memoria
+    accessToken = null;
+    refreshToken = null;
+    if (import.meta.env.DEV) console.log('[API] clearTokens: Tokens cleared from localStorage and memory');
 };
 
 // Cambiar contraseña del usuario logueado
@@ -213,17 +220,16 @@ export const login = async (email: string, password: string): Promise<LoginRespo
             throw new Error(error.message || 'Error al iniciar sesión');
         }
 
-        // TEMPORAL: No guardar tokens para pruebas
         const data = await response.json();
-        console.log('[Vevil] Login response (sin guardar tokens):', data);
-        // if (data.access_token) {
-        //     setAccessToken(data.access_token);
-        //     console.log('[Vevil] Access token guardado en memoria');
-        // }
-        // if (data.refresh_token) {
-        //     setRefreshToken(data.refresh_token);
-        //     console.log('[Vevil] Refresh token guardado en memoria');
-        // }
+        console.log('[Vevil] Login response:', data);
+        if (data.access_token) {
+            setAccessToken(data.access_token);
+            console.log('[Vevil] Access token guardado en memoria');
+        }
+        if (data.refresh_token) {
+            setRefreshToken(data.refresh_token);
+            console.log('[Vevil] Refresh token guardado en memoria');
+        }
 
         return data;
     } catch (error: any) {
@@ -415,21 +421,21 @@ const refreshAuth = async (): Promise<boolean> => {
 
 type FetchWithAuthConfig = { skipRedirectOn401?: boolean };
 
-// TEMPORAL: Deshabilitar autenticación para pruebas
 const fetchWithAuth = async (
     endpoint: string,
     options: RequestInit = {},
     config: FetchWithAuthConfig = {}
 ): Promise<Response> => {
-    // TEMPORAL: No enviar tokens, hacer llamadas públicas
+    const token = getAccessToken();
     const headers: HeadersInit = {
         'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
         ...options.headers,
     };
 
     let response: Response;
     try {
-        console.log('[API] fetchWithAuth (sin auth):', endpoint, 'method:', options.method || 'GET');
+        console.log('[API] fetchWithAuth:', endpoint, 'method:', options.method || 'GET', 'token:', token ? 'EXISTS' : 'NULL');
         response = await fetch(`${API_BASE_URL}${endpoint}`, {
             ...options,
             headers,
@@ -443,7 +449,26 @@ const fetchWithAuth = async (
         throw e;
     }
 
-    // TEMPORAL: No intentar refresh ni manejar 401
+    // Si recibimos 401, intentar refresh del token
+    if (response.status === 401 && !config.skipRedirectOn401) {
+        console.log('[API] fetchWithAuth: Got 401, attempting refresh...');
+        const refreshed = await refreshAuth();
+        if (refreshed) {
+            // Reintentar la petición original con el nuevo token
+            const newToken = getAccessToken();
+            const retryHeaders: HeadersInit = {
+                'Content-Type': 'application/json',
+                ...(newToken ? { Authorization: `Bearer ${newToken}` } : {}),
+                ...options.headers,
+            };
+            console.log('[API] fetchWithAuth: Retrying with new token');
+            return fetch(`${API_BASE_URL}${endpoint}`, {
+                ...options,
+                headers: retryHeaders,
+            });
+        }
+    }
+
     return response;
 };
 

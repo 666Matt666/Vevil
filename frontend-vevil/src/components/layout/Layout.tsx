@@ -37,6 +37,16 @@ const Layout: React.FC = () => {
         }
     }, [hasToken, navigate]);
     
+    // Escuchar evento de sesión expirada para redirigir al login
+    useEffect(() => {
+        const handleSessionExpired = () => {
+            console.log('[Layout] Session expired event received, redirecting to login');
+            navigate('/login', { replace: true });
+        };
+        window.addEventListener('vevil-session-expired', handleSessionExpired);
+        return () => window.removeEventListener('vevil-session-expired', handleSessionExpired);
+    }, [navigate]);
+    
     // Obtener profile con refetchOnMount=true para detectar cambios de usuario al montar
     // Solo intentar obtener profile si hay token
     const { data: profileData, error: profileError, isLoading: profileLoading } = useProfile({ refetchOnMount: true });

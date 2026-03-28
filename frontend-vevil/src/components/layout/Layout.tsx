@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Outlet, Link, useLocation, useNavigate, Navigate } from 'react-router-dom';
-import { clearTokens, type UserProfile } from '../../services/api';
+import { clearTokens, type UserProfile, getAccessToken } from '../../services/api';
 import { useProfile, usePendingCount } from '../../hooks/useAuth';
 import { getErrorMessage } from '../../services/api';
 import { recordDashboardUsage } from '../../utils/dashboardUsage';
@@ -26,7 +26,19 @@ const Layout: React.FC = () => {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
     const [isHelpOpen, setIsHelpOpen] = useState(false);
+    
+    // Verificar si hay token antes de hacer llamadas autenticadas
+    const hasToken = Boolean(getAccessToken());
+    
+    // Redirigir al login si no hay token
+    useEffect(() => {
+        if (!hasToken) {
+            navigate('/login', { replace: true });
+        }
+    }, [hasToken, navigate]);
+    
     // Obtener profile con refetchOnMount=true para detectar cambios de usuario al montar
+    // Solo intentar obtener profile si hay token
     const { data: profileData, error: profileError, isLoading: profileLoading } = useProfile({ refetchOnMount: true });
     const { data: pendingCountData } = usePendingCount();
 
@@ -112,15 +124,6 @@ const Layout: React.FC = () => {
         { label: 'Auditoría', icon: '📋', path: '/audit' },
     ] : baseMenuItems;
 
-    // Mostrar loading solo si está cargando y no hay profile guardado
-    if (profileLoading && !profile) {
-        return (
-            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-                <div>Cargando...</div>
-            </div>
-        );
-    }
-
     // Detectar cambio de tamaño de pantalla
     useEffect(() => {
         const handleResize = () => {
@@ -140,6 +143,20 @@ const Layout: React.FC = () => {
         setIsMobileMenuOpen(false);
         setIsHelpOpen(false);
     }, [location.pathname]);
+
+    // Si no hay token, redirigir al login (ya se hizo en useEffect, pero por seguridad)
+    if (!hasToken) {
+        return <Navigate to="/login" replace />;
+    }
+    
+    // Mostrar loading solo si está cargando y no hay profile guardado
+    if (profileLoading && !profile) {
+        return (
+            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+                <div>Cargando...</div>
+            </div>
+        );
+    }
 
     const handleLogout = async () => {
         // Usar la función clearTokens que llama al backend y limpia las cookies HttpOnly

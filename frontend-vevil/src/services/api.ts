@@ -384,6 +384,12 @@ const refreshAuth = async (): Promise<boolean> => {
         console.log('[API] refreshAuth: Response status:', res.status);
         if (!res.ok) {
             console.log('[API] refreshAuth: Response not OK, returning false');
+            // Si el refresh falla con 401, limpiar tokens para que el usuario pueda iniciar sesión nuevamente
+            if (res.status === 401) {
+                console.log('[API] refreshAuth: Got 401, clearing tokens');
+                setAccessToken(null);
+                setRefreshToken(null);
+            }
             return false;
         }
 

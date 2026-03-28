@@ -197,6 +197,7 @@ export interface RegisterResponse {
     email: string;
     name: string;
 }
+// TEMPORAL: Deshabilitar guardado de tokens para pruebas
 export const login = async (email: string, password: string): Promise<LoginResponse> => {
     const loginUrl = `${API_BASE_URL}/auth/login`;
     console.log('[Vevil] Login → POST', loginUrl);
@@ -212,17 +213,17 @@ export const login = async (email: string, password: string): Promise<LoginRespo
             throw new Error(error.message || 'Error al iniciar sesión');
         }
 
-        // Guardar tokens en memoria después del login exitoso
+        // TEMPORAL: No guardar tokens para pruebas
         const data = await response.json();
-        console.log('[Vevil] Login response:', data);
-        if (data.access_token) {
-            setAccessToken(data.access_token);
-            console.log('[Vevil] Access token guardado en memoria');
-        }
-        if (data.refresh_token) {
-            setRefreshToken(data.refresh_token);
-            console.log('[Vevil] Refresh token guardado en memoria');
-        }
+        console.log('[Vevil] Login response (sin guardar tokens):', data);
+        // if (data.access_token) {
+        //     setAccessToken(data.access_token);
+        //     console.log('[Vevil] Access token guardado en memoria');
+        // }
+        // if (data.refresh_token) {
+        //     setRefreshToken(data.refresh_token);
+        //     console.log('[Vevil] Refresh token guardado en memoria');
+        // }
 
         return data;
     } catch (error: any) {
@@ -414,27 +415,24 @@ const refreshAuth = async (): Promise<boolean> => {
 
 type FetchWithAuthConfig = { skipRedirectOn401?: boolean };
 
+// TEMPORAL: Deshabilitar autenticación para pruebas
 const fetchWithAuth = async (
     endpoint: string,
     options: RequestInit = {},
     config: FetchWithAuthConfig = {}
 ): Promise<Response> => {
-    // Obtener token de memoria (no de localStorage por seguridad)
-    const token = getAccessToken();
-
+    // TEMPORAL: No enviar tokens, hacer llamadas públicas
     const headers: HeadersInit = {
         'Content-Type': 'application/json',
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
         ...options.headers,
     };
 
     let response: Response;
     try {
-        console.log('[API] fetchWithAuth:', endpoint, 'method:', options.method || 'GET');
+        console.log('[API] fetchWithAuth (sin auth):', endpoint, 'method:', options.method || 'GET');
         response = await fetch(`${API_BASE_URL}${endpoint}`, {
             ...options,
             headers,
-            // No credentials: include - we're using Authorization header, not cookies
         });
         console.log('[API] fetchWithAuth response:', endpoint, 'status:', response.status);
     } catch (e: any) {
@@ -445,37 +443,7 @@ const fetchWithAuth = async (
         throw e;
     }
 
-    // Intentar refresh si hay 401
-    if (response.status === 401) {
-        console.log('[API] fetchWithAuth: Got 401 for', endpoint, 'trying refresh...');
-        if (await refreshAuth()) {
-            // Reintentar request con nuevo token
-            const newToken = getAccessToken();
-            const newHeaders: HeadersInit = {
-                'Content-Type': 'application/json',
-                ...(newToken ? { Authorization: `Bearer ${newToken}` } : {}),
-                ...options.headers,
-            };
-            response = await fetch(`${API_BASE_URL}${endpoint}`, {
-                ...options,
-                headers: newHeaders,
-            });
-            console.log('[API] fetchWithAuth after refresh:', endpoint, 'status:', response.status);
-        }
-    }
-
-    if (response.status === 401) {
-        console.log('[API] fetchWithAuth: Got 401 after refresh, but NOT redirecting to login');
-        // Don't redirect automatically - let the component handle it
-        // Just throw error without redirecting
-        if (!config.skipRedirectOn401 && typeof window !== 'undefined') {
-            // Simply clear tokens but stay on current page
-            await clearTokens();
-            // Dispatch event for components to handle
-            window.dispatchEvent(new CustomEvent('vevil-session-expired'));
-        }
-        throw new Error('Sesión expirada');
-    }
+    // TEMPORAL: No intentar refresh ni manejar 401
     return response;
 };
 

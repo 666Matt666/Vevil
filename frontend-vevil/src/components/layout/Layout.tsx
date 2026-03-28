@@ -27,25 +27,25 @@ const Layout: React.FC = () => {
     const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
     const [isHelpOpen, setIsHelpOpen] = useState(false);
     
-    // Verificar si hay token antes de hacer llamadas autenticadas
-    const hasToken = Boolean(getAccessToken());
-    
-    // Redirigir al login si no hay token
-    useEffect(() => {
-        if (!hasToken) {
-            navigate('/login', { replace: true });
-        }
-    }, [hasToken, navigate]);
-    
-    // Escuchar evento de sesión expirada para redirigir al login
-    useEffect(() => {
-        const handleSessionExpired = () => {
-            console.log('[Layout] Session expired event received, redirecting to login');
-            navigate('/login', { replace: true });
-        };
-        window.addEventListener('vevil-session-expired', handleSessionExpired);
-        return () => window.removeEventListener('vevil-session-expired', handleSessionExpired);
-    }, [navigate]);
+    // TEMPORAL: Deshabilitar verificación de autenticación para pruebas
+    // const hasToken = Boolean(getAccessToken());
+    // 
+    // // Redirigir al login si no hay token
+    // useEffect(() => {
+    //     if (!hasToken) {
+    //         navigate('/login', { replace: true });
+    //     }
+    // }, [hasToken, navigate]);
+    // 
+    // // Escuchar evento de sesión expirada para redirigir al login
+    // useEffect(() => {
+    //     const handleSessionExpired = () => {
+    //         console.log('[Layout] Session expired event received, redirecting to login');
+    //         navigate('/login', { replace: true });
+    //     };
+    //     window.addEventListener('vevil-session-expired', handleSessionExpired);
+    //     return () => window.removeEventListener('vevil-session-expired', handleSessionExpired);
+    // }, [navigate]);
     
     // Obtener profile con refetchOnMount=true para detectar cambios de usuario al montar
     // Solo intentar obtener profile si hay token
@@ -154,10 +154,10 @@ const Layout: React.FC = () => {
         setIsHelpOpen(false);
     }, [location.pathname]);
 
-    // Si no hay token, redirigir al login (ya se hizo en useEffect, pero por seguridad)
-    if (!hasToken) {
-        return <Navigate to="/login" replace />;
-    }
+    // TEMPORAL: Deshabilitar verificación de autenticación para pruebas
+    // if (!hasToken) {
+    //     return <Navigate to="/login" replace />;
+    // }
     
     // Mostrar loading solo si está cargando y no hay profile guardado
     if (profileLoading && !profile) {

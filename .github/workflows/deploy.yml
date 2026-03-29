@@ -6,7 +6,7 @@ name: Deploy to Fly.io
 
 on:
   push:
-    branches: [main, develop]
+    branches: [main, develop, qa]
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
@@ -37,6 +37,22 @@ jobs:
 
       - name: Setup Fly.io CLI
         uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: Set Production Secrets
+        run: |
+          flyctl secrets set \
+            DB_HOST=${{ secrets.DB_HOST }} \
+            DB_PORT=5432 \
+            DB_USERNAME=${{ secrets.DB_USERNAME }} \
+            DB_PASSWORD=${{ secrets.DB_PASSWORD }} \
+            DB_DATABASE=postgres \
+            JWT_SECRET=${{ secrets.JWT_SECRET }} \
+            JWT_REFRESH_SECRET=${{ secrets.JWT_REFRESH_SECRET }} \
+            CORS_ORIGINS=https://vevil.vercel.app \
+            NODE_ENV=production \
+            -a vevil-dtt7ta
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
 
       - name: Deploy to Production
         run: flyctl deploy --config fly.toml
@@ -69,7 +85,70 @@ jobs:
       - name: Setup Fly.io CLI
         uses: superfly/flyctl-actions/setup-flyctl@master
 
+      - name: Set Development Secrets
+        run: |
+          flyctl secrets set \
+            DB_HOST=${{ secrets.DB_HOST_DEV }} \
+            DB_PORT=5432 \
+            DB_USERNAME=${{ secrets.DB_USERNAME_DEV }} \
+            DB_PASSWORD=${{ secrets.DB_PASSWORD_DEV }} \
+            DB_DATABASE=postgres \
+            JWT_SECRET=${{ secrets.JWT_SECRET_DEV }} \
+            JWT_REFRESH_SECRET=${{ secrets.JWT_REFRESH_SECRET_DEV }} \
+            CORS_ORIGINS=https://vevil-dev.vercel.app \
+            NODE_ENV=production \
+            -a vevil-dev
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+
       - name: Deploy to Development
         run: flyctl deploy --config fly.dev.toml
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+
+  deploy-qa:
+    name: Deploy to QA
+    if: github.ref == 'refs/heads/qa'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: vevil-system
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: vevil-system/backend-vevil/package-lock.json
+
+      - name: Install dependencies
+        run: cd backend-vevil && npm ci
+
+      - name: Run tests
+        run: cd backend-vevil && npm test -- --passWithNoTests
+
+      - name: Setup Fly.io CLI
+        uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: Set QA Secrets
+        run: |
+          flyctl secrets set \
+            DB_HOST=${{ secrets.DB_HOST_QA }} \
+            DB_PORT=5432 \
+            DB_USERNAME=${{ secrets.DB_USERNAME_QA }} \
+            DB_PASSWORD=${{ secrets.DB_PASSWORD_QA }} \
+            DB_DATABASE=postgres \
+            JWT_SECRET=${{ secrets.JWT_SECRET_QA }} \
+            JWT_REFRESH_SECRET=${{ secrets.JWT_REFRESH_SECRET_QA }} \
+            CORS_ORIGINS=https://vevil-qa.vercel.app \
+            NODE_ENV=production \
+            -a vevil-qa
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+
+      - name: Deploy to QA
+        run: flyctl deploy --config fly.qa.toml
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}

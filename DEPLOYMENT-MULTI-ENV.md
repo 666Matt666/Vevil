@@ -3,188 +3,177 @@
 ## Arquitectura Actual
 
 ### Producción (PROD)
-- **GitHub**: Repositorio principal
-- **Render**: `vevil-backend` (backend)
+- **GitHub**: Rama `main`
+- **Fly.io**: `vevil-dtt7ta` (backend)
 - **Vercel**: `vevil.vercel.app` (frontend)
-- **Supabase**: Base de datos PostgreSQL
+- **Supabase**: Base de datos PostgreSQL de producción
 
-### Desarrollo (DESA/TEST)
-- **GitHub**: Mismo repositorio, rama `develop`
-- **Render**: `vevil-backend-dev` (backend de desarrollo)
-- **Vercel**: `vevil-dev.vercel.app` (frontend de desarrollo)
+### Desarrollo (DEV)
+- **GitHub**: Rama `develop`
+- **Fly.io**: `vevil-dev` (backend)
+- **Vercel**: `vevil-dev.vercel.app` (frontend)
 - **Supabase**: Proyecto separado para desarrollo
 
-## Configuración de Ambientes
-
-### 1. Supabase - Base de Datos de Desarrollo
-
-1. Crear nuevo proyecto en Supabase:
-   - Ir a https://supabase.com/dashboard
-   - Click en "New Project"
-   - Nombre: `vevil-dev`
-   - Configurar base de datos
-
-2. Obtener credenciales:
-   - Ir a Settings → Database
-   - Copiar:
-     - Host: `aws-1-us-east-2.pooler.supabase.com` (o similar)
-     - Database: `postgres`
-     - Username: `postgres.xxxxxxxxxx`
-     - Password: (generar nueva contraseña)
-
-3. Ejecutar migraciones:
-   ```bash
-   # Configurar variables de entorno locales
-   export DB_HOST=tu-host-dev
-   export DB_USERNAME=tu-username-dev
-   export DB_PASSWORD=tu-password-dev
-   export DB_DATABASE=postgres
-   
-   # Ejecutar migraciones
-   npm run migration:run:prod
-   ```
-
-### 2. Render - Backend de Desarrollo
-
-1. Crear nuevo servicio en Render:
-   - Ir a https://dashboard.render.com
-   - Click en "New +" → "Web Service"
-   - Conectar mismo repositorio de GitHub
-   - Nombre: `vevil-backend-dev`
-   - Branch: `develop`
-   - Runtime: `Node`
-   - Build Command: `npm install && npm run build`
-   - Start Command: `npm run start:prod`
-
-2. Configurar variables de entorno:
-   ```
-   DB_HOST=tu-host-dev-supabase
-   DB_PORT=5432
-   DB_USERNAME=tu-username-dev
-   DB_PASSWORD=tu-password-dev
-   DB_DATABASE=postgres
-   JWT_SECRET=VevilJwtS3cr3tD3v_xxxxxxxxxx
-   JWT_REFRESH_SECRET=VevilR3fr3shS3cr3tD3v_xxxxxxxxxx
-   CORS_ORIGINS=https://vevil-dev.vercel.app
-   ```
-
-3. Configurar auto-deploy:
-   - En Settings → Build & Deploy
-   - Enable "Auto-Deploy"
-   - Branch: `develop`
-
-### 3. Vercel - Frontend de Desarrollo
-
-1. Crear nuevo proyecto en Vercel:
-   - Ir a https://vercel.com/dashboard
-   - Click en "Add New..." → "Project"
-   - Importar mismo repositorio de GitHub
-   - Nombre: `vevil-dev`
-   - Framework Preset: (seleccionar el framework del frontend)
-   - Root Directory: (directorio del frontend si está en subcarpeta)
-
-2. Configurar variables de entorno:
-   ```
-   VITE_API_URL=https://vevil-backend-dev.onrender.com/api
-   ```
-   (o la variable que use tu frontend para la URL del backend)
-
-3. Configurar dominio:
-   - En Settings → Domains
-   - Agregar: `vevil-dev.vercel.app`
-
-4. Configurar auto-deploy:
-   - En Settings → Git
-   - Production Branch: `develop`
+### QA (Quality Assurance)
+- **GitHub**: Rama `qa`
+- **Fly.io**: `vevil-qa` (backend)
+- **Vercel**: `vevil-qa.vercel.app` (frontend)
+- **Supabase**: Proyecto separado para QA (copia de develop)
 
 ## Flujo de Trabajo
 
+```
+develop ──► QA ──► main
+  │         │       │
+  │         │       └──► Producción (no tocar)
+  │         └──────────► Testing/QA
+  └────────────────────► Desarrollo activo
+```
+
 ### Desarrollo
 ```bash
-# 1. Crear rama de desarrollo (primera vez)
-git checkout -b develop
-
-# 2. Trabajar en desarrollo
+# 1. Trabajar en la rama develop
+git checkout develop
 git add .
 git commit -m "mi cambio"
 git push origin develop
 
-# 3. Los servicios se despliegan automáticamente:
-#    - Render: vevil-backend-dev
-#    - Vercel: vevil-dev.vercel.app
+# 2. Auto-deploy a Fly.io (vevil-dev)
+# GitHub Actions ejecuta tests y despliega automáticamente
+```
+
+### QA
+```bash
+# 1. Cuando develop está listo para QA
+git checkout qa
+git merge develop
+git push origin qa
+
+# 2. Auto-deploy a Fly.io (vevil-qa)
+# GitHub Actions ejecuta tests y despliega automáticamente
 ```
 
 ### Producción
 ```bash
-# 1. Cuando todo esté probado en desarrollo
+# 1. Cuando QA aprueba
 git checkout main
-git merge develop
+git merge qa
 git push origin main
 
-# 2. Los servicios se despliegan automáticamente:
-#    - Render: vevil-backend
-#    - Vercel: vvil.vercel.app
+# 2. Auto-deploy a Fly.io (vevil-dtt7ta)
+# GitHub Actions ejecuta tests y despliega automáticamente
+```
+
+## Configuración de Ambientes
+
+### 1. Supabase - Bases de Datos
+
+#### Producción
+- Proyecto: `vevil-prod`
+- Credenciales en GitHub Secrets: `DB_HOST`, `DB_USERNAME`, `DB_PASSWORD`
+
+#### Desarrollo
+- Proyecto: `vevil-dev`
+- Credenciales en GitHub Secrets: `DB_HOST_DEV`, `DB_USERNAME_DEV`, `DB_PASSWORD_DEV`
+
+#### QA
+- Proyecto: `vevil-qa`
+- Credenciales en GitHub Secrets: `DB_HOST_QA`, `DB_USERNAME_QA`, `DB_PASSWORD_QA`
+
+### 2. Fly.io - Configuración
+
+| Ambiente | Archivo | App ID | Rama |
+|----------|---------|--------|------|
+| Producción | `fly.toml` | `vevil-dtt7ta` | `main` |
+| Desarrollo | `fly.dev.toml` | `vevil-dev` | `develop` |
+| QA | `fly.qa.toml` | `vevil-qa` | `qa` |
+
+### 3. Variables de Entorno
+
+Los archivos `.env.{environment}.example` contienen los templates con placeholders.
+Las credenciales reales se configuran en **GitHub Secrets** y se inyectan durante el deploy.
+
+#### Archivos de template:
+- `backend-vevil/.env.production.example` - Producción
+- `backend-vevil/.env.development.example` - Desarrollo
+- `backend-vevil/.env.qa.example` - QA
+
+#### Secrets requeridos en GitHub:
+
+**Producción:**
+```
+DB_HOST
+DB_USERNAME
+DB_PASSWORD
+JWT_SECRET
+JWT_REFRESH_SECRET
+FLY_API_TOKEN
+```
+
+**Desarrollo:**
+```
+DB_HOST_DEV
+DB_USERNAME_DEV
+DB_PASSWORD_DEV
+JWT_SECRET_DEV
+JWT_REFRESH_SECRET_DEV
+FLY_API_TOKEN
+```
+
+**QA:**
+```
+DB_HOST_QA
+DB_USERNAME_QA
+DB_PASSWORD_QA
+JWT_SECRET_QA
+JWT_REFRESH_SECRET_QA
+FLY_API_TOKEN
 ```
 
 ## URLs de los Ambientes
 
 ### Producción
 - Frontend: https://vevil.vercel.app
-- Backend: https://vevil-backend.onrender.com
-- API: https://vevil-backend.onrender.com/api
+- Backend: https://vevil-dtt7ta.fly.dev
+- API: https://vevil-dtt7ta.fly.dev/api
 
 ### Desarrollo
 - Frontend: https://vevil-dev.vercel.app
-- Backend: https://vevil-backend-dev.onrender.com
-- API: https://vevil-backend-dev.onrender.com/api
+- Backend: https://vevil-dev.fly.dev
+- API: https://vevil-dev.fly.dev/api
 
-## Variables de Entorno por Ambiente
+### QA
+- Frontend: https://vevil-qa.vercel.app
+- Backend: https://vevil-qa.fly.dev
+- API: https://vevil-qa.fly.dev/api
 
-### Supabase Producción
-```
-DB_HOST=aws-1-us-east-2.pooler.supabase.com
-DB_USERNAME=postgres.tplcbrhlubahvuknwyjw
-DB_PASSWORD=4SAg6zE68lgEaW86
-```
+## GitHub Actions Workflows
 
-### Supabase Desarrollo
-```
-DB_HOST=tu-host-dev-supabase
-DB_USERNAME=tu-username-dev
-DB_PASSWORD=tu-password-dev
-```
+### CI (Continuous Integration)
+- **Archivo:** `.github/workflows/ci.yml`
+- **Triggers:** Push y PR a `main`, `develop`, `qa`
+- **Acciones:** Ejecuta tests de backend y frontend
 
-### JWT Secrets (diferentes por ambiente)
-```
-# Producción
-JWT_SECRET=VevilJwtS3cr3tPr0d_8xK2mN5pQ7rT9wY1zA4cE6gI0oL3nM5qS8uW
-JWT_REFRESH_SECRET=VevilR3fr3shS3cr3t_2bD4fH6jL8nP0rT2vX4zA6cE8gI1kM3oQ5sU7wY
-
-# Desarrollo
-JWT_SECRET=VevilJwtS3cr3tD3v_xxxxxxxxxx
-JWT_REFRESH_SECRET=VevilR3fr3shS3cr3tD3v_xxxxxxxxxx
-```
-
-### CORS Origins
-```
-# Producción
-CORS_ORIGINS=https://vevil.vercel.app
-
-# Desarrollo
-CORS_ORIGINS=https://vevil-dev.vercel.app
-```
+### Deploy (Continuous Deployment)
+- **Archivo:** `.github/workflows/deploy.yml`
+- **Triggers:** Push a `main`, `develop`, `qa`
+- **Acciones:**
+  - `main` → Deploy a `vevil-dtt7ta`
+  - `develop` → Deploy a `vevil-dev`
+  - `qa` → Deploy a `vevil-qa`
 
 ## Scripts de Configuración
 
 ### Verificar estado de los servicios
 ```bash
-# Verificar Render
-curl https://vevil-backend.onrender.com/api/health
-curl https://vevil-backend-dev.onrender.com/api/health
+# Producción
+curl https://vevil-dtt7ta.fly.dev/api/health
 
-# Verificar Vercel
-curl https://vevil.vercel.app
-curl https://vevil-dev.vercel.app
+# Desarrollo
+curl https://vevil-dev.fly.dev/api/health
+
+# QA
+curl https://vevil-qa.fly.dev/api/health
 ```
 
 ### Ejecutar migraciones manualmente
@@ -194,21 +183,77 @@ flyctl ssh console -a vevil-dtt7ta -C "npm run migration:run:prod"
 
 # Desarrollo
 flyctl ssh console -a vevil-dev -C "npm run migration:run:prod"
+
+# QA
+flyctl ssh console -a vevil-qa -C "npm run migration:run:prod"
+```
+
+### Verificar logs
+```bash
+# Producción
+flyctl logs -a vevil-dtt7ta
+
+# Desarrollo
+flyctl logs -a vevil-dev
+
+# QA
+flyctl logs -a vevil-qa
 ```
 
 ## Solución de Problemas
 
-### El backend de desarrollo no conecta a la base de datos
-1. Verificar variables de entorno en Render
+### El backend no conecta a la base de datos
+1. Verificar variables de entorno en GitHub Secrets
 2. Verificar que la base de datos de Supabase esté activa
 3. Verificar credenciales correctas
+4. Revisar logs: `flyctl logs -a {app-id}`
 
-### El frontend de desarrollo no conecta al backend
+### El frontend no conecta al backend
 1. Verificar `VITE_API_URL` en Vercel
-2. Verificar `CORS_ORIGINS` en Render
+2. Verificar `CORS_ORIGINS` en Fly.io
 3. Verificar que el backend esté corriendo
 
 ### Los cambios no se despliegan automáticamente
 1. Verificar que la rama correcta esté configurada en cada servicio
-2. Verificar que "Auto-Deploy" esté habilitado
-3. Revisar logs de despliegue en cada plataforma
+2. Verificar que GitHub Actions esté habilitado
+3. Revisar logs de GitHub Actions en la pestaña "Actions"
+
+### Tests fallan en CI
+1. Ejecutar tests localmente: `npm test`
+2. Revisar logs de GitHub Actions
+3. Verificar que las dependencias estén actualizadas
+
+## Comandos Útiles
+
+### Fly.io
+```bash
+# Ver apps
+flyctl apps list
+
+# Ver estado de una app
+flyctl status -a vevil-dev
+
+# Ver logs en tiempo real
+flyctl logs -a vevil-dev -f
+
+# SSH a la máquina
+flyctl ssh console -a vevil-dev
+
+# Deploy manual (solo si es necesario)
+flyctl deploy -a vevil-dev
+```
+
+### Git
+```bash
+# Ver ramas
+git branch -a
+
+# Cambiar de rama
+git checkout develop
+
+# Ver estado
+git status
+
+# Ver logs
+git log --oneline -10
+```

@@ -21,60 +21,23 @@ export declare class AuthController {
     constructor(authService: AuthService, pendingRegistrationsService: PendingRegistrationsService, usersService: UsersService, auditService: AuditService);
     private setTokenCookies;
     private clearTokenCookies;
-    login(user: User, _loginDto: LoginDto, req: any, res: Response): Promise<Response<any, Record<string, any>>>;
-    requestRegistration(dto: RequestRegistrationDto): Promise<{
-        message: string;
-    }>;
-    confirmRegistration(token: string | undefined): Promise<{
-        message: string;
-    }>;
-    register(createUserDto: CreateUserDto): Promise<{
-        id: string;
-        email: string;
-        name: string;
-        lastName?: string;
-        gender?: "male" | "female";
-        avatar?: string;
-        role: import("../users/entities/user-role.enum").UserRole;
-        isActive: boolean;
-        hashedRefreshToken?: string;
-        resetPasswordToken?: string;
-        resetPasswordExpires?: Date;
-        createdAt: Date;
-        updatedAt: Date;
-    }>;
+    login(user: User, _loginDto: LoginDto, req: any, res: Response): unknown;
+    requestRegistration(dto: RequestRegistrationDto): unknown;
+    confirmRegistration(token: string | undefined): unknown;
+    register(createUserDto: CreateUserDto): unknown;
     getProfile(user: User & {
         userId?: string;
-    }): Promise<{
-        role: string;
-        id: string;
-        email: string;
-        name: string;
-        lastName?: string;
-        gender?: "male" | "female";
-        avatar?: string;
-        isActive: boolean;
-        createdAt: Date;
-        updatedAt: Date;
-    }>;
+    }): unknown;
     logout(user: User & {
         userId?: string;
-    }, res: Response): Promise<Response<any, Record<string, any>>>;
+    }, res: Response): unknown;
     refreshTokens(user: User & {
         refreshToken: string;
-    }, res: Response): Promise<Response<any, Record<string, any>>>;
-    forgotPassword(dto: ForgotPasswordDto): Promise<{
-        message: string;
-    }>;
-    resetPassword(dto: ResetPasswordDto): Promise<{
-        message: string;
-    }>;
-    changePassword(user: User, dto: ChangePasswordDto): Promise<{
-        message: string;
-    }>;
+    }, res: Response): unknown;
+    forgotPassword(dto: ForgotPasswordDto): unknown;
+    resetPassword(dto: ResetPasswordDto): unknown;
+    changePassword(user: User, dto: ChangePasswordDto): unknown;
     enableUser(body: {
         email: string;
-    }): Promise<{
-        message: string;
-    }>;
+    }): unknown;
 }

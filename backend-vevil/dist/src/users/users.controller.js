@@ -11,6 +11,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 var __param = (this && this.__param) || function (paramIndex, decorator) {
     return function (target, key) { decorator(target, key, paramIndex); }
 };
+var _a, _b, _c, _d, _e, _f, _g, _h, _j;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.UsersController = void 0;
 const common_1 = require("@nestjs/common");
@@ -85,7 +86,7 @@ __decorate([
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [create_user_dto_1.CreateUserDto]),
-    __metadata("design:returntype", Promise)
+    __metadata("design:returntype", typeof (_a = typeof Promise !== "undefined" && Promise) === "function" ? _a : Object)
 ], UsersController.prototype, "create", null);
 __decorate([
     (0, common_1.Get)(),
@@ -98,7 +99,7 @@ __decorate([
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [pagination_query_dto_1.PaginationQueryDto,
         user_entity_1.User]),
-    __metadata("design:returntype", Promise)
+    __metadata("design:returntype", typeof (_b = typeof Promise !== "undefined" && Promise) === "function" ? _b : Object)
 ], UsersController.prototype, "findAll", null);
 __decorate([
     (0, common_1.Get)('me'),
@@ -106,7 +107,7 @@ __decorate([
     __param(0, (0, get_user_decorator_1.GetUser)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [user_entity_1.User]),
-    __metadata("design:returntype", Promise)
+    __metadata("design:returntype", typeof (_c = typeof Promise !== "undefined" && Promise) === "function" ? _c : Object)
 ], UsersController.prototype, "getMe", null);
 __decorate([
     (0, common_1.Post)('avatar'),
@@ -124,7 +125,7 @@ __decorate([
         ],
     }))),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [user_entity_1.User, Object]),
+    __metadata("design:paramtypes", [user_entity_1.User, typeof (_e = typeof Express !== "undefined" && (_d = Express.Multer) !== void 0 && _d.File) === "function" ? _e : Object]),
     __metadata("design:returntype", void 0)
 ], UsersController.prototype, "uploadAvatar", null);
 __decorate([
@@ -132,7 +133,7 @@ __decorate([
     __param(0, (0, common_1.Param)('id')),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String]),
-    __metadata("design:returntype", Promise)
+    __metadata("design:returntype", typeof (_f = typeof Promise !== "undefined" && Promise) === "function" ? _f : Object)
 ], UsersController.prototype, "findOne", null);
 __decorate([
     (0, common_1.Patch)(':id'),
@@ -142,7 +143,7 @@ __decorate([
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String, update_user_dto_1.UpdateUserDto,
         user_entity_1.User]),
-    __metadata("design:returntype", Promise)
+    __metadata("design:returntype", typeof (_g = typeof Promise !== "undefined" && Promise) === "function" ? _g : Object)
 ], UsersController.prototype, "update", null);
 __decorate([
     (0, common_1.Delete)(':id'),
@@ -151,7 +152,7 @@ __decorate([
     __param(0, (0, common_1.Param)('id')),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String]),
-    __metadata("design:returntype", Promise)
+    __metadata("design:returntype", typeof (_h = typeof Promise !== "undefined" && Promise) === "function" ? _h : Object)
 ], UsersController.prototype, "remove", null);
 __decorate([
     (0, common_1.Patch)(':id/toggle-active'),
@@ -164,7 +165,7 @@ __decorate([
     __param(1, (0, get_user_decorator_1.GetUser)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String, user_entity_1.User]),
-    __metadata("design:returntype", Promise)
+    __metadata("design:returntype", typeof (_j = typeof Promise !== "undefined" && Promise) === "function" ? _j : Object)
 ], UsersController.prototype, "toggleActive", null);
 exports.UsersController = UsersController = __decorate([
     (0, swagger_1.ApiTags)('Users'),

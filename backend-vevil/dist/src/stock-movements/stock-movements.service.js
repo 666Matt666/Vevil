@@ -11,6 +11,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 var __param = (this && this.__param) || function (paramIndex, decorator) {
     return function (target, key) { decorator(target, key, paramIndex); }
 };
+var _a;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.StockMovementsService = void 0;
 const common_1 = require("@nestjs/common");
@@ -88,7 +89,6 @@ exports.StockMovementsService = StockMovementsService;
 exports.StockMovementsService = StockMovementsService = __decorate([
     (0, common_1.Injectable)(),
     __param(0, (0, typeorm_1.InjectRepository)(stock_movement_entity_1.StockMovement)),
-    __metadata("design:paramtypes", [typeorm_2.Repository,
-        products_service_1.ProductsService])
+    __metadata("design:paramtypes", [typeof (_a = typeof typeorm_2.Repository !== "undefined" && typeorm_2.Repository) === "function" ? _a : Object, products_service_1.ProductsService])
 ], StockMovementsService);
 //# sourceMappingURL=stock-movements.service.js.map

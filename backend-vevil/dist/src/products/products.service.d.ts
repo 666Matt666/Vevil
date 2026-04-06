@@ -5,8 +5,8 @@ import { UpdateProductDto } from './dto/update-product.dto';
 export declare class ProductsService {
     private productsRepository;
     constructor(productsRepository: Repository<Product>);
-    create(createProductDto: CreateProductDto): Promise<Product>;
-    findAll(): Promise<Product[]>;
+    create(createProductDto: CreateProductDto): any;
+    findAll(): any;
     findPage(page?: number, limit?: number, filters?: {
         search?: string;
         type?: string;
@@ -15,7 +15,7 @@ export declare class ProductsService {
         data: Product[];
         total: number;
     }>;
-    findOne(id: number): Promise<Product>;
-    update(id: number, updateProductDto: UpdateProductDto): Promise<Product>;
-    remove(id: number): Promise<Product>;
+    findOne(id: number): Promise<any>;
+    update(id: number, updateProductDto: UpdateProductDto): Promise<any>;
+    remove(id: number): Promise<any>;
 }

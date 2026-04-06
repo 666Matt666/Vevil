@@ -8,6 +8,7 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
+var _a, _b;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.MailService = void 0;
 const common_1 = require("@nestjs/common");
@@ -123,7 +124,6 @@ let MailService = class MailService {
 exports.MailService = MailService;
 exports.MailService = MailService = __decorate([
     (0, common_1.Injectable)(),
-    __metadata("design:paramtypes", [mailer_1.MailerService,
-        config_1.ConfigService])
+    __metadata("design:paramtypes", [typeof (_a = typeof mailer_1.MailerService !== "undefined" && mailer_1.MailerService) === "function" ? _a : Object, typeof (_b = typeof config_1.ConfigService !== "undefined" && config_1.ConfigService) === "function" ? _b : Object])
 ], MailService);
 //# sourceMappingURL=mail.service.js.map

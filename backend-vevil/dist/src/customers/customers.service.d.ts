@@ -5,8 +5,8 @@ import { UpdateCustomerDto } from './dto/update-customer.dto';
 export declare class CustomersService {
     private customersRepository;
     constructor(customersRepository: Repository<Customer>);
-    create(createCustomerDto: CreateCustomerDto): Promise<Customer>;
-    findAll(): Promise<Customer[]>;
+    create(createCustomerDto: CreateCustomerDto): any;
+    findAll(): any;
     findPage(page?: number, limit?: number, filters?: {
         search?: string;
         department?: string;
@@ -15,7 +15,7 @@ export declare class CustomersService {
         total: number;
     }>;
     getDepartments(): Promise<string[]>;
-    findOne(id: number): Promise<Customer>;
-    update(id: number, updateCustomerDto: UpdateCustomerDto): Promise<Customer>;
-    remove(id: number): Promise<Customer>;
+    findOne(id: number): Promise<any>;
+    update(id: number, updateCustomerDto: UpdateCustomerDto): Promise<any>;
+    remove(id: number): Promise<any>;
 }

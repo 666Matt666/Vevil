@@ -11,10 +11,12 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 var __param = (this && this.__param) || function (paramIndex, decorator) {
     return function (target, key) { decorator(target, key, paramIndex); }
 };
+var _a;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.BackupController = void 0;
 const common_1 = require("@nestjs/common");
 const backup_service_1 = require("./backup.service");
+const express_1 = require("express");
 let BackupController = class BackupController {
     constructor(backupService) {
         this.backupService = backupService;
@@ -100,7 +102,7 @@ __decorate([
     __param(0, (0, common_1.Param)('id')),
     __param(1, (0, common_1.Res)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, Object]),
+    __metadata("design:paramtypes", [String, typeof (_a = typeof express_1.Response !== "undefined" && express_1.Response) === "function" ? _a : Object]),
     __metadata("design:returntype", Promise)
 ], BackupController.prototype, "downloadBackup", null);
 __decorate([

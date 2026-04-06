@@ -11,6 +11,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 var __param = (this && this.__param) || function (paramIndex, decorator) {
     return function (target, key) { decorator(target, key, paramIndex); }
 };
+var _a, _b, _c;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.InvoicesService = void 0;
 const common_1 = require("@nestjs/common");
@@ -237,12 +238,8 @@ exports.InvoicesService = InvoicesService = __decorate([
     (0, common_1.Injectable)(),
     __param(0, (0, typeorm_1.InjectRepository)(invoice_entity_1.Invoice)),
     __param(1, (0, typeorm_1.InjectRepository)(payment_entity_1.Payment)),
-    __metadata("design:paramtypes", [typeorm_2.Repository,
-        typeorm_2.Repository,
-        products_service_1.ProductsService,
+    __metadata("design:paramtypes", [typeof (_a = typeof typeorm_2.Repository !== "undefined" && typeorm_2.Repository) === "function" ? _a : Object, typeof (_b = typeof typeorm_2.Repository !== "undefined" && typeorm_2.Repository) === "function" ? _b : Object, products_service_1.ProductsService,
         customers_service_1.CustomersService,
-        stock_movements_service_1.StockMovementsService,
-        typeorm_2.DataSource,
-        mail_service_1.MailService])
+        stock_movements_service_1.StockMovementsService, typeof (_c = typeof typeorm_2.DataSource !== "undefined" && typeorm_2.DataSource) === "function" ? _c : Object, mail_service_1.MailService])
 ], InvoicesService);
 //# sourceMappingURL=invoices.service.js.map

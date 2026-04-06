@@ -11,6 +11,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 var __param = (this && this.__param) || function (paramIndex, decorator) {
     return function (target, key) { decorator(target, key, paramIndex); }
 };
+var _a, _b;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.WebAuthnService = void 0;
 const common_1 = require("@nestjs/common");
@@ -166,9 +167,7 @@ exports.WebAuthnService = WebAuthnService;
 exports.WebAuthnService = WebAuthnService = __decorate([
     (0, common_1.Injectable)(),
     __param(0, (0, typeorm_1.InjectRepository)(webauthn_credential_entity_1.WebAuthnCredential)),
-    __metadata("design:paramtypes", [typeorm_2.Repository,
-        users_service_1.UsersService,
-        auth_service_1.AuthService,
-        config_1.ConfigService])
+    __metadata("design:paramtypes", [typeof (_a = typeof typeorm_2.Repository !== "undefined" && typeorm_2.Repository) === "function" ? _a : Object, users_service_1.UsersService,
+        auth_service_1.AuthService, typeof (_b = typeof config_1.ConfigService !== "undefined" && config_1.ConfigService) === "function" ? _b : Object])
 ], WebAuthnService);
 //# sourceMappingURL=webauthn.service.js.map

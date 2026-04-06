@@ -11,10 +11,12 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 var __param = (this && this.__param) || function (paramIndex, decorator) {
     return function (target, key) { decorator(target, key, paramIndex); }
 };
+var _a, _b, _c;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AuthController = exports.COOKIE_MAX_AGE = exports.REFRESH_TOKEN_COOKIE = exports.ACCESS_TOKEN_COOKIE = void 0;
 const common_1 = require("@nestjs/common");
 const passport_1 = require("@nestjs/passport");
+const express_1 = require("express");
 const auth_service_1 = require("./auth.service");
 const get_user_decorator_1 = require("./decorators/get-user.decorator");
 const user_entity_1 = require("../users/user.entity");
@@ -166,7 +168,7 @@ let AuthController = class AuthController {
 exports.AuthController = AuthController;
 __decorate([
     (0, public_decorator_1.Public)(),
-    (0, throttler_1.Throttle)({ short: { limit: 5, ttl: 60_000 } }),
+    (0, throttler_1.Throttle)({ short: { limit: 5, ttl: 60000 } }),
     (0, common_1.UseGuards)((0, passport_1.AuthGuard)('local')),
     (0, common_1.HttpCode)(common_1.HttpStatus.OK),
     (0, common_1.Post)('login'),
@@ -179,12 +181,12 @@ __decorate([
     __param(3, (0, common_1.Res)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [user_entity_1.User,
-        login_dto_1.LoginDto, Object, Object]),
+        login_dto_1.LoginDto, Object, typeof (_a = typeof express_1.Response !== "undefined" && express_1.Response) === "function" ? _a : Object]),
     __metadata("design:returntype", Promise)
 ], AuthController.prototype, "login", null);
 __decorate([
     (0, public_decorator_1.Public)(),
-    (0, throttler_1.Throttle)({ short: { limit: 5, ttl: 60_000 } }),
+    (0, throttler_1.Throttle)({ short: { limit: 5, ttl: 60000 } }),
     (0, common_1.Post)('request-registration'),
     (0, common_1.HttpCode)(common_1.HttpStatus.OK),
     (0, swagger_1.ApiOperation)({ summary: 'Solicitar registro (envía email para confirmar correo)' }),
@@ -197,7 +199,7 @@ __decorate([
 ], AuthController.prototype, "requestRegistration", null);
 __decorate([
     (0, public_decorator_1.Public)(),
-    (0, throttler_1.Throttle)({ short: { limit: 10, ttl: 60_000 } }),
+    (0, throttler_1.Throttle)({ short: { limit: 10, ttl: 60000 } }),
     (0, common_1.Get)('confirm-registration'),
     (0, swagger_1.ApiOperation)({ summary: 'Confirmar correo desde el link del email' }),
     (0, swagger_1.ApiResponse)({ status: 200, description: 'Correo confirmado, pendiente de aprobación de un admin.' }),
@@ -208,7 +210,7 @@ __decorate([
 ], AuthController.prototype, "confirmRegistration", null);
 __decorate([
     (0, public_decorator_1.Public)(),
-    (0, throttler_1.Throttle)({ short: { limit: 5, ttl: 60_000 } }),
+    (0, throttler_1.Throttle)({ short: { limit: 5, ttl: 60000 } }),
     (0, common_1.Post)('register'),
     (0, common_1.HttpCode)(common_1.HttpStatus.CREATED),
     (0, swagger_1.ApiOperation)({ summary: 'Registrar un nuevo usuario (registro directo, sin aprobación)' }),
@@ -238,7 +240,7 @@ __decorate([
     __param(0, (0, get_user_decorator_1.GetUser)()),
     __param(1, (0, common_1.Res)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object, Object]),
+    __metadata("design:paramtypes", [Object, typeof (_b = typeof express_1.Response !== "undefined" && express_1.Response) === "function" ? _b : Object]),
     __metadata("design:returntype", Promise)
 ], AuthController.prototype, "logout", null);
 __decorate([
@@ -249,12 +251,12 @@ __decorate([
     __param(0, (0, get_user_decorator_1.GetUser)()),
     __param(1, (0, common_1.Res)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object, Object]),
+    __metadata("design:paramtypes", [Object, typeof (_c = typeof express_1.Response !== "undefined" && express_1.Response) === "function" ? _c : Object]),
     __metadata("design:returntype", Promise)
 ], AuthController.prototype, "refreshTokens", null);
 __decorate([
     (0, public_decorator_1.Public)(),
-    (0, throttler_1.Throttle)({ short: { limit: 3, ttl: 60_000 } }),
+    (0, throttler_1.Throttle)({ short: { limit: 3, ttl: 60000 } }),
     (0, common_1.Post)('forgot-password'),
     (0, common_1.HttpCode)(common_1.HttpStatus.OK),
     (0, swagger_1.ApiOperation)({ summary: 'Solicitar restablecimiento de contraseña' }),

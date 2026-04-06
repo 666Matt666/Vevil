@@ -7,12 +7,9 @@ export declare class ProductsController {
     private readonly auditService;
     constructor(productsService: ProductsService, auditService: AuditService);
     private userFromReq;
-    create(createProductDto: CreateProductDto, req: any): Promise<import("./product.entity").Product>;
-    findAll(pageStr?: string, limitStr?: string, search?: string, type?: string, category?: string): Promise<import("./product.entity").Product[] | {
-        data: import("./product.entity").Product[];
-        total: number;
-    }>;
-    findOne(id: string): Promise<import("./product.entity").Product>;
-    update(id: string, updateProductDto: UpdateProductDto, req: any): Promise<import("./product.entity").Product>;
-    remove(id: string, req: any): Promise<import("./product.entity").Product>;
+    create(createProductDto: CreateProductDto, req: any): unknown;
+    findAll(pageStr?: string, limitStr?: string, search?: string, type?: string, category?: string): unknown;
+    findOne(id: string): unknown;
+    update(id: string, updateProductDto: UpdateProductDto, req: any): unknown;
+    remove(id: string, req: any): unknown;
 }

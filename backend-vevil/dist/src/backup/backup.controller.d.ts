@@ -3,26 +3,11 @@ import { Response } from 'express';
 export declare class BackupController {
     private readonly backupService;
     constructor(backupService: BackupService);
-    listBackups(frequency?: string, limit?: string): Promise<{
-        data: import("./backup.entity").Backup[];
-        total: number;
-    }>;
-    getBackup(id: string): Promise<import("./backup.entity").Backup>;
-    getBackupContent(id: string): Promise<{
-        error: string;
-        backup?: undefined;
-        preview?: undefined;
-        totalLines?: undefined;
-    } | {
-        backup: import("./backup.entity").Backup;
-        preview: any;
-        totalLines: any;
-        error?: undefined;
-    }>;
-    downloadBackup(id: string, res: Response): Promise<Response<any, Record<string, any>>>;
-    triggerBackup(): Promise<import("./backup.entity").Backup>;
-    markAsDownloaded(id: string): Promise<import("./backup.entity").Backup>;
-    deleteBackup(id: string): Promise<{
-        success: boolean;
-    }>;
+    listBackups(frequency?: string, limit?: string): unknown;
+    getBackup(id: string): unknown;
+    getBackupContent(id: string): unknown;
+    downloadBackup(id: string, res: Response): unknown;
+    triggerBackup(): unknown;
+    markAsDownloaded(id: string): unknown;
+    deleteBackup(id: string): unknown;
 }

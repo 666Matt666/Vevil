@@ -14,17 +14,23 @@ const common_1 = require("@nestjs/common");
 const passport_1 = require("@nestjs/passport");
 const passport_jwt_1 = require("passport-jwt");
 const config_1 = require("@nestjs/config");
+const auth_controller_1 = require("../auth.controller");
 let JwtRefreshStrategy = class JwtRefreshStrategy extends (0, passport_1.PassportStrategy)(passport_jwt_1.Strategy, 'jwt-refresh') {
     constructor(configService) {
         super({
-            jwtFromRequest: passport_jwt_1.ExtractJwt.fromBodyField('refresh_token'),
+            jwtFromRequest: (req) => {
+                if (req && req.cookies && req.cookies[auth_controller_1.REFRESH_TOKEN_COOKIE]) {
+                    return req.cookies[auth_controller_1.REFRESH_TOKEN_COOKIE];
+                }
+                return req.body?.refresh_token;
+            },
             secretOrKey: configService.get('JWT_REFRESH_SECRET'),
             passReqToCallback: true,
         });
         this.configService = configService;
     }
     validate(req, payload) {
-        const refreshToken = req.body.refresh_token;
+        const refreshToken = req.cookies?.[auth_controller_1.REFRESH_TOKEN_COOKIE] || req.body?.refresh_token;
         return { ...payload, refreshToken };
     }
 };

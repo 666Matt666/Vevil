@@ -9,7 +9,10 @@ export declare class InvoicesController {
     constructor(invoicesService: InvoicesService, auditService: AuditService);
     private userFromReq;
     create(createInvoiceDto: CreateInvoiceDto, req: any): Promise<import("./invoice.entity").Invoice>;
-    findAll(): Promise<import("./invoice.entity").Invoice[]>;
+    findAll(pageStr?: string, limitStr?: string, search?: string, customerIdStr?: string, status?: string, dateFrom?: string, dateTo?: string): Promise<import("./invoice.entity").Invoice[] | {
+        data: import("./invoice.entity").Invoice[];
+        total: number;
+    }>;
     updateStatus(id: string, dto: UpdateInvoiceStatusDto, req: any): Promise<import("./invoice.entity").Invoice>;
     getPayments(id: string): Promise<import("./payment.entity").Payment[]>;
     addPayment(id: string, dto: CreatePaymentDto, req: any): Promise<import("./payment.entity").Payment>;

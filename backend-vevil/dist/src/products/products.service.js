@@ -36,6 +36,29 @@ let ProductsService = class ProductsService {
             relations: ['invoiceItems'],
         });
     }
+    async findPage(page = 1, limit = 10, filters) {
+        const skip = Math.max(0, (page - 1) * limit);
+        const take = Math.min(100, Math.max(1, limit));
+        const qb = this.productsRepository.createQueryBuilder('p')
+            .leftJoinAndSelect('p.invoiceItems', 'invoiceItems')
+            .orderBy('p.id', 'ASC');
+        if (filters?.search?.trim()) {
+            qb.andWhere('LOWER(p.name) LIKE LOWER(:search)', { search: `%${filters.search.trim()}%` });
+        }
+        if (filters?.type && filters.type !== 'all') {
+            qb.andWhere('p.type = :type', { type: filters.type });
+        }
+        if (filters?.category !== undefined && filters?.category !== 'all') {
+            if (filters.category === '') {
+                qb.andWhere('(p.category IS NULL OR p.category = \'\')');
+            }
+            else {
+                qb.andWhere('p.category = :category', { category: filters.category });
+            }
+        }
+        const [data, total] = await qb.skip(skip).take(take).getManyAndCount();
+        return { data, total };
+    }
     async findOne(id) {
         const product = await this.productsRepository.findOne({
             where: { id },

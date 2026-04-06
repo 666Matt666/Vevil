@@ -28,6 +28,29 @@ let CustomersService = class CustomersService {
     findAll() {
         return this.customersRepository.find();
     }
+    async findPage(page = 1, limit = 10, filters) {
+        const skip = Math.max(0, (page - 1) * limit);
+        const take = Math.min(100, Math.max(1, limit));
+        const qb = this.customersRepository.createQueryBuilder('c').orderBy('c.id', 'ASC');
+        if (filters?.search?.trim()) {
+            const term = `%${filters.search.trim().toLowerCase()}%`;
+            qb.andWhere('(LOWER(c.name) LIKE :term OR LOWER(c.email) LIKE :term OR LOWER(c.tax_id) LIKE :term)', { term });
+        }
+        if (filters?.department?.trim()) {
+            qb.andWhere('c.address_province = :dept', { dept: filters.department.trim() });
+        }
+        const [data, total] = await qb.skip(skip).take(take).getManyAndCount();
+        return { data, total };
+    }
+    async getDepartments() {
+        const rows = await this.customersRepository
+            .createQueryBuilder('c')
+            .select('DISTINCT c.address_province', 'department')
+            .where('c.address_province IS NOT NULL AND c.address_province != \'\'')
+            .orderBy('c.address_province', 'ASC')
+            .getRawMany();
+        return rows.map((r) => r.department).filter(Boolean);
+    }
     async findOne(id) {
         const customer = await this.customersRepository.findOneBy({ id });
         if (!customer) {

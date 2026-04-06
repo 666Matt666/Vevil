@@ -77,6 +77,9 @@ __decorate([
     __metadata("design:type", Date)
 ], User.prototype, "updatedAt", void 0);
 exports.User = User = __decorate([
-    (0, typeorm_1.Entity)()
+    (0, typeorm_1.Entity)(),
+    (0, typeorm_1.Index)(['email'], { unique: true }),
+    (0, typeorm_1.Index)(['role']),
+    (0, typeorm_1.Index)(['createdAt'])
 ], User);
 //# sourceMappingURL=user.entity.js.map

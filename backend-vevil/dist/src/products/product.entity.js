@@ -60,6 +60,10 @@ __decorate([
     __metadata("design:type", Array)
 ], Product.prototype, "invoiceItems", void 0);
 exports.Product = Product = __decorate([
-    (0, typeorm_1.Entity)()
+    (0, typeorm_1.Entity)(),
+    (0, typeorm_1.Index)(['name']),
+    (0, typeorm_1.Index)(['type']),
+    (0, typeorm_1.Index)(['category']),
+    (0, typeorm_1.Index)(['stock'])
 ], Product);
 //# sourceMappingURL=product.entity.js.map

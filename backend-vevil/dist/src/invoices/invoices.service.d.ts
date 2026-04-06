@@ -18,6 +18,16 @@ export declare class InvoicesService {
     constructor(invoicesRepository: Repository<Invoice>, paymentsRepository: Repository<Payment>, productsService: ProductsService, customersService: CustomersService, stockMovementsService: StockMovementsService, dataSource: DataSource, mailService: MailService);
     create(createInvoiceDto: CreateInvoiceDto): Promise<Invoice>;
     findAll(): Promise<Invoice[]>;
+    findPage(page?: number, limit?: number, filters?: {
+        search?: string;
+        customerId?: number;
+        status?: string;
+        dateFrom?: string;
+        dateTo?: string;
+    }): Promise<{
+        data: Invoice[];
+        total: number;
+    }>;
     findOne(id: number): Promise<Invoice>;
     updateStatus(id: number, status: string): Promise<Invoice>;
     getPayments(invoiceId: number): Promise<Payment[]>;

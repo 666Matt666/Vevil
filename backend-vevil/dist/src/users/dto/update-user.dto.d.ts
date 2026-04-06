@@ -7,5 +7,6 @@ export declare class UpdateUserDto extends UpdateUserDto_base {
     avatarPath?: string;
     role?: UserRole;
     password?: string;
+    isActive?: boolean;
 }
 export {};

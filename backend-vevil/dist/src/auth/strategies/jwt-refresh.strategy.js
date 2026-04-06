@@ -19,6 +19,10 @@ let JwtRefreshStrategy = class JwtRefreshStrategy extends (0, passport_1.Passpor
     constructor(configService) {
         super({
             jwtFromRequest: (req) => {
+                const authHeader = req?.headers?.authorization;
+                if (authHeader && authHeader.startsWith('Bearer ')) {
+                    return authHeader.substring(7);
+                }
                 if (req && req.cookies && req.cookies[auth_controller_1.REFRESH_TOKEN_COOKIE]) {
                     return req.cookies[auth_controller_1.REFRESH_TOKEN_COOKIE];
                 }
@@ -30,7 +34,9 @@ let JwtRefreshStrategy = class JwtRefreshStrategy extends (0, passport_1.Passpor
         this.configService = configService;
     }
     validate(req, payload) {
-        const refreshToken = req.cookies?.[auth_controller_1.REFRESH_TOKEN_COOKIE] || req.body?.refresh_token;
+        const refreshToken = req.headers?.authorization?.substring(7) ||
+            req.cookies?.[auth_controller_1.REFRESH_TOKEN_COOKIE] ||
+            req.body?.refresh_token;
         return { ...payload, refreshToken };
     }
 };

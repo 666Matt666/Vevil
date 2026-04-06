@@ -72,4 +72,9 @@ export declare class AuthController {
     changePassword(user: User, dto: ChangePasswordDto): Promise<{
         message: string;
     }>;
+    enableUser(body: {
+        email: string;
+    }): Promise<{
+        message: string;
+    }>;
 }

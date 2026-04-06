@@ -151,6 +151,17 @@ let AuthController = class AuthController {
     async changePassword(user, dto) {
         return this.authService.changePassword(user.id, dto.currentPassword, dto.newPassword);
     }
+    async enableUser(body) {
+        const user = await this.usersService.findOneByEmail(body.email);
+        if (!user) {
+            throw new common_1.BadRequestException('Usuario no encontrado');
+        }
+        if (user.isActive) {
+            return { message: 'El usuario ya está habilitado' };
+        }
+        await this.usersService.update(user.id, { isActive: true });
+        return { message: 'Usuario habilitado exitosamente' };
+    }
 };
 exports.AuthController = AuthController;
 __decorate([
@@ -209,6 +220,7 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], AuthController.prototype, "register", null);
 __decorate([
+    (0, common_1.UseGuards)((0, passport_1.AuthGuard)('jwt')),
     (0, common_1.Get)('profile'),
     (0, swagger_1.ApiOperation)({ summary: 'Obtener el perfil del usuario actual' }),
     (0, swagger_1.ApiResponse)({ status: 200, description: 'Perfil del usuario.', type: user_entity_1.User }),
@@ -275,6 +287,18 @@ __decorate([
         change_password_dto_1.ChangePasswordDto]),
     __metadata("design:returntype", Promise)
 ], AuthController.prototype, "changePassword", null);
+__decorate([
+    (0, public_decorator_1.Public)(),
+    (0, common_1.Post)('enable-user'),
+    (0, common_1.HttpCode)(common_1.HttpStatus.OK),
+    (0, swagger_1.ApiOperation)({ summary: 'Habilitar usuario por email (temporal)' }),
+    (0, swagger_1.ApiResponse)({ status: 200, description: 'Usuario habilitado exitosamente.' }),
+    (0, swagger_1.ApiResponse)({ status: 404, description: 'Usuario no encontrado.' }),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", Promise)
+], AuthController.prototype, "enableUser", null);
 exports.AuthController = AuthController = __decorate([
     (0, common_1.Controller)('auth'),
     (0, swagger_1.ApiTags)('Authentication'),

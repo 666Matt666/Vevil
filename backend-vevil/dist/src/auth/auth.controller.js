@@ -116,7 +116,7 @@ let AuthController = class AuthController {
 exports.AuthController = AuthController;
 __decorate([
     (0, public_decorator_1.Public)(),
-    (0, throttler_1.Throttle)({ short: { limit: 5, ttl: 60000 } }),
+    (0, throttler_1.Throttle)({ short: { limit: 5, ttl: 60_000 } }),
     (0, common_1.UseGuards)((0, passport_1.AuthGuard)('local')),
     (0, common_1.HttpCode)(common_1.HttpStatus.OK),
     (0, common_1.Post)('login'),
@@ -134,7 +134,7 @@ __decorate([
 ], AuthController.prototype, "login", null);
 __decorate([
     (0, public_decorator_1.Public)(),
-    (0, throttler_1.Throttle)({ short: { limit: 5, ttl: 60000 } }),
+    (0, throttler_1.Throttle)({ short: { limit: 5, ttl: 60_000 } }),
     (0, common_1.Post)('request-registration'),
     (0, common_1.HttpCode)(common_1.HttpStatus.OK),
     (0, swagger_1.ApiOperation)({ summary: 'Solicitar registro (envía email para confirmar correo)' }),
@@ -147,7 +147,7 @@ __decorate([
 ], AuthController.prototype, "requestRegistration", null);
 __decorate([
     (0, public_decorator_1.Public)(),
-    (0, throttler_1.Throttle)({ short: { limit: 10, ttl: 60000 } }),
+    (0, throttler_1.Throttle)({ short: { limit: 10, ttl: 60_000 } }),
     (0, common_1.Get)('confirm-registration'),
     (0, swagger_1.ApiOperation)({ summary: 'Confirmar correo desde el link del email' }),
     (0, swagger_1.ApiResponse)({ status: 200, description: 'Correo confirmado, pendiente de aprobación de un admin.' }),
@@ -158,7 +158,7 @@ __decorate([
 ], AuthController.prototype, "confirmRegistration", null);
 __decorate([
     (0, public_decorator_1.Public)(),
-    (0, throttler_1.Throttle)({ short: { limit: 5, ttl: 60000 } }),
+    (0, throttler_1.Throttle)({ short: { limit: 5, ttl: 60_000 } }),
     (0, common_1.Post)('register'),
     (0, common_1.HttpCode)(common_1.HttpStatus.CREATED),
     (0, swagger_1.ApiOperation)({ summary: 'Registrar un nuevo usuario (registro directo, sin aprobación)' }),
@@ -204,7 +204,7 @@ __decorate([
 ], AuthController.prototype, "refreshTokens", null);
 __decorate([
     (0, public_decorator_1.Public)(),
-    (0, throttler_1.Throttle)({ short: { limit: 3, ttl: 60000 } }),
+    (0, throttler_1.Throttle)({ short: { limit: 3, ttl: 60_000 } }),
     (0, common_1.Post)('forgot-password'),
     (0, common_1.HttpCode)(common_1.HttpStatus.OK),
     (0, swagger_1.ApiOperation)({ summary: 'Solicitar restablecimiento de contraseña' }),

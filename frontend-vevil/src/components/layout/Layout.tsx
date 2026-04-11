@@ -300,7 +300,20 @@ const Layout: React.FC = () => {
                     gap: '16px'
                 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                            <img 
+                                src="/logoVevilTransparente.png" 
+                                alt="Vevil" 
+                                style={{ 
+                                    height: '40px', 
+                                    width: 'auto',
+                                    display: 'block'
+                                }}
+                                onError={(e) => {
+                                    (e.target as HTMLImageElement).style.display = 'none';
+                                }}
+                            />
+                            <div style={{ display: 'none' }}></div>
                             <h1 style={{
                                 fontSize: '24px',
                                 fontWeight: 700,

@@ -101,6 +101,7 @@ const CustomerList: React.FC = () => {
     const [departments, setDepartments] = useState<string[]>([]);
     const [customerToDelete, setCustomerToDelete] = useState<Customer | null>(null);
     const [deleting, setDeleting] = useState(false);
+    const [showInvoiceWarning, setShowInvoiceWarning] = useState(false);
 
     const loadCustomers = async (pageNum: number = page) => {
         try {
@@ -206,7 +207,13 @@ const CustomerList: React.FC = () => {
             setCustomerToDelete(null);
             loadCustomers(page);
         } catch (err) {
-            setError(getErrorMessage(err, 'Error al eliminar'));
+            const errorMsg = getErrorMessage(err, 'Error al eliminar');
+            if (errorMsg.toLowerCase().includes('factura')) {
+                setShowInvoiceWarning(true);
+                setError(null);
+            } else {
+                setError(errorMsg);
+            }
         } finally {
             setDeleting(false);
         }
@@ -468,6 +475,65 @@ const CustomerList: React.FC = () => {
                     onConfirm={() => handleDeleteConfirm()}
                     onCancel={() => setCustomerToDelete(null)}
                 />
+            )}
+
+            {/* Invoice Warning Modal */}
+            {showInvoiceWarning && customerToDelete && (
+                <div style={{
+                    position: 'fixed',
+                    top: 0, left: 0, right: 0, bottom: 0,
+                    backgroundColor: 'rgba(0,0,0,0.5)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    zIndex: 999
+                }}>
+                    <div style={{
+                        backgroundColor: 'white',
+                        borderRadius: '16px',
+                        padding: '32px',
+                        width: '90%',
+                        maxWidth: '400px',
+                        textAlign: 'center'
+                    }}>
+                        <div style={{ fontSize: '48px', marginBottom: '16px' }}>📋</div>
+                        <h3 style={{ marginTop: 0, color: '#1e293b', fontSize: '20px' }}>
+                            Cliente con facturas
+                        </h3>
+                        <p style={{ color: '#64748b', marginBottom: '24px' }}>
+                            No se puede eliminar el cliente porque tiene facturas asociadas.
+                            Primero debe eliminar las facturas desde el módulo de <strong>Facturas</strong>.
+                        </p>
+                        <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
+                            <button
+                                onClick={() => { setShowInvoiceWarning(false); setCustomerToDelete(null); }}
+                                style={{
+                                    padding: '10px 24px',
+                                    borderRadius: '8px',
+                                    border: '1px solid #e2e8f0',
+                                    backgroundColor: 'white',
+                                    cursor: 'pointer',
+                                    fontSize: '14px'
+                                }}
+                            >
+                                Cerrar
+                            </button>
+                            <button
+                                onClick={() => { setShowInvoiceWarning(false); window.location.href = '/invoices'; }}
+                                style={{
+                                    padding: '10px 24px',
+                                    borderRadius: '8px',
+                                    border: 'none',
+                                    backgroundColor: '#22c55e',
+                                    color: 'white',
+                                    cursor: 'pointer',
+                                    fontSize: '14px',
+                                    fontWeight: 500
+                                }}
+                            >
+                                Ir a Facturas
+                            </button>
+                        </div>
+                    </div>
+                </div>
             )}
 
             {/* Modal */}

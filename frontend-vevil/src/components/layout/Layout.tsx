@@ -339,6 +339,77 @@ const Layout: React.FC = () => {
                             </button>
                         )}
                     </div>
+                    
+                    {/* Usuario actual + Avatar */}
+                    {(profile || profileData) && (
+                        <div style={{ 
+                            padding: '16px 24px', 
+                            borderBottom: '1px solid #334155',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '12px'
+                        }}>
+                            <div style={{
+                                width: '40px',
+                                height: '40px',
+                                borderRadius: '50%',
+                                backgroundColor: '#4f46e5',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                color: 'white',
+                                fontWeight: 600,
+                                fontSize: '16px',
+                                overflow: 'hidden'
+                            }}>
+                                {(profile?.avatar || profileData?.avatar) ? (
+                                    <img 
+                                        src={(profile?.avatar || profileData?.avatar)!.replace('/api', '')} 
+                                        alt="Avatar" 
+                                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                    />
+                                ) : (
+                                    (profile?.name || profileData?.name || 'U')[0].toUpperCase()
+                                )}
+                            </div>
+                            <div style={{ flex: 1, overflow: 'hidden' }}>
+                                <div style={{ 
+                                    color: 'white', 
+                                    fontSize: '14px', 
+                                    fontWeight: 500,
+                                    whiteSpace: 'nowrap',
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis'
+                                }}>
+                                    {profile?.name || profileData?.name || 'Usuario'}
+                                </div>
+                                <div style={{ 
+                                    color: '#94a3b8', 
+                                    fontSize: '12px',
+                                    whiteSpace: 'nowrap',
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis'
+                                }}>
+                                    {profile?.email || profileData?.email}
+                                </div>
+                            </div>
+                            <button
+                                onClick={() => navigate('/admin/users')}
+                                style={{
+                                    background: 'none',
+                                    border: 'none',
+                                    color: '#94a3b8',
+                                    cursor: 'pointer',
+                                    fontSize: '16px',
+                                    padding: '4px'
+                                }}
+                                title="Editar perfil"
+                            >
+                                ✏️
+                            </button>
+                        </div>
+                    )}
+
                     {/* Buscador global */}
                     <div style={{ position: 'relative' }}>
                         <input
@@ -479,76 +550,6 @@ const Layout: React.FC = () => {
                         ❓ Ayuda
                     </button>
                 </div>
-
-                {/* Usuario actual + Avatar */}
-                {(profile || profileData) && (
-                    <div style={{ 
-                        padding: '16px 24px', 
-                        borderTop: '1px solid #334155',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '12px'
-                    }}>
-                        <div style={{
-                            width: '40px',
-                            height: '40px',
-                            borderRadius: '50%',
-                            backgroundColor: '#4f46e5',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            color: 'white',
-                            fontWeight: 600,
-                            fontSize: '16px',
-                            overflow: 'hidden'
-                        }}>
-                            {(profile?.avatar || profileData?.avatar) ? (
-                                <img 
-                                    src={(profile?.avatar || profileData?.avatar)!.replace('/api', '')} 
-                                    alt="Avatar" 
-                                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                                />
-                            ) : (
-                                (profile?.name || profileData?.name || 'U')[0].toUpperCase()
-                            )}
-                        </div>
-                        <div style={{ flex: 1, overflow: 'hidden' }}>
-                            <div style={{ 
-                                color: 'white', 
-                                fontSize: '14px', 
-                                fontWeight: 500,
-                                whiteSpace: 'nowrap',
-                                overflow: 'hidden',
-                                textOverflow: 'ellipsis'
-                            }}>
-                                {profile?.name || profileData?.name || 'Usuario'}
-                            </div>
-                            <div style={{ 
-                                color: '#94a3b8', 
-                                fontSize: '12px',
-                                whiteSpace: 'nowrap',
-                                overflow: 'hidden',
-                                textOverflow: 'ellipsis'
-                            }}>
-                                {profile?.email || profileData?.email}
-                            </div>
-                        </div>
-                        <button
-                            onClick={() => navigate('/admin/users')}
-                            style={{
-                                background: 'none',
-                                border: 'none',
-                                color: '#94a3b8',
-                                cursor: 'pointer',
-                                fontSize: '16px',
-                                padding: '4px'
-                            }}
-                            title="Editar perfil"
-                        >
-                            ✏️
-                        </button>
-                    </div>
-                )}
 
                 {/* Logout */}
                 <div style={{ padding: '16px 24px', borderTop: '1px solid #334155' }}>

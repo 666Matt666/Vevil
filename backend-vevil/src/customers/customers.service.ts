@@ -2,6 +2,7 @@ import { Injectable, NotFoundException, BadRequestException } from '@nestjs/comm
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Customer } from './customer.entity';
+import { Invoice } from '../invoices/invoice.entity';
 import { CreateCustomerDto } from './dto/create-customer.dto';
 import { UpdateCustomerDto } from './dto/update-customer.dto';
 
@@ -10,6 +11,8 @@ export class CustomersService {
     constructor(
         @InjectRepository(Customer)
         private customersRepository: Repository<Customer>,
+        @InjectRepository(Invoice)
+        private invoicesRepository: Repository<Invoice>,
     ) { }
 
     create(createCustomerDto: CreateCustomerDto) {
@@ -67,17 +70,32 @@ export class CustomersService {
         return this.customersRepository.save(customer);
     }
 
-    async remove(id: number) {
+    async remove(id: number, force: boolean = false) {
         const customer = await this.findOne(id);
         
-        // Check for associated invoices using raw query
-        const result = await this.customersRepository.query(
-            'SELECT COUNT(*) as count FROM "invoice" WHERE "customerId" = $1',
-            [id]
-        );
-        const invoiceCount = parseInt(result[0]?.count || '0', 10);
-        if (invoiceCount > 0) {
-            throw new BadRequestException(`No se puede eliminar: hay ${invoiceCount} factura(s) asociada(s)`);
+        // Get associated invoices
+        const invoices = await this.invoicesRepository.find({ where: { customerId: id } });
+        
+        if (invoices.length > 0 && !force) {
+            // Return invoice info so frontend can decide
+            return {
+                cannotDelete: true,
+                message: `El cliente tiene ${invoices.length} factura(s) asociada(s)`,
+                invoices: invoices.map(inv => ({
+                    id: inv.id,
+                    number: inv.id, // Could use invoice number if available
+                    date: inv.date,
+                    total: inv.total,
+                    status: inv.status,
+                })),
+            };
+        }
+        
+        // Delete invoices if force=true
+        if (force && invoices.length > 0) {
+            for (const inv of invoices) {
+                await this.invoicesRepository.delete(inv.id);
+            }
         }
         
         return this.customersRepository.remove(customer);

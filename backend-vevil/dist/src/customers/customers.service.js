@@ -11,16 +11,17 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 var __param = (this && this.__param) || function (paramIndex, decorator) {
     return function (target, key) { decorator(target, key, paramIndex); }
 };
-var _a;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.CustomersService = void 0;
 const common_1 = require("@nestjs/common");
 const typeorm_1 = require("@nestjs/typeorm");
 const typeorm_2 = require("typeorm");
 const customer_entity_1 = require("./customer.entity");
+const invoice_entity_1 = require("../invoices/invoice.entity");
 let CustomersService = class CustomersService {
-    constructor(customersRepository) {
+    constructor(customersRepository, invoicesRepository) {
         this.customersRepository = customersRepository;
+        this.invoicesRepository = invoicesRepository;
     }
     create(createCustomerDto) {
         const customer = this.customersRepository.create(createCustomerDto);
@@ -64,8 +65,27 @@ let CustomersService = class CustomersService {
         this.customersRepository.merge(customer, updateCustomerDto);
         return this.customersRepository.save(customer);
     }
-    async remove(id) {
+    async remove(id, force = false) {
         const customer = await this.findOne(id);
+        const invoices = await this.invoicesRepository.find({ where: { customerId: id } });
+        if (invoices.length > 0 && !force) {
+            return {
+                cannotDelete: true,
+                message: `El cliente tiene ${invoices.length} factura(s) asociada(s)`,
+                invoices: invoices.map(inv => ({
+                    id: inv.id,
+                    number: inv.id,
+                    date: inv.date,
+                    total: inv.total,
+                    status: inv.status,
+                })),
+            };
+        }
+        if (force && invoices.length > 0) {
+            for (const inv of invoices) {
+                await this.invoicesRepository.delete(inv.id);
+            }
+        }
         return this.customersRepository.remove(customer);
     }
 };
@@ -73,6 +93,8 @@ exports.CustomersService = CustomersService;
 exports.CustomersService = CustomersService = __decorate([
     (0, common_1.Injectable)(),
     __param(0, (0, typeorm_1.InjectRepository)(customer_entity_1.Customer)),
-    __metadata("design:paramtypes", [typeof (_a = typeof typeorm_2.Repository !== "undefined" && typeorm_2.Repository) === "function" ? _a : Object])
+    __param(1, (0, typeorm_1.InjectRepository)(invoice_entity_1.Invoice)),
+    __metadata("design:paramtypes", [typeorm_2.Repository,
+        typeorm_2.Repository])
 ], CustomersService);
 //# sourceMappingURL=customers.service.js.map

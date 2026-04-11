@@ -1,12 +1,14 @@
 import { Repository } from 'typeorm';
 import { Customer } from './customer.entity';
+import { Invoice } from '../invoices/invoice.entity';
 import { CreateCustomerDto } from './dto/create-customer.dto';
 import { UpdateCustomerDto } from './dto/update-customer.dto';
 export declare class CustomersService {
     private customersRepository;
-    constructor(customersRepository: Repository<Customer>);
-    create(createCustomerDto: CreateCustomerDto): any;
-    findAll(): any;
+    private invoicesRepository;
+    constructor(customersRepository: Repository<Customer>, invoicesRepository: Repository<Invoice>);
+    create(createCustomerDto: CreateCustomerDto): Promise<Customer>;
+    findAll(): Promise<Customer[]>;
     findPage(page?: number, limit?: number, filters?: {
         search?: string;
         department?: string;
@@ -15,7 +17,17 @@ export declare class CustomersService {
         total: number;
     }>;
     getDepartments(): Promise<string[]>;
-    findOne(id: number): Promise<any>;
-    update(id: number, updateCustomerDto: UpdateCustomerDto): Promise<any>;
-    remove(id: number): Promise<any>;
+    findOne(id: number): Promise<Customer>;
+    update(id: number, updateCustomerDto: UpdateCustomerDto): Promise<Customer>;
+    remove(id: number, force?: boolean): Promise<Customer | {
+        cannotDelete: boolean;
+        message: string;
+        invoices: {
+            id: number;
+            number: number;
+            date: Date;
+            total: number;
+            status: string;
+        }[];
+    }>;
 }

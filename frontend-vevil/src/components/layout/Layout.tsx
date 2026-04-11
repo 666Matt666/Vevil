@@ -314,14 +314,6 @@ const Layout: React.FC = () => {
                                 }}
                             />
                             <div style={{ display: 'none' }}></div>
-                            <h1 style={{
-                                fontSize: '24px',
-                                fontWeight: 700,
-                                margin: 0,
-                                color: '#818cf8'
-                            }}>
-                                Vevil
-                            </h1>
                             <p style={{
                                 fontSize: '12px',
                                 color: '#94a3b8',

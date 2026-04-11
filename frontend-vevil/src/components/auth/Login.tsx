@@ -181,14 +181,18 @@ const Login: React.FC = () => {
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            margin: '0 auto 20px',
-                            fontSize: '28px'
+                            margin: '0 auto 20px'
                         }}>
-                            V
+                            <img 
+                                src="/logoVevil_negativo2.jpg" 
+                                alt="Vevil" 
+                                style={{ 
+                                    height: '80px', 
+                                    width: 'auto',
+                                    borderRadius: '12px'
+                                }}
+                            />
                         </div>
-                        <h1 style={{ fontSize: '28px', fontWeight: 700, color: '#fff', margin: 0, letterSpacing: '-0.02em' }}>
-                            Vevil
-                        </h1>
                         <p style={{ color: 'rgba(255,255,255,0.75)', marginTop: '8px', fontSize: '15px' }}>
                             Sistema de Gestión
                         </p>

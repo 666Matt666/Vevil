@@ -76,20 +76,13 @@ export class CustomersController {
     @Delete(':id')
     async remove(
         @Param('id') id: string,
-        @Query('force') forceStr: string,
         @Request() req: any,
     ) {
-        const force = forceStr === 'true';
-        const result = await this.customersService.remove(+id, force);
-        
-        // If cannot delete, return the result (invoice info)
-        if (result && (result as any).cannotDelete) {
-            return result;
-        }
+        const result = await this.customersService.remove(+id);
         
         await this.auditService.log({
             ...this.userFromReq(req),
-            action: force ? 'customer.deleted_with_invoices' : 'customer.deleted',
+            action: 'customer.deleted',
             entityType: 'customer',
             entityId: id,
             ip: req?.ip ?? req?.headers?.['x-forwarded-for'] ?? null,

@@ -720,18 +720,15 @@ export const customersApi = {
         return response.json();
     },
 
-    delete: async (id: number, force: boolean = false): Promise<{ cannotDelete?: boolean; message?: string; invoices?: any[] }> => {
-        const url = force ? `/customers/${id}?force=true` : `/customers/${id}`;
-        const response = await fetchWithAuth(url, {
+    delete: async (id: number): Promise<void> => {
+        const response = await fetchWithAuth(`/customers/${id}`, {
             method: 'DELETE',
         });
-        const data = await response.json();
         if (!response.ok) {
-            if (data.cannotDelete) {
-                return data; // Return invoice info
-            }
+            const data = await response.json();
             throw new Error(data.message || 'Error al eliminar cliente');
         }
+    },
         return data;
     },
 };

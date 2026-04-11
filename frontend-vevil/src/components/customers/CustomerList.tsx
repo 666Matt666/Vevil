@@ -101,8 +101,6 @@ const CustomerList: React.FC = () => {
     const [departments, setDepartments] = useState<string[]>([]);
     const [customerToDelete, setCustomerToDelete] = useState<Customer | null>(null);
     const [deleting, setDeleting] = useState(false);
-    const [showInvoiceList, setShowInvoiceList] = useState(false);
-    const [pendingInvoices, setPendingInvoices] = useState<any[]>([]);
 
     const loadCustomers = async (pageNum: number = page) => {
         try {
@@ -199,24 +197,13 @@ const CustomerList: React.FC = () => {
         setCustomerToDelete(customer);
     };
 
-const handleDeleteConfirm = async (force: boolean = false) => {
+    const handleDeleteConfirm = async () => {
         if (!customerToDelete) return;
         try {
             setDeleting(true);
-            const result = await customersApi.delete(customerToDelete.id, force);
-            
-            // Check if cannot delete
-            if (result && (result as any).cannotDelete) {
-                setError((result as any).message || 'No se puede eliminar');
-                setPendingInvoices((result as any).invoices || []);
-                setShowInvoiceList(true);
-                return;
-            }
-            
-            setSuccessMessage(force ? 'Cliente y sus facturas eliminados' : 'Cliente eliminado');
+            await customersApi.delete(customerToDelete.id);
+            setSuccessMessage('Cliente eliminado');
             setCustomerToDelete(null);
-            setShowInvoiceList(false);
-            setPendingInvoices([]);
             loadCustomers(page);
         } catch (err) {
             setError(getErrorMessage(err, 'Error al eliminar'));
@@ -470,120 +457,17 @@ const handleDeleteConfirm = async (force: boolean = false) => {
                 </div>
             )}
 
-            {/* Delete Confirmation Modal - wrapped in try-catch to prevent crashes */}
-            {typeof customerToDelete !== 'undefined' && (
-                customerToDelete !== null && showInvoiceList && pendingInvoices.length > 0 ? (
-                    <div>
-                        <ConfirmModal
-                            open={customerToDelete !== null}
-                            title="Cliente con facturas"
-                            message={`El cliente "${customerToDelete.name}" tiene ${pendingInvoices.length} factura(s):`}
-                            confirmLabel="Eliminar todo"
-                            confirmLabelSecondary="Cancelar"
-                            variant="danger"
-                            loading={deleting}
-                            onConfirm={() => handleDeleteConfirm(true)}
-                            onSecondary={() => { setCustomerToDelete(null); setShowInvoiceList(false); }}
-                            onCancel={() => { setCustomerToDelete(null); setShowInvoiceList(false); }}
-                        />
-                        {/* Show invoices list */}
-                        <div style={{
-                            position: 'fixed',
-                            top: 0, left: 0, right: 0, bottom: 0,
-                            backgroundColor: 'rgba(0,0,0,0.5)',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            zIndex: 999
-                        }}>
-                            <div style={{
-                                backgroundColor: 'white',
-                                borderRadius: '16px',
-                                padding: '24px',
-                                width: '90%',
-                                maxWidth: '500px',
-                                maxHeight: '80vh',
-                                overflow: 'auto'
-                            }}>
-                                <h3 style={{ marginTop: 0, color: '#dc2626' }}>
-                                    ⚠️ Cliente con facturas
-                                </h3>
-                                <p style={{ color: '#64748b' }}>
-                                    El cliente tiene {pendingInvoices.length} factura(s) asociada(s). 
-                                    Si eliminá, también se eliminarán las facturas.
-                                </p>
-                                <div style={{ 
-                                    marginTop: '16px', 
-                                    maxHeight: '200px', 
-                                    overflow: 'auto',
-                                    border: '1px solid #e2e8f0',
-                                    borderRadius: '8px'
-                                }}>
-                                    {pendingInvoices.map((inv: any) => (
-                                        <div key={inv.id} style={{
-                                            padding: '12px',
-                                            borderBottom: '1px solid #e2e8f0',
-                                            display: 'flex',
-                                            justifyContent: 'space-between'
-                                        }}>
-                                            <span>Factura #{inv.id}</span>
-                                            <span style={{ 
-                                                color: inv.status === 'paid' ? '#22c55e' : '#f59e0b',
-                                                fontWeight: 500
-                                            }}>
-                                                {inv.status === 'paid' ? 'Pagada' : 'Pendiente'}
-                                            </span>
-                                            <span>${inv.total?.toLocaleString()}</span>
-                                        </div>
-                                    ))}
-                                </div>
-                                <div style={{ 
-                                    display: 'flex', 
-                                    gap: '12px', 
-                                    marginTop: '24px',
-                                    justifyContent: 'flex-end'
-                                }}>
-                                    <button
-                                        onClick={() => { setCustomerToDelete(null); setShowInvoiceList(false); }}
-                                        style={{
-                                            padding: '10px 20px',
-                                            borderRadius: '8px',
-                                            border: '1px solid #e2e8f0',
-                                            backgroundColor: 'white',
-                                            cursor: 'pointer'
-                                        }}
-                                    >
-                                        Cancelar
-                                    </button>
-                                    <button
-                                        onClick={() => handleDeleteConfirm(true)}
-                                        disabled={deleting}
-                                        style={{
-                                            padding: '10px 20px',
-                                            borderRadius: '8px',
-                                            border: 'none',
-                                            backgroundColor: '#dc2626',
-                                            color: 'white',
-                                            cursor: deleting ? 'not-allowed' : 'pointer',
-                                            opacity: deleting ? 0.7 : 1
-                                        }}
-                                    >
-                                        {deleting ? 'Eliminando...' : 'Eliminar cliente y facturas'}
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                ) : (
-                    <ConfirmModal
-                        open={customerToDelete !== null}
-                        title="Eliminar cliente"
-                        message={customerToDelete ? `¿Eliminar el cliente "${customerToDelete.name}"? No se puede deshacer.` : ''}
-                        confirmLabel="Eliminar"
-                        variant="danger"
-                        loading={deleting}
-                        onConfirm={() => handleDeleteConfirm(false)}
-                        onCancel={() => setCustomerToDelete(null)}
-                    />
-                )
+            {customerToDelete !== null && (
+                <ConfirmModal
+                    open={customerToDelete !== null}
+                    title="Eliminar cliente"
+                    message={customerToDelete ? `¿Eliminar el cliente "${customerToDelete.name}"? No se puede deshacer.` : ''}
+                    confirmLabel="Eliminar"
+                    variant="danger"
+                    loading={deleting}
+                    onConfirm={() => handleDeleteConfirm()}
+                    onCancel={() => setCustomerToDelete(null)}
+                />
             )}
 
             {/* Modal */}

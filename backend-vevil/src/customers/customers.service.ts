@@ -70,32 +70,16 @@ export class CustomersService {
         return this.customersRepository.save(customer);
     }
 
-    async remove(id: number, force: boolean = false) {
+    async remove(id: number) {
         const customer = await this.findOne(id);
         
-        // Get associated invoices
+        // Check if customer has invoices
         const invoices = await this.invoicesRepository.find({ where: { customerId: id } });
         
-        if (invoices.length > 0 && !force) {
-            // Return invoice info so frontend can decide
-            return {
-                cannotDelete: true,
-                message: `El cliente tiene ${invoices.length} factura(s) asociada(s)`,
-                invoices: invoices.map(inv => ({
-                    id: inv.id,
-                    number: inv.id, // Could use invoice number if available
-                    date: inv.date,
-                    total: inv.total,
-                    status: inv.status,
-                })),
-            };
-        }
-        
-        // Delete invoices if force=true
-        if (force && invoices.length > 0) {
-            for (const inv of invoices) {
-                await this.invoicesRepository.delete(inv.id);
-            }
+        if (invoices.length > 0) {
+            throw new BadRequestException(
+                `No se puede eliminar el cliente porque tiene ${invoices.length} factura(s) asociada(s). Elimine las facturas primero.`
+            );
         }
         
         return this.customersRepository.remove(customer);

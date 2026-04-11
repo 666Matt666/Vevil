@@ -729,8 +729,6 @@ export const customersApi = {
             throw new Error(data.message || 'Error al eliminar cliente');
         }
     },
-        return data;
-    },
 };
 
 // ============ FACTURAS ============

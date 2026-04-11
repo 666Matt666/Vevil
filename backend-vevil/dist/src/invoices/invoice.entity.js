@@ -8,7 +8,6 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
-var _a;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Invoice = void 0;
 const typeorm_1 = require("typeorm");
@@ -32,7 +31,7 @@ __decorate([
 ], Invoice.prototype, "customerId", void 0);
 __decorate([
     (0, typeorm_1.CreateDateColumn)(),
-    __metadata("design:type", typeof (_a = typeof Date !== "undefined" && Date) === "function" ? _a : Object)
+    __metadata("design:type", Date)
 ], Invoice.prototype, "date", void 0);
 __decorate([
     (0, typeorm_1.Column)('decimal', { precision: 10, scale: 2 }),

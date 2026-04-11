@@ -8,5 +8,5 @@ export declare class AppSeedService implements OnApplicationBootstrap {
     private readonly configService;
     private readonly userRepo;
     constructor(usersService: UsersService, configService: ConfigService, userRepo: Repository<User>);
-    onApplicationBootstrap(): any;
+    onApplicationBootstrap(): Promise<void>;
 }

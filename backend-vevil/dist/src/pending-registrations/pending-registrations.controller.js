@@ -11,7 +11,6 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 var __param = (this && this.__param) || function (paramIndex, decorator) {
     return function (target, key) { decorator(target, key, paramIndex); }
 };
-var _a, _b;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.PendingRegistrationsController = void 0;
 const common_1 = require("@nestjs/common");
@@ -49,7 +48,7 @@ __decorate([
     (0, swagger_1.ApiResponse)({ status: 200, description: 'Lista de solicitudes.' }),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
-    __metadata("design:returntype", typeof (_a = typeof Promise !== "undefined" && Promise) === "function" ? _a : Object)
+    __metadata("design:returntype", Promise)
 ], PendingRegistrationsController.prototype, "findAllPending", null);
 __decorate([
     (0, common_1.Get)('count'),
@@ -57,7 +56,7 @@ __decorate([
     (0, swagger_1.ApiResponse)({ status: 200, description: 'Número de solicitudes pendientes.' }),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
-    __metadata("design:returntype", typeof (_b = typeof Promise !== "undefined" && Promise) === "function" ? _b : Object)
+    __metadata("design:returntype", Promise)
 ], PendingRegistrationsController.prototype, "countPending", null);
 __decorate([
     (0, common_1.Post)(':id/approve'),

@@ -11,7 +11,6 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 var __param = (this && this.__param) || function (paramIndex, decorator) {
     return function (target, key) { decorator(target, key, paramIndex); }
 };
-var _a, _b, _c, _d;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ExportController = void 0;
 const common_1 = require("@nestjs/common");
@@ -47,7 +46,7 @@ __decorate([
     (0, common_1.Get)('json'),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
-    __metadata("design:returntype", typeof (_d = typeof Promise !== "undefined" && Promise) === "function" ? _d : Object)
+    __metadata("design:returntype", Promise)
 ], ExportController.prototype, "exportJson", null);
 exports.ExportController = ExportController = __decorate([
     (0, common_1.Controller)('export'),
@@ -55,6 +54,8 @@ exports.ExportController = ExportController = __decorate([
     __param(0, (0, typeorm_1.InjectRepository)(product_entity_1.Product)),
     __param(1, (0, typeorm_1.InjectRepository)(customer_entity_1.Customer)),
     __param(2, (0, typeorm_1.InjectRepository)(invoice_entity_1.Invoice)),
-    __metadata("design:paramtypes", [typeof (_a = typeof typeorm_2.Repository !== "undefined" && typeorm_2.Repository) === "function" ? _a : Object, typeof (_b = typeof typeorm_2.Repository !== "undefined" && typeorm_2.Repository) === "function" ? _b : Object, typeof (_c = typeof typeorm_2.Repository !== "undefined" && typeorm_2.Repository) === "function" ? _c : Object])
+    __metadata("design:paramtypes", [typeorm_2.Repository,
+        typeorm_2.Repository,
+        typeorm_2.Repository])
 ], ExportController);
 //# sourceMappingURL=export.controller.js.map

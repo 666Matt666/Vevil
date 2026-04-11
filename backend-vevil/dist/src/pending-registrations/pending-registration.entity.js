@@ -8,7 +8,6 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
-var _a, _b, _c, _d;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.PendingRegistration = void 0;
 const typeorm_1 = require("typeorm");
@@ -41,11 +40,11 @@ __decorate([
 ], PendingRegistration.prototype, "emailConfirmationToken", void 0);
 __decorate([
     (0, typeorm_1.Column)({ type: 'timestamp', nullable: true }),
-    __metadata("design:type", typeof (_a = typeof Date !== "undefined" && Date) === "function" ? _a : Object)
+    __metadata("design:type", Date)
 ], PendingRegistration.prototype, "emailConfirmationExpires", void 0);
 __decorate([
     (0, typeorm_1.Column)({ type: 'timestamp', nullable: true }),
-    __metadata("design:type", typeof (_b = typeof Date !== "undefined" && Date) === "function" ? _b : Object)
+    __metadata("design:type", Date)
 ], PendingRegistration.prototype, "emailConfirmedAt", void 0);
 __decorate([
     (0, typeorm_1.Column)({ type: 'varchar', length: 20, default: 'pending_email' }),
@@ -53,11 +52,11 @@ __decorate([
 ], PendingRegistration.prototype, "status", void 0);
 __decorate([
     (0, typeorm_1.CreateDateColumn)(),
-    __metadata("design:type", typeof (_c = typeof Date !== "undefined" && Date) === "function" ? _c : Object)
+    __metadata("design:type", Date)
 ], PendingRegistration.prototype, "createdAt", void 0);
 __decorate([
     (0, typeorm_1.UpdateDateColumn)(),
-    __metadata("design:type", typeof (_d = typeof Date !== "undefined" && Date) === "function" ? _d : Object)
+    __metadata("design:type", Date)
 ], PendingRegistration.prototype, "updatedAt", void 0);
 exports.PendingRegistration = PendingRegistration = __decorate([
     (0, typeorm_1.Entity)('pending_registration')

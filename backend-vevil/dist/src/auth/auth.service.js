@@ -31,7 +31,6 @@ var __importStar = (this && this.__importStar) || function (mod) {
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
-var _a, _b;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AuthService = void 0;
 const common_1 = require("@nestjs/common");
@@ -168,6 +167,9 @@ let AuthService = class AuthService {
 exports.AuthService = AuthService;
 exports.AuthService = AuthService = __decorate([
     (0, common_1.Injectable)(),
-    __metadata("design:paramtypes", [users_service_1.UsersService, typeof (_a = typeof jwt_1.JwtService !== "undefined" && jwt_1.JwtService) === "function" ? _a : Object, typeof (_b = typeof config_1.ConfigService !== "undefined" && config_1.ConfigService) === "function" ? _b : Object, mail_service_1.MailService])
+    __metadata("design:paramtypes", [users_service_1.UsersService,
+        jwt_1.JwtService,
+        config_1.ConfigService,
+        mail_service_1.MailService])
 ], AuthService);
 //# sourceMappingURL=auth.service.js.map

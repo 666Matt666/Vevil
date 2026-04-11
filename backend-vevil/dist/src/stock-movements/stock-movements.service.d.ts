@@ -6,10 +6,10 @@ export declare class StockMovementsService {
     private readonly movementRepo;
     private readonly productsService;
     constructor(movementRepo: Repository<StockMovement>, productsService: ProductsService);
-    create(dto: CreateStockMovementDto): unknown;
-    recordSale(productId: number, quantity: number, invoiceId: number): unknown;
+    create(dto: CreateStockMovementDto): Promise<StockMovement>;
+    recordSale(productId: number, quantity: number, invoiceId: number): Promise<StockMovement>;
     findAll(filters?: {
         productId?: number;
-    }): unknown;
-    findOne(id: number): unknown;
+    }): Promise<StockMovement[]>;
+    findOne(id: number): Promise<StockMovement>;
 }

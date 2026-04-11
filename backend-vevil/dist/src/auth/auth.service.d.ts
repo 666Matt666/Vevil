@@ -13,8 +13,8 @@ export declare class AuthService {
     constructor(usersService: UsersService, jwtService: JwtService, configService: ConfigService, mailService: MailService);
     validateUser(email: string, pass: string): Promise<any>;
     login(user: Omit<User, 'password' | 'hashedRefreshToken'>): Promise<{
-        access_token: any;
-        refresh_token: any;
+        access_token: string;
+        refresh_token: string;
         user: {
             id: string;
             email: string;
@@ -25,8 +25,8 @@ export declare class AuthService {
     }>;
     updateRefreshToken(userId: string, refreshToken: string): Promise<void>;
     refreshTokens(userId: string, refreshToken: string): Promise<{
-        access_token: any;
-        refresh_token: any;
+        access_token: string;
+        refresh_token: string;
         user: {
             id: string;
             email: string;

@@ -42,7 +42,15 @@ const REMOTE = {
     database: process.env.DB_DATABASE || 'postgres',
     ssl: process.env.DB_HOST?.includes('supabase.co') ? { rejectUnauthorized: false } : false,
 };
-const TABLES = [
+const TABLES_DELETE_ORDER = [
+    { name: 'payment', columns: ['id', 'invoiceId', 'amount', 'date', 'method'] },
+    { name: 'invoice_item', columns: ['id', 'quantity', 'priceAtSale', 'productId', 'invoiceId'] },
+    { name: 'invoice', columns: ['id', 'customerId', 'date', 'total', 'currency', 'status'] },
+    { name: 'customer', columns: ['id', 'name', 'email', 'phones', 'address_street', 'address_city', 'address_province', 'address_zip', 'google_maps_link', 'tax_id'], jsonbCols: ['phones'] },
+    { name: 'product', columns: ['id', 'name', 'type', 'price', 'currency', 'stock', 'description'] },
+    { name: 'user', columns: ['id', 'email', 'name', 'password', 'avatar', 'role', 'hashedRefreshToken', 'resetPasswordToken', 'resetPasswordExpires', 'createdAt', 'updatedAt'] },
+];
+const TABLES_INSERT_ORDER = [
     { name: 'user', columns: ['id', 'email', 'name', 'password', 'avatar', 'role', 'hashedRefreshToken', 'resetPasswordToken', 'resetPasswordExpires', 'createdAt', 'updatedAt'] },
     { name: 'customer', columns: ['id', 'name', 'email', 'phones', 'address_street', 'address_city', 'address_province', 'address_zip', 'google_maps_link', 'tax_id'], jsonbCols: ['phones'] },
     { name: 'product', columns: ['id', 'name', 'type', 'price', 'currency', 'stock', 'description'] },
@@ -50,6 +58,7 @@ const TABLES = [
     { name: 'invoice_item', columns: ['id', 'quantity', 'priceAtSale', 'productId', 'invoiceId'] },
     { name: 'payment', columns: ['id', 'invoiceId', 'amount', 'date', 'method'] },
 ];
+const TABLES = TABLES_DELETE_ORDER;
 async function run() {
     if (!REMOTE.host || !REMOTE.password) {
         console.error('Falta configurar DB_HOST y DB_PASSWORD en .env (destino Supabase).');
@@ -59,10 +68,15 @@ async function run() {
         ...LOCAL,
         ssl: false,
     });
+    console.log('Creating local client with:', { host: LOCAL.host, port: LOCAL.port, user: LOCAL.user, database: LOCAL.database });
     const remoteClient = new pg_1.Client(REMOTE);
     try {
+        console.log('Attempting local connect...');
         await localClient.connect();
         console.log('Conectado a BD local:', LOCAL.host, LOCAL.database);
+        const testRes = await localClient.query('SELECT 1 as test');
+        console.log('Local query test:', testRes.rows);
+        console.log('Attempting remote connect...');
         await remoteClient.connect();
         console.log('Conectado a BD remota (Supabase):', REMOTE.host);
         for (const { name, columns, jsonbCols = [] } of TABLES) {
@@ -98,8 +112,56 @@ async function run() {
                 return v;
             };
             const values = rows.flatMap((r) => columns.map((col) => toVal(r, col)));
-            await remoteClient.query(`INSERT INTO "${name}" (${quotedCols}) VALUES ${placeholders} ON CONFLICT (id) DO NOTHING`, values);
-            console.log(`  [${name}] ${rows.length} fila(s) copiada(s).`);
+            if (rows.length > 0) {
+                try {
+                    await remoteClient.query(`DELETE FROM "${name}"`);
+                    console.log(`  [${name}] ${rows.length} eliminada(s).`);
+                }
+                catch (e) {
+                    console.log(`  [${name}] error al eliminar: ${e.message.split('\n')[0]}`);
+                }
+            }
+        }
+        for (const { name, columns, jsonbCols = [] } of TABLES_INSERT_ORDER) {
+            const quotedCols = columns.map((c) => `"${c}"`).join(', ');
+            const res = await localClient.query(`SELECT ${quotedCols} FROM "${name}"`);
+            const rows = res.rows;
+            if (rows.length === 0) {
+                console.log(`  [${name}] 0 filas, omitido.`);
+                continue;
+            }
+            const nCols = columns.length;
+            let paramIndex = 1;
+            const placeholderForCol = (col) => {
+                const isJsonb = jsonbCols.includes(col);
+                return isJsonb ? `$${paramIndex++}::jsonb` : `$${paramIndex++}`;
+            };
+            const placeholders = rows
+                .map(() => `(${columns.map(placeholderForCol).join(', ')})`)
+                .join(', ');
+            const toVal = (r, col) => {
+                const v = r[col] ?? null;
+                if (v === null || v === undefined)
+                    return null;
+                if (jsonbCols.includes(col)) {
+                    const parsed = typeof v === 'string' ? (() => { try {
+                        return JSON.parse(v);
+                    }
+                    catch {
+                        return [];
+                    } })() : v;
+                    return typeof parsed === 'object' && parsed !== null ? JSON.stringify(parsed) : '[]';
+                }
+                return v;
+            };
+            const values = rows.flatMap((r) => columns.map((col) => toVal(r, col)));
+            try {
+                await remoteClient.query(`INSERT INTO "${name}" (${quotedCols}) VALUES ${placeholders}`, values);
+                console.log(`  [${name}] ${rows.length} fila(s) insertada(s).`);
+            }
+            catch (e) {
+                console.log(`  [${name}] error: ${e.message.split('\n')[0]}`);
+            }
         }
         const sequences = ['customer', 'product', 'invoice', 'invoice_item', 'payment'];
         for (const table of sequences) {

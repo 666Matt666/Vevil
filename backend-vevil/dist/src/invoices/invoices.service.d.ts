@@ -17,8 +17,8 @@ export declare class InvoicesService {
     private dataSource;
     private mailService;
     constructor(invoicesRepository: Repository<Invoice>, paymentsRepository: Repository<Payment>, productsService: ProductsService, customersService: CustomersService, stockMovementsService: StockMovementsService, dataSource: DataSource, mailService: MailService);
-    create(createInvoiceDto: CreateInvoiceDto): Promise<any>;
-    findAll(): any;
+    create(createInvoiceDto: CreateInvoiceDto): Promise<Invoice>;
+    findAll(): Promise<Invoice[]>;
     findPage(page?: number, limit?: number, filters?: {
         search?: string;
         customerId?: number;
@@ -29,11 +29,11 @@ export declare class InvoicesService {
         data: Invoice[];
         total: number;
     }>;
-    findOne(id: number): Promise<any>;
-    updateStatus(id: number, status: string): Promise<any>;
-    getPayments(invoiceId: number): Promise<any>;
-    addPayment(invoiceId: number, dto: CreatePaymentDto): Promise<any>;
-    deletePayment(paymentId: number, invoiceId: number): Promise<any>;
+    findOne(id: number): Promise<Invoice>;
+    updateStatus(id: number, status: string): Promise<Invoice>;
+    getPayments(invoiceId: number): Promise<Payment[]>;
+    addPayment(invoiceId: number, dto: CreatePaymentDto): Promise<Payment>;
+    deletePayment(paymentId: number, invoiceId: number): Promise<Payment>;
     sendReminder(invoiceId: number): Promise<{
         sent: boolean;
         reason?: string;

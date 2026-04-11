@@ -274,6 +274,80 @@ const UserManagement: React.FC<{ showAllUsers?: boolean }> = ({ showAllUsers = f
                             : 'Información de tu cuenta'}
                     </p>
                 </div>
+                {/* Solo mostrar el botón de cambiar avatar en vista de perfil (no admin) */}
+                {!showAllUsers && users.length > 0 && users[0] && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                        <div style={{
+                            position: 'relative',
+                            width: '80px',
+                            height: '80px',
+                            borderRadius: '50%',
+                            overflow: 'hidden',
+                            border: '2px solid #e2e8f0'
+                        }}>
+                            {users[0].avatar ? (
+                                <img 
+                                    src={users[0].avatar.replace('/api', '')} 
+                                    alt="Avatar" 
+                                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                />
+                            ) : (
+                                <div style={{
+                                    width: '100%',
+                                    height: '100%',
+                                    backgroundColor: '#4f46e5',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    color: 'white',
+                                    fontWeight: 600,
+                                    fontSize: '32px'
+                                }}>
+                                    {(users[0].name || 'U')[0].toUpperCase()}
+                                </div>
+                            )}
+                            <label
+                                htmlFor="avatar-input"
+                                style={{
+                                    position: 'absolute',
+                                    bottom: 0,
+                                    left: 0,
+                                    right: 0,
+                                    backgroundColor: 'rgba(0,0,0,0.6)',
+                                    color: 'white',
+                                    fontSize: '10px',
+                                    textAlign: 'center',
+                                    padding: '4px',
+                                    cursor: 'pointer'
+                                }}
+                            >
+                                Cambiar
+                            </label>
+                            <input
+                                id="avatar-input"
+                                type="file"
+                                accept="image/*"
+                                onChange={async (e) => {
+                                    const file = e.target.files?.[0];
+                                    if (file) {
+                                        try {
+                                            const updated = await usersApi.uploadAvatar(file);
+                                            setUsers([updated]);
+                                            showToast('Avatar actualizado', 'success');
+                                        } catch (err) {
+                                            showToast('Error al subir imagen', 'error');
+                                        }
+                                    }
+                                }}
+                                style={{ display: 'none' }}
+                            />
+                        </div>
+                        <div>
+                            <p style={{ margin: 0, fontWeight: 500, color: '#1e293b' }}>{users[0].name}</p>
+                            <p style={{ margin: 0, fontSize: '14px', color: '#64748b' }}>{users[0].email}</p>
+                        </div>
+                    </div>
+                )}
                 {/* Only admins can create new users (only in the users management view) */}
                 {showAllUsers && isAdmin && (
                     <button
@@ -347,8 +421,33 @@ const UserManagement: React.FC<{ showAllUsers?: boolean }> = ({ showAllUsers = f
                             {users.map((user) => (
                                 <tr key={user.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
                                     <td style={{ padding: '16px' }}>
-                                        <div style={{ fontWeight: 500, color: '#1e293b' }}>
-                                            {user.name} {user.lastName}
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                            <div style={{
+                                                width: '40px',
+                                                height: '40px',
+                                                borderRadius: '50%',
+                                                backgroundColor: '#4f46e5',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                color: 'white',
+                                                fontWeight: 600,
+                                                fontSize: '14px',
+                                                overflow: 'hidden'
+                                            }}>
+                                                {user.avatar ? (
+                                                    <img 
+                                                        src={user.avatar.replace('/api', '')} 
+                                                        alt="Avatar" 
+                                                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                                    />
+                                                ) : (
+                                                    (user.name || 'U')[0].toUpperCase()
+                                                )}
+                                            </div>
+                                            <div style={{ fontWeight: 500, color: '#1e293b' }}>
+                                                {user.name} {user.lastName}
+                                            </div>
                                         </div>
                                     </td>
                                     <td style={{ padding: '16px', color: '#64748b' }}>

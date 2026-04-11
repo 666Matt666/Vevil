@@ -26,6 +26,9 @@ const Layout: React.FC = () => {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
     const [isHelpOpen, setIsHelpOpen] = useState(false);
+    const [globalSearch, setGlobalSearch] = useState('');
+    const [searchResults, setSearchResults] = useState<{type: string; label: string; path: string}[]>([]);
+    const [showSearchResults, setShowSearchResults] = useState(false);
     
     // TEMPORAL: Deshabilitar verificación de autenticación para pruebas
     // const hasToken = Boolean(getAccessToken());
@@ -154,6 +157,62 @@ const Layout: React.FC = () => {
         setIsHelpOpen(false);
     }, [location.pathname]);
 
+    // Búsqueda global
+    useEffect(() => {
+        if (!globalSearch.trim()) {
+            setSearchResults([]);
+            setShowSearchResults(false);
+            return;
+        }
+        const timer = setTimeout(() => {
+            const search = globalSearch.toLowerCase();
+            const results: {type: string; label: string; path: string}[] = [];
+            
+            // Productos
+            if ('productos'.includes(search) || search.length > 2) {
+                results.push({ type: '📦', label: 'Productos', path: '/products' });
+            }
+            // Clientes
+            if ('clientes'.includes(search) || search.length > 2) {
+                results.push({ type: '👥', label: 'Clientes', path: '/customers' });
+            }
+            // Facturas
+            if ('facturas'.includes(search) || 'factura'.includes(search) || search.length > 2) {
+                results.push({ type: '📄', label: 'Facturas', path: '/invoices' });
+            }
+            // Configuración
+            if ('configuración'.includes(search) || 'config'.includes(search) || search.length > 2) {
+                results.push({ type: '⚙️', label: 'Configuración', path: '/settings' });
+            }
+            // Reportes
+            if ('reportes'.includes(search) || 'reporte'.includes(search) || search.length > 2) {
+                results.push({ type: '📊', label: 'Reportes', path: '/reports' });
+            }
+            // Cuentas
+            if ('cuentas'.includes(search) || 'cobrar'.includes(search) || search.length > 2) {
+                results.push({ type: '💳', label: 'Cuentas por Cobrar', path: '/accounts' });
+            }
+            // Stock
+            if ('stock'.includes(search) || 'inventario'.includes(search) || search.length > 2) {
+                results.push({ type: '📥', label: 'Movimientos de Stock', path: '/stock-movements' });
+            }
+            // Usuarios (solo admin)
+            if (isAdmin && ('usuarios'.includes(search) || 'usuarios'.includes(search))) {
+                results.push({ type: '👥', label: 'Gestión de Usuarios', path: '/admin/users' });
+            }
+            
+            setSearchResults(results.slice(0, 6));
+            setShowSearchResults(true);
+        }, 300);
+        return () => clearTimeout(timer);
+    }, [globalSearch, isAdmin]);
+
+    const handleSearchSelect = (path: string) => {
+        navigate(path);
+        setGlobalSearch('');
+        setShowSearchResults(false);
+    };
+
     // TEMPORAL: Deshabilitar verificación de autenticación para pruebas
     // if (!hasToken) {
     //     return <Navigate to="/login" replace />;
@@ -232,47 +291,110 @@ const Layout: React.FC = () => {
                 transition: 'left 0.3s ease-in-out',
                 boxShadow: isMobileMenuOpen ? '4px 0 20px rgba(0,0,0,0.3)' : 'none'
             }}>
-                {/* Logo */}
+                {/* Logo + Search */}
                 <div style={{
                     padding: '24px',
                     borderBottom: '1px solid #334155',
                     display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center'
+                    flexDirection: 'column',
+                    gap: '16px'
                 }}>
-                    <div>
-                        <h1 style={{
-                            fontSize: '24px',
-                            fontWeight: 700,
-                            margin: 0,
-                            color: '#818cf8'
-                        }}>
-                            Vevil
-                        </h1>
-                        <p style={{
-                            fontSize: '12px',
-                            color: '#94a3b8',
-                            margin: '4px 0 0 0'
-                        }}>
-                            Sistema de Gestión
-                        </p>
-                    </div>
-                    {/* Botón cerrar en móvil */}
-                    {isMobile && (
-                        <button
-                            onClick={() => setIsMobileMenuOpen(false)}
-                            style={{
-                                background: 'none',
-                                border: 'none',
-                                color: '#94a3b8',
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div>
+                            <h1 style={{
                                 fontSize: '24px',
-                                cursor: 'pointer',
-                                padding: '4px'
+                                fontWeight: 700,
+                                margin: 0,
+                                color: '#818cf8'
+                            }}>
+                                Vevil
+                            </h1>
+                            <p style={{
+                                fontSize: '12px',
+                                color: '#94a3b8',
+                                margin: '4px 0 0 0'
+                            }}>
+                                Sistema de Gestión
+                            </p>
+                        </div>
+                        {/* Botón cerrar en móvil */}
+                        {isMobile && (
+                            <button
+                                onClick={() => setIsMobileMenuOpen(false)}
+                                style={{
+                                    background: 'none',
+                                    border: 'none',
+                                    color: '#94a3b8',
+                                    fontSize: '24px',
+                                    cursor: 'pointer',
+                                    padding: '4px'
+                                }}
+                            >
+                                ✕
+                            </button>
+                        )}
+                    </div>
+                    {/* Buscador global */}
+                    <div style={{ position: 'relative' }}>
+                        <input
+                            type="text"
+                            placeholder="Buscar..."
+                            value={globalSearch}
+                            onChange={(e) => setGlobalSearch(e.target.value)}
+                            onFocus={() => globalSearch.trim() && setShowSearchResults(true)}
+                            style={{
+                                width: '100%',
+                                padding: '10px 14px',
+                                borderRadius: '8px',
+                                border: '1px solid #475569',
+                                backgroundColor: '#0f172a',
+                                color: 'white',
+                                fontSize: '14px',
+                                outline: 'none',
+                                boxSizing: 'border-box'
                             }}
-                        >
-                            ✕
-                        </button>
-                    )}
+                        />
+                        {showSearchResults && searchResults.length > 0 && (
+                            <div style={{
+                                position: 'absolute',
+                                top: '100%',
+                                left: 0,
+                                right: 0,
+                                backgroundColor: '#1e293b',
+                                border: '1px solid #475569',
+                                borderRadius: '8px',
+                                marginTop: '4px',
+                                maxHeight: '300px',
+                                overflow: 'auto',
+                                zIndex: 1000
+                            }}>
+                                {searchResults.map((result, i) => (
+                                    <button
+                                        key={i}
+                                        onClick={() => handleSearchSelect(result.path)}
+                                        style={{
+                                            width: '100%',
+                                            padding: '12px 16px',
+                                            border: 'none',
+                                            backgroundColor: 'transparent',
+                                            color: 'white',
+                                            textAlign: 'left',
+                                            cursor: 'pointer',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '12px',
+                                            fontSize: '14px'
+                                        }}
+                                        onMouseOver={(e) => (e.currentTarget.style.backgroundColor = '#334155')}
+                                        onMouseOut={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+                                    >
+                                        <span>{result.type}</span>
+                                        <span>{result.label}</span>
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+                    </div>
                 </div>
 
                 {/* Navigation */}
@@ -352,6 +474,76 @@ const Layout: React.FC = () => {
                         ❓ Ayuda
                     </button>
                 </div>
+
+                {/* Usuario actual + Avatar */}
+                {(profile || profileData) && (
+                    <div style={{ 
+                        padding: '16px 24px', 
+                        borderTop: '1px solid #334155',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '12px'
+                    }}>
+                        <div style={{
+                            width: '40px',
+                            height: '40px',
+                            borderRadius: '50%',
+                            backgroundColor: '#4f46e5',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            color: 'white',
+                            fontWeight: 600,
+                            fontSize: '16px',
+                            overflow: 'hidden'
+                        }}>
+                            {(profile?.avatar || profileData?.avatar) ? (
+                                <img 
+                                    src={(profile?.avatar || profileData?.avatar)!.replace('/api', '')} 
+                                    alt="Avatar" 
+                                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                />
+                            ) : (
+                                (profile?.name || profileData?.name || 'U')[0].toUpperCase()
+                            )}
+                        </div>
+                        <div style={{ flex: 1, overflow: 'hidden' }}>
+                            <div style={{ 
+                                color: 'white', 
+                                fontSize: '14px', 
+                                fontWeight: 500,
+                                whiteSpace: 'nowrap',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis'
+                            }}>
+                                {profile?.name || profileData?.name || 'Usuario'}
+                            </div>
+                            <div style={{ 
+                                color: '#94a3b8', 
+                                fontSize: '12px',
+                                whiteSpace: 'nowrap',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis'
+                            }}>
+                                {profile?.email || profileData?.email}
+                            </div>
+                        </div>
+                        <button
+                            onClick={() => navigate('/admin/users')}
+                            style={{
+                                background: 'none',
+                                border: 'none',
+                                color: '#94a3b8',
+                                cursor: 'pointer',
+                                fontSize: '16px',
+                                padding: '4px'
+                            }}
+                            title="Editar perfil"
+                        >
+                            ✏️
+                        </button>
+                    </div>
+                )}
 
                 {/* Logout */}
                 <div style={{ padding: '16px 24px', borderTop: '1px solid #334155' }}>

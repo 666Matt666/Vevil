@@ -1015,6 +1015,20 @@ export const usersApi = {
         const response = await fetchWithAuth('/users/me');
         return response.json();
     },
+
+    uploadAvatar: async (file: File): Promise<SystemUser> => {
+        const formData = new FormData();
+        formData.append('avatar', file);
+        const response = await fetchWithAuth('/users/avatar', {
+            method: 'POST',
+            body: formData,
+        });
+        if (!response.ok) {
+            const err = await response.json().catch(() => ({}));
+            throw new Error(err.message || 'Error al subir avatar');
+        }
+        return response.json();
+    },
 };
 
 /** Mensaje de error amigable a partir de cualquier error (red, API, etc.). */

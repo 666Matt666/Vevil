@@ -9,6 +9,7 @@ import { SuccessMessage } from '../ui/SuccessMessage';
 import { Pagination } from '../ui/Pagination';
 import { ConfirmModal } from '../ui/ConfirmModal';
 import { exportInvoicesToCsv } from '../../utils/exportCsv';
+import { exportInvoiceToPdf } from '../../utils/exportInvoicePdf';
 import { fadeInUp } from '../../hooks/useAnimations';
 import { useToast } from '../../hooks/useToast';
 
@@ -544,6 +545,23 @@ const InvoiceList: React.FC = () => {
                     >
                         📥 Exportar CSV
                     </button>
+                    <button
+                        type="button"
+                        onClick={() => {
+                            const pdfInvoice = invoices[0];
+                            if (pdfInvoice) exportInvoiceToPdf(pdfInvoice);
+                        }}
+                        style={{
+                            ...buttonStyle,
+                            padding: '10px 18px',
+                            backgroundColor: 'white',
+                            color: '#64748b',
+                            border: '1px solid #e2e8f0',
+                        }}
+                        title="Descargar ejemplo de PDF"
+                    >
+                        📄 PDF
+                    </button>
                     <button 
                         onClick={openCreateModal}
                         style={{
@@ -808,6 +826,18 @@ const InvoiceList: React.FC = () => {
                                                     title="Imprimir"
                                                 >
                                                     🖨️
+                                                </button>
+                                                <button
+                                                    onClick={() => exportInvoiceToPdf(invoice)}
+                                                    style={{
+                                                        ...buttonStyle,
+                                                        backgroundColor: '#dcfce7',
+                                                        color: '#166534',
+                                                        padding: '8px 12px'
+                                                    }}
+                                                    title="Descargar PDF"
+                                                >
+                                                    📄
                                                 </button>
                                                 {isAdmin && (invoice.status === 'pending' || invoice.status === 'cancelled') && (
                                                     <>

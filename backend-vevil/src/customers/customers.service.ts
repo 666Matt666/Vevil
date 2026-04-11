@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Customer } from './customer.entity';
@@ -69,6 +69,17 @@ export class CustomersService {
 
     async remove(id: number) {
         const customer = await this.findOne(id);
+        
+        // Check for associated invoices using raw query
+        const result = await this.customersRepository.query(
+            'SELECT COUNT(*) as count FROM "invoice" WHERE "customerId" = $1',
+            [id]
+        );
+        const invoiceCount = parseInt(result[0]?.count || '0', 10);
+        if (invoiceCount > 0) {
+            throw new BadRequestException(`No se puede eliminar: hay ${invoiceCount} factura(s) asociada(s)`);
+        }
+        
         return this.customersRepository.remove(customer);
     }
 }

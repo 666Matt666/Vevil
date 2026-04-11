@@ -112,10 +112,8 @@ const UserManagement: React.FC<{ showAllUsers?: boolean }> = ({ showAllUsers = f
                     limit: 10,
                     search: search || undefined 
                 });
-                // Filtrar el usuario actual de la lista
-                const filteredUsers = data.data.filter(u => String(u.id) !== String(profile?.id));
-                setUsers(filteredUsers);
-                setTotal(filteredUsers.length);
+                setUsers(data.data);
+                setTotal(data.total);
             } else {
                 // Siempre usar /users/me para mostrar el perfil del usuario actual
                 const myProfile = await usersApi.getMe();

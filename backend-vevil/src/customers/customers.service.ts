@@ -15,8 +15,18 @@ export class CustomersService {
         private invoicesRepository: Repository<Invoice>,
     ) { }
 
-    create(createCustomerDto: CreateCustomerDto) {
+    async create(createCustomerDto: CreateCustomerDto) {
         console.log('[CustomersService] create called with:', JSON.stringify(createCustomerDto));
+        
+        // Check if email already exists
+        const existingCustomer = await this.customersRepository.findOne({
+            where: { email: createCustomerDto.email }
+        });
+        
+        if (existingCustomer) {
+            throw new BadRequestException('Ya existe un cliente con este email');
+        }
+        
         const customer = this.customersRepository.create(createCustomerDto);
         return this.customersRepository.save(customer);
     }

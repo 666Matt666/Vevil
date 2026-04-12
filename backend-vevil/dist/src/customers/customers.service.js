@@ -23,8 +23,14 @@ let CustomersService = class CustomersService {
         this.customersRepository = customersRepository;
         this.invoicesRepository = invoicesRepository;
     }
-    create(createCustomerDto) {
+    async create(createCustomerDto) {
         console.log('[CustomersService] create called with:', JSON.stringify(createCustomerDto));
+        const existingCustomer = await this.customersRepository.findOne({
+            where: { email: createCustomerDto.email }
+        });
+        if (existingCustomer) {
+            throw new common_1.BadRequestException('Ya existe un cliente con este email');
+        }
         const customer = this.customersRepository.create(createCustomerDto);
         return this.customersRepository.save(customer);
     }

@@ -100,23 +100,18 @@ const Layout: React.FC = () => {
     // Pending count de React Query - solo admins ven el badge
     const pendingCount = isAdmin ? (pendingCountData ?? 0) : 0;
 
-    // Menú para todos los usuarios: muestra "Configuración"
-    const baseMenuItems: MenuItem[] = [
-        ...menuItems,
-        { label: 'Configuración', icon: '⚙️', path: '/settings' },
-    ];
+    // Menú para todos los usuarios
+    const baseMenuItems: MenuItem[] = [...menuItems];
 
-    // Agregar elementos de solo admin: "Usuarios" (todos los usuarios), "Auditoría"
-    // Si es admin, agrega los items de admin; si no, usa el menú base
+    // Admin añade usuarios y auditoría, luego configuración al final
     const menuToRender = isAdmin ? [
         ...baseMenuItems,
         { label: 'Usuarios', icon: '👥', path: '/admin/users', description: 'Gestión de usuarios' },
         { label: 'Auditoría', icon: '📋', path: '/audit' },
-        { label: 'Configuración', icon: '⚙️', path: '/settings' },
-    ] : [
-        ...menuItems,
-        { label: 'Configuración', icon: '⚙️', path: '/settings' },
-    ];
+    ] : baseMenuItems;
+
+    // Agregar configuración al final (para todos)
+    menuToRender.push({ label: 'Configuración', icon: '⚙️', path: '/settings' });
 
     // Detectar cambio de tamaño de pantalla
     useEffect(() => {

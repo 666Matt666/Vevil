@@ -71,12 +71,13 @@ const emptyForm: ProductFormData = {
     description: ''
 };
 
-const PAGE_SIZE = 20;
+const PAGE_SIZE_OPTIONS = [10, 20, 50];
 
 const ProductList: React.FC = () => {
     const [products, setProducts] = useState<Product[]>([]);
     const [total, setTotal] = useState(0);
     const [page, setPage] = useState(1);
+    const [pageSize, setPageSize] = useState(20);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [showModal, setShowModal] = useState(false);
@@ -137,7 +138,7 @@ const ProductList: React.FC = () => {
         try {
             setLoading(true);
             setError(null);
-            const { data, total: totalCount } = await productsApi.getPage(pageNum, PAGE_SIZE, {
+            const { data, total: totalCount } = await productsApi.getPage(pageNum, pageSize, {
                 search: searchName || undefined,
                 type: filterType !== 'all' ? filterType : undefined,
                 category: filterCategory !== 'all' ? filterCategory : undefined,
@@ -548,9 +549,10 @@ const ProductList: React.FC = () => {
                     <div style={{ padding: '0 16px 16px' }}>
                         <Pagination
                             page={page}
-                            limit={PAGE_SIZE}
+                            limit={pageSize}
                             total={total}
                             onPageChange={goToPage}
+                            onPageSizeChange={(size) => { setPageSize(size); setPage(1); }}
                             label="productos"
                         />
                     </div>

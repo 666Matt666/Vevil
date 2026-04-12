@@ -9,7 +9,7 @@ import { ConfirmModal } from '../ui/ConfirmModal';
 import { exportCustomersToCsv } from '../../utils/exportCsv';
 import { fadeInUp } from '../../hooks/useAnimations';
 
-const PAGE_SIZE = 20;
+const PAGE_SIZE_OPTIONS = [10, 20, 50];
 
 const buttonStyle: React.CSSProperties = {
     padding: '8px 16px',
@@ -88,6 +88,7 @@ const CustomerList: React.FC = () => {
     const [customers, setCustomers] = useState<Customer[]>([]);
     const [total, setTotal] = useState(0);
     const [page, setPage] = useState(1);
+    const [pageSize, setPageSize] = useState(20);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [showModal, setShowModal] = useState(false);
@@ -107,7 +108,7 @@ const CustomerList: React.FC = () => {
         try {
             setLoading(true);
             setError(null);
-            const { data, total: totalCount } = await customersApi.getPage(pageNum, PAGE_SIZE, {
+            const { data, total: totalCount } = await customersApi.getPage(pageNum, pageSize, {
                 search: searchText || undefined,
                 department: filterCity !== 'all' ? filterCity : undefined,
             });
@@ -478,9 +479,10 @@ const CustomerList: React.FC = () => {
                     <div style={{ padding: '0 16px 16px' }}>
                         <Pagination
                             page={page}
-                            limit={PAGE_SIZE}
+                            limit={pageSize}
                             total={total}
                             onPageChange={goToPage}
+                            onPageSizeChange={(size) => { setPageSize(size); setPage(1); }}
                             label="clientes"
                         />
                     </div>

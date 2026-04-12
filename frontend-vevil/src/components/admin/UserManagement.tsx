@@ -5,6 +5,7 @@ import { usersApi, SystemUser, getErrorMessage, pendingRegistrationsApi, type Pe
 import { useToast } from '../../hooks/useToast';
 import { fadeInUp } from '../../hooks/useAnimations';
 import { ConfirmModal } from '../ui/ConfirmModal';
+import { TableSkeleton } from '../ui/TableSkeleton';
 import { copy } from '../../copy';
 import { useProfile } from '../../hooks/useAuth';
 
@@ -399,9 +400,7 @@ const UserManagement: React.FC<{ showAllUsers?: boolean }> = ({ showAllUsers = f
                 overflow: 'hidden'
             }}>
                 {loading ? (
-                    <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>
-                        Cargando usuarios...
-                    </div>
+                    <TableSkeleton rows={6} cols={5} message="Cargando usuarios..." />
                 ) : users.length === 0 ? (
                     <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>
                         No se encontraron usuarios

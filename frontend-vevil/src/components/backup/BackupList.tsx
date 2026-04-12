@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { LoadingSpinner } from '../ui/LoadingSpinner';
 
 interface Backup {
     id: string;
@@ -212,7 +213,7 @@ const BackupList: React.FC = () => {
 
             <div style={{ display: 'grid', gap: '12px' }}>
                 {loading ? (
-                    <div style={{ padding: '20px', textAlign: 'center' }}>Cargando...</div>
+                    <LoadingSpinner message="Cargando backups..." color="#6366f1" />
                 ) : filteredBackups.length === 0 ? (
                     <div style={{ padding: '48px', textAlign: 'center', color: '#64748b', backgroundColor: '#f8fafc', borderRadius: '12px' }}>
                         No hay backups disponibles.

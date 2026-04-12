@@ -13,7 +13,7 @@ import { exportInvoiceToPdf } from '../../utils/exportInvoicePdf';
 import { fadeInUp } from '../../hooks/useAnimations';
 import { useToast } from '../../hooks/useToast';
 
-const PAGE_SIZE = 20;
+const PAGE_SIZE_OPTIONS = [10, 20, 50];
 
 const buttonStyle: React.CSSProperties = {
     padding: '8px 16px',
@@ -68,6 +68,7 @@ const InvoiceList: React.FC = () => {
     const [invoices, setInvoices] = useState<Invoice[]>([]);
     const [totalInvoices, setTotalInvoices] = useState(0);
     const [invoicePage, setInvoicePage] = useState(1);
+    const [invoicePageSize, setInvoicePageSize] = useState(20);
     const [customers, setCustomers] = useState<Customer[]>([]);
     const [products, setProducts] = useState<Product[]>([]);
     const [loading, setLoading] = useState(true);
@@ -245,7 +246,7 @@ const InvoiceList: React.FC = () => {
             setLoading(true);
             setError(null);
             const [invoicesRes, customersData, productsData] = await Promise.all([
-                invoicesApi.getPage(page, PAGE_SIZE, {
+                invoicesApi.getPage(invoicePage, invoicePageSize, {
                     search: searchText || undefined,
                     customerId: filterCustomerId !== 'all' ? parseInt(filterCustomerId, 10) : undefined,
                     status: filterStatus !== 'all' ? filterStatus : undefined,
@@ -934,9 +935,10 @@ const InvoiceList: React.FC = () => {
                     <div style={{ padding: '0 16px 16px' }}>
                         <Pagination
                             page={invoicePage}
-                            limit={PAGE_SIZE}
+                            limit={invoicePageSize}
                             total={totalInvoices}
                             onPageChange={setInvoicePage}
+                            onPageSizeChange={(size) => { setInvoicePageSize(size); setInvoicePage(1); }}
                             label="facturas"
                         />
                     </div>

@@ -86,6 +86,48 @@ const ProductList: React.FC = () => {
     const [successMessage, setSuccessMessage] = useState<string | null>(null);
     const [productToDelete, setProductToDelete] = useState<Product | null>(null);
     const [deleting, setDeleting] = useState(false);
+    const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+
+    const validateField = (field: string, value: string): string | null => {
+        switch (field) {
+            case 'name':
+                if (!value.trim()) return 'El nombre es requerido';
+                if (value.trim().length < 2) return 'El nombre debe tener al menos 2 caracteres';
+                if (value.trim().length > 100) return 'El nombre no puede exceder 100 caracteres';
+                return null;
+            case 'price':
+                if (!value) return 'El precio es requerido';
+                const priceNum = parseFloat(value);
+                if (isNaN(priceNum) || priceNum <= 0) return 'El precio debe ser mayor a 0';
+                return null;
+            case 'stock':
+                if (value && (isNaN(parseInt(value)) || parseInt(value) < 0)) {
+                    return 'El stock debe ser un número positivo';
+                }
+                return null;
+            case 'minStock':
+                if (value && (isNaN(parseInt(value)) || parseInt(value) < 0)) {
+                    return 'El stock mínimo debe ser un número positivo';
+                }
+                return null;
+            case 'costPrice':
+                if (value && (isNaN(parseFloat(value)) || parseFloat(value) < 0)) {
+                    return 'El precio de costo debe ser un número positivo';
+                }
+                return null;
+            default:
+                return null;
+        }
+    };
+
+    const handleFormChange = (field: keyof ProductFormData, value: string) => {
+        setFormData({ ...formData, [field]: value });
+        const error = validateField(field, value);
+        setFieldErrors(prev => ({
+            ...prev,
+            [field]: error || ''
+        }));
+    };
     
     const [searchName, setSearchName] = useState('');
     const [filterType, setFilterType] = useState('all');
@@ -147,6 +189,18 @@ const ProductList: React.FC = () => {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        
+        const errors: Record<string, string> = {};
+        ['name', 'price', 'stock', 'minStock', 'costPrice'].forEach(field => {
+            const error = validateField(field, formData[field as keyof ProductFormData]);
+            if (error) errors[field] = error;
+        });
+        
+        if (Object.keys(errors).length > 0) {
+            setFieldErrors(errors);
+            return;
+        }
+        
         setSaving(true);
 
         try {
@@ -549,18 +603,19 @@ const ProductList: React.FC = () => {
                                 <input
                                     type="text"
                                     value={formData.name}
-                                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                                    onChange={(e) => handleFormChange('name', e.target.value)}
                                     required
                                     style={inputStyle}
                                     placeholder="Ej: Gasolina Premium"
                                 />
+                                {fieldErrors.name && <span style={{ color: '#dc2626', fontSize: '12px', marginTop: '4px', display: 'block' }}>{fieldErrors.name}</span>}
                             </div>
 
                             <div style={{ marginBottom: '20px' }}>
                                 <label style={labelStyle}>Tipo *</label>
                                 <select
                                     value={formData.type}
-                                    onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+                                    onChange={(e) => handleFormChange('type', e.target.value)}
                                     required
                                     style={inputStyle}
                                 >
@@ -577,11 +632,12 @@ const ProductList: React.FC = () => {
                                         step="0.01"
                                         min="0"
                                         value={formData.price}
-                                        onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+                                        onChange={(e) => handleFormChange('price', e.target.value)}
                                         required
                                         style={inputStyle}
                                         placeholder="0.00"
                                     />
+                                    {fieldErrors.price && <span style={{ color: '#dc2626', fontSize: '12px', marginTop: '4px', display: 'block' }}>{fieldErrors.price}</span>}
                                 </div>
                                 <div>
                                     <label style={labelStyle}>Costo (opcional)</label>
@@ -590,16 +646,17 @@ const ProductList: React.FC = () => {
                                         step="0.01"
                                         min="0"
                                         value={formData.costPrice}
-                                        onChange={(e) => setFormData({ ...formData, costPrice: e.target.value })}
+                                        onChange={(e) => handleFormChange('costPrice', e.target.value)}
                                         style={inputStyle}
                                         placeholder="Para margen"
                                     />
+                                    {fieldErrors.costPrice && <span style={{ color: '#dc2626', fontSize: '12px', marginTop: '4px', display: 'block' }}>{fieldErrors.costPrice}</span>}
                                 </div>
                                 <div>
                                     <label style={labelStyle}>Moneda *</label>
                                     <select
                                         value={formData.currency}
-                                        onChange={(e) => setFormData({ ...formData, currency: e.target.value })}
+                                        onChange={(e) => handleFormChange('currency', e.target.value)}
                                         required
                                         style={inputStyle}
                                     >
@@ -618,11 +675,12 @@ const ProductList: React.FC = () => {
                                         type="number"
                                         min="0"
                                         value={formData.stock}
-                                        onChange={(e) => setFormData({ ...formData, stock: e.target.value })}
+                                        onChange={(e) => handleFormChange('stock', e.target.value)}
                                         required
                                         style={inputStyle}
                                         placeholder="0"
                                     />
+                                    {fieldErrors.stock && <span style={{ color: '#dc2626', fontSize: '12px', marginTop: '4px', display: 'block' }}>{fieldErrors.stock}</span>}
                                 </div>
                                 <div>
                                     <label style={labelStyle}>Stock mínimo</label>
@@ -630,10 +688,11 @@ const ProductList: React.FC = () => {
                                         type="number"
                                         min="0"
                                         value={formData.minStock}
-                                        onChange={(e) => setFormData({ ...formData, minStock: e.target.value })}
+                                        onChange={(e) => handleFormChange('minStock', e.target.value)}
                                         style={inputStyle}
                                         placeholder="0"
                                     />
+                                    {fieldErrors.minStock && <span style={{ color: '#dc2626', fontSize: '12px', marginTop: '4px', display: 'block' }}>{fieldErrors.minStock}</span>}
                                 </div>
                                 <div>
                                     <label style={labelStyle}>Categoría</label>

@@ -4,6 +4,7 @@ import { getConversionTarget, getRates, convert, fetchRates, setConversionTarget
 import { webauthnRegisterOptions, webauthnRegisterVerify, changePassword, type WebAuthnRegisterOptions as WebAuthnOptions } from '../../services/api';
 import { copy } from '../../copy';
 import UserManagement from '../admin/UserManagement';
+import BackupList from '../backup/BackupList';
 
 // ============== TIPOS ==============
 
@@ -285,19 +286,19 @@ const cardStyle: React.CSSProperties = {
 
 // ============== SECCIONES DEL MENÚ ==============
 
-type Section = 'profile' | 'company' | 'invoice' | 'currencies' | 'tax' | 'productTypes' | 'units' | 'payments' | 'alerts' | 'appearance';
+type Section = 'profile' | 'company' | 'invoice' | 'currencies' | 'tax' | 'productTypes' | 'units' | 'payments' | 'alerts' | 'appearance' | 'backup';
 
-const menuSections = [
-    { id: 'profile' as Section, label: 'Mi Perfil', icon: '👤' },
+const sections: { id: Section; label: string; icon: string }[] = [
     { id: 'company' as Section, label: 'Datos de Empresa', icon: '🏢' },
     { id: 'invoice' as Section, label: 'Facturación', icon: '🧾' },
     { id: 'currencies' as Section, label: 'Monedas', icon: '💰' },
     { id: 'tax' as Section, label: 'Impuestos', icon: '📊' },
     { id: 'productTypes' as Section, label: 'Tipos de Producto', icon: '📦' },
-    { id: 'units' as Section, label: 'Unidades de Medida', icon: '📏' },
+    { id: 'units' as Section, label: 'Unidades', icon: '📏' },
     { id: 'payments' as Section, label: 'Métodos de Pago', icon: '💳' },
-    { id: 'alerts' as Section, label: 'Alertas', icon: '⚠️' },
+    { id: 'alerts' as Section, label: 'Alertas', icon: '🔔' },
     { id: 'appearance' as Section, label: 'Apariencia', icon: '🎨' },
+    { id: 'backup' as Section, label: 'Backup', icon: '💾' },
 ];
 
 // ============== COMPONENTE PRINCIPAL ==============
@@ -1239,6 +1240,7 @@ const Settings: React.FC = () => {
             case 'payments': return renderPaymentsSection();
             case 'alerts': return renderAlertsSection();
             case 'appearance': return renderAppearanceSection();
+            case 'backup': return <BackupList />;
             default: return null;
         }
     };

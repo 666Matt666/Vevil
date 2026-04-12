@@ -49,7 +49,7 @@ const Reports: React.FC = () => {
     const [dateRange, setDateRange] = useState<DateRange>('month');
     const [customStartDate, setCustomStartDate] = useState('');
     const [customEndDate, setCustomEndDate] = useState('');
-    const [activeTab, setActiveTab] = useState<'overview' | 'products' | 'customers'>('overview');
+    const [activeTab, setActiveTab] = useState<'overview' | 'products' | 'customers' | 'charts'>('overview');
 
     const company = getCompanyConfig();
 
@@ -398,12 +398,13 @@ const Reports: React.FC = () => {
             }}>
                 {[
                     { id: 'overview', label: '📈 Resumen', icon: '📈' },
+                    { id: 'charts', label: '📊 Gráficos', icon: '📊' },
                     { id: 'products', label: '📦 Productos', icon: '📦' },
                     { id: 'customers', label: '👥 Clientes', icon: '👥' }
                 ].map(tab => (
                     <button
                         key={tab.id}
-                        onClick={() => setActiveTab(tab.id as 'overview' | 'products' | 'customers')}
+                        onClick={() => setActiveTab(tab.id as 'overview' | 'charts' | 'products' | 'customers')}
                         style={{
                             padding: '12px 24px',
                             border: 'none',
@@ -526,6 +527,169 @@ const Reports: React.FC = () => {
                                 ))}
                             </tbody>
                         </table>
+                    </div>
+                </>
+            )}
+
+            {/* Tab: Gráficos */}
+            {activeTab === 'charts' && (
+                <>
+                    {/* Estado de facturas */}
+                    <div style={{ 
+                        display: 'grid', 
+                        gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', 
+                        gap: '16px',
+                        marginBottom: '24px'
+                    }}>
+                        <div style={{ ...cardStyle }}>
+                            <h3 style={{ margin: '0 0 16px 0', fontSize: '16px', fontWeight: 600, color: '#1e293b' }}>
+                                📊 Facturas por Estado
+                            </h3>
+                            {(() => {
+                                const paid = filteredInvoices.filter(i => i.status === 'paid').length;
+                                const pending = filteredInvoices.filter(i => i.status === 'pending').length;
+                                const cancelled = filteredInvoices.filter(i => i.status === 'cancelled').length;
+                                const total = paid + pending + cancelled;
+                                if (total === 0) return <p style={{ color: '#64748b', textAlign: 'center', padding: '20px' }}>No hay datos</p>;
+                                return (
+                                    <div style={{ display: 'flex', gap: '16px', justifyContent: 'center', alignItems: 'center', flexWrap: 'wrap' }}>
+                                        {[
+                                            { label: 'Pagadas', value: paid, color: '#22c55e' },
+                                            { label: 'Pendientes', value: pending, color: '#f59e0b' },
+                                            { label: 'Anuladas', value: cancelled, color: '#ef4444' }
+                                        ].map(s => (
+                                            <div key={s.label} style={{ textAlign: 'center' }}>
+                                                <div style={{
+                                                    width: '80px',
+                                                    height: '80px',
+                                                    borderRadius: '50%',
+                                                    backgroundColor: s.color,
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    color: 'white',
+                                                    fontSize: '20px',
+                                                    fontWeight: 700
+                                                }}>
+                                                    {s.value}
+                                                </div>
+                                                <p style={{ margin: '8px 0 0 0', fontSize: '13px', color: '#64748b' }}>{s.label}</p>
+                                                <p style={{ margin: 0, fontSize: '12px', color: '#94a3b8' }}>{Math.round(s.value / total * 100)}%</p>
+                                            </div>
+                                        ))}
+                                    </div>
+                                );
+                            })()}
+                        </div>
+
+                        {/* Ingresos vs cantidad de facturas */}
+                        <div style={{ ...cardStyle }}>
+                            <h3 style={{ margin: '0 0 16px 0', fontSize: '16px', fontWeight: 600, color: '#1e293b' }}>
+                                💵 Ingresos vs Facturas
+                            </h3>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <span style={{ color: '#64748b', fontSize: '14px' }}>Ingresos Totales</span>
+                                    <span style={{ fontSize: '18px', fontWeight: 700, color: '#22c55e' }}>{formatMoney(totalRevenue, 'PYG')}</span>
+                                </div>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <span style={{ color: '#64748b', fontSize: '14px' }}>Cantidad de Facturas</span>
+                                    <span style={{ fontSize: '18px', fontWeight: 700, color: '#3b82f6' }}>{totalInvoices}</span>
+                                </div>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <span style={{ color: '#64748b', fontSize: '14px' }}>Ticket Promedio</span>
+                                    <span style={{ fontSize: '18px', fontWeight: 700, color: '#f97316' }}>{formatMoney(avgTicket, 'PYG')}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Gráfico de tendencia semanal */}
+                    <div style={{ ...cardStyle, marginBottom: '24px' }}>
+                        <h3 style={{ margin: '0 0 16px 0', fontSize: '16px', fontWeight: 600, color: '#1e293b' }}>
+                            📈 Tendencia Semanal
+                        </h3>
+                        {salesByDay.length === 0 ? (
+                            <p style={{ color: '#64748b', textAlign: 'center', padding: '40px' }}>No hay datos</p>
+                        ) : (
+                            <div style={{ display: 'flex', alignItems: 'flex-end', gap: '6px', height: '180px', padding: '0 8px', position: 'relative' }}>
+                                {salesByDay.map((day, index) => {
+                                    const percentage = (day.total / maxSale) * 140;
+                                    return (
+                                        <div key={index} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                                            <div style={{ 
+                                                width: '100%', 
+                                                maxWidth: '35px', 
+                                                height: `${percentage}px`, 
+                                                minHeight: '4px',
+                                                background: 'linear-gradient(180deg, #4f46e5 0%, #818cf8 100%)',
+                                                borderRadius: '4px 4px 0 0'
+                                            }} />
+                                            <span style={{ fontSize: '9px', color: '#64748b', marginTop: '6px', transform: 'rotate(-45deg)', whiteSpace: 'nowrap' }}>
+                                                {day.date}
+                                            </span>
+                                        </div>
+                                    );
+                                })}
+                                {/* Línea de tendencia */}
+                                <div style={{ position: 'absolute', bottom: '30px', left: 0, right: 0, height: '1px', backgroundColor: '#e2e8f0' }} />
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Comparación con período anterior */}
+                    <div style={{ ...cardStyle, backgroundColor: '#f0f9ff', border: '1px solid #bae6fd' }}>
+                        <h3 style={{ margin: '0 0 16px 0', fontSize: '16px', fontWeight: 600, color: '#0369a1' }}>
+                            📉 Comparación con Período Anterior
+                        </h3>
+                        {(() => {
+                            const prevInvoices = invoices.filter(inv => {
+                                const invDate = new Date(inv.date);
+                                const now = new Date();
+                                let startPrev: Date, endPrev: Date;
+                                if (dateRange === 'today') {
+                                    startPrev = new Date(now); startPrev.setDate(startPrev.getDate() - 1);
+                                    endPrev = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 23, 59, 59);
+                                } else if (dateRange === 'week') {
+                                    startPrev = new Date(now); startPrev.setDate(startPrev.getDate() - 14);
+                                    endPrev = new Date(now); endPrev.setDate(endPrev.getDate() - 7);
+                                } else if (dateRange === 'month') {
+                                    startPrev = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+                                    endPrev = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59);
+                                } else if (dateRange === 'year') {
+                                    startPrev = new Date(now.getFullYear() - 1, 0, 1);
+                                    endPrev = new Date(now.getFullYear() - 1, 11, 31, 23, 59, 59);
+                                } else return false;
+                                return invDate >= startPrev && invDate <= endPrev;
+                            });
+                            const prevRevenue = prevInvoices.reduce((sum, inv) => sum + Number(inv.total), 0);
+                            const diff = totalRevenue - prevRevenue;
+                            const diffPercent = prevRevenue > 0 ? Math.round((diff / prevRevenue) * 100) : 0;
+                            const isPositive = diff >= 0;
+                            return (
+                                <div style={{ display: 'flex', gap: '24px', flexWrap: 'wrap' }}>
+                                    <div style={{ textAlign: 'center' }}>
+                                        <p style={{ margin: 0, fontSize: '13px', color: '#64748b' }}>Período Actual</p>
+                                        <p style={{ margin: '4px 0 0 0', fontSize: '20px', fontWeight: 700, color: '#1e293b' }}>{formatMoney(totalRevenue, 'PYG')}</p>
+                                    </div>
+                                    <div style={{ textAlign: 'center' }}>
+                                        <p style={{ margin: 0, fontSize: '13px', color: '#64748b' }}>Período Anterior</p>
+                                        <p style={{ margin: '4px 0 0 0', fontSize: '20px', fontWeight: 700, color: '#64748b' }}>{formatMoney(prevRevenue, 'PYG')}</p>
+                                    </div>
+                                    <div style={{ textAlign: 'center' }}>
+                                        <p style={{ margin: 0, fontSize: '13px', color: '#64748b' }}>Diferencia</p>
+                                        <p style={{ 
+                                            margin: '4px 0 0 0', 
+                                            fontSize: '20px', 
+                                            fontWeight: 700, 
+                                            color: isPositive ? '#22c55e' : '#ef4444' 
+                                        }}>
+                                            {isPositive ? '↑' : '↓'} {Math.abs(diffPercent)}%
+                                        </p>
+                                    </div>
+                                </div>
+                            );
+                        })()}
                     </div>
                 </>
             )}

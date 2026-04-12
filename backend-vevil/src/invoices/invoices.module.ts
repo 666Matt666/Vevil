@@ -9,6 +9,7 @@ import { ProductsModule } from '../products/products.module';
 import { CustomersModule } from '../customers/customers.module';
 import { StockMovementsModule } from '../stock-movements/stock-movements.module';
 import { MailModule } from '../mail/mail.module';
+import { InvoiceReminderService } from './invoice-reminder.service';
 
 @Module({
     imports: [
@@ -19,6 +20,7 @@ import { MailModule } from '../mail/mail.module';
         MailModule,
     ],
     controllers: [InvoicesController],
-    providers: [InvoicesService],
+    providers: [InvoicesService, InvoiceReminderService],
+    exports: [InvoiceReminderService],
 })
 export class InvoicesModule { }

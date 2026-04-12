@@ -15,11 +15,32 @@ import { MailService } from './mail.service';
         const pass = configService.get<string>('MAIL_PASSWORD');
         const secure = configService.get<string>('MAIL_SECURE') === 'true';
 
-        // Si no hay configuración, usar un transport que no falle (para desarrollo)
+        // Check for Resend API key first
+        const resendKey = configService.get<string>('RESEND_API_KEY');
+        
+        if (resendKey) {
+          // Use Resend transport
+          return {
+            transport: {
+              host: 'smtp.resend.com',
+              port: 587,
+              secure: false,
+              auth: {
+                user: 'resend',
+                pass: resendKey,
+              },
+            },
+            defaults: {
+              from: configService.get<string>('MAIL_FROM') || 'onboarding@resend.dev',
+            },
+          };
+        }
+
+        // Fallback to regular SMTP or no-op
         if (!host) {
           return {
             transport: {
-              jsonTransport: true, // Solo guarda el mensaje en memoria/log, no envía
+              jsonTransport: true,
             },
           };
         }

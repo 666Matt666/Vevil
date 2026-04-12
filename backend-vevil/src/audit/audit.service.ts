@@ -21,8 +21,55 @@ export class AuditService {
     private readonly repo: Repository<AuditLog>,
   ) { }
 
+  /**
+   * Genera una descripción legible de los cambios entre oldValue y newValue.
+   */
+  private describeChanges(oldValue: Record<string, unknown> | null, newValue: Record<string, unknown> | null): string | null {
+    if (!oldValue && !newValue) return null;
+    if (!oldValue && newValue) return this.formatObject(newValue);
+    if (oldValue && !newValue) return `Eliminó: ${this.formatObject(oldValue)}`;
+    
+    const changes: string[] = [];
+    const allKeys = new Set([...Object.keys(oldValue), ...Object.keys(newValue)]);
+    
+    for (const key of allKeys) {
+      const oldVal = oldValue[key];
+      const newVal = newValue[key];
+      if (JSON.stringify(oldVal) !== JSON.stringify(newVal)) {
+        const label = this.humanizeKey(key);
+        if (oldVal === undefined || oldVal === null) {
+          changes.push(`+${label}: ${newVal}`);
+        } else if (newVal === undefined || newVal === null) {
+          changes.push(`-${label}`);
+        } else {
+          changes.push(`${label}: ${oldVal} → ${newVal}`);
+        }
+      }
+    }
+    
+    return changes.length > 0 ? changes.join(', ') : null;
+  }
+
+  private humanizeKey(key: string): string {
+    return key
+      .replace(/([A-Z])/g, ' $1')
+      .replace(/_/g, ' ')
+      .trim()
+      .toLowerCase();
+  }
+
+  private formatObject(obj: Record<string, unknown>): string {
+    return Object.entries(obj)
+      .map(([k, v]) => `${this.humanizeKey(k)}: ${v}`)
+      .join(', ');
+  }
+
   async log(payload: AuditPayload): Promise<AuditLog> {
+    const changesDesc = this.describeChanges(payload.oldValue, payload.newValue);
     console.log('[AUDIT] Logging action:', payload.action, '| Entity:', payload.entityType, '| ID:', payload.entityId, '| User:', payload.userEmail);
+    if (changesDesc) {
+      console.log('[AUDIT] Changes:', changesDesc);
+    }
     const entity = this.repo.create({
       userId: payload.userId ?? null,
       userEmail: payload.userEmail ?? null,

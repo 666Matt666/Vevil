@@ -13,6 +13,9 @@ export interface AuditPayload {
 export declare class AuditService {
     private readonly repo;
     constructor(repo: Repository<AuditLog>);
+    private describeChanges;
+    private humanizeKey;
+    private formatObject;
     log(payload: AuditPayload): Promise<AuditLog>;
     findByUser(userId: string, limit?: number): Promise<AuditLog[]>;
     findByEntity(entityType: string, entityId: string, limit?: number): Promise<AuditLog[]>;

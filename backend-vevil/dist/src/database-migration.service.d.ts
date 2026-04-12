@@ -6,5 +6,4 @@ export declare class DatabaseMigrationService implements OnModuleInit {
     constructor(dataSource: DataSource);
     onModuleInit(): Promise<void>;
     private runMigrations;
-    private addColumnIfNotExists;
 }

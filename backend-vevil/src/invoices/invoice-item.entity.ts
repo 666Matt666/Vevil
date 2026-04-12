@@ -26,7 +26,7 @@ export class InvoiceItem {
   invoiceId: number;
 
   /** Descuento por línea (porcentaje 0-100) */
-  @Column('decimal', { precision: 5, scale: 2, default: 0 })
+  @Column('decimal', { precision: 5, scale: 2, default: 0, name: 'discountPercent' })
   discountPercent: number;
 
   getTotal(): number {

@@ -50,7 +50,7 @@ __decorate([
     __metadata("design:type", Number)
 ], InvoiceItem.prototype, "invoiceId", void 0);
 __decorate([
-    (0, typeorm_1.Column)('decimal', { precision: 5, scale: 2, default: 0 }),
+    (0, typeorm_1.Column)('decimal', { precision: 5, scale: 2, default: 0, name: 'discountPercent' }),
     __metadata("design:type", Number)
 ], InvoiceItem.prototype, "discountPercent", void 0);
 exports.InvoiceItem = InvoiceItem = __decorate([

@@ -19,38 +19,55 @@ export class DatabaseMigrationService implements OnModuleInit {
         this.logger.log('Checking database migrations...');
         
         try {
-            // Migración: agregar campos a invoice
-            await this.addColumnIfNotExists('invoice', 'notes', 'TEXT');
-            await this.addColumnIfNotExists('invoice', 'discountPercent', 'DECIMAL(5,2) DEFAULT 0');
-            await this.addColumnIfNotExists('invoice', 'dueDate', 'DATE');
-            
-            // Migración: agregar campo a invoice_item
-            await this.addColumnIfNotExists('invoice_item', 'discountPercent', 'DECIMAL(5,2) DEFAULT 0');
+            // Invoice table: add notes, dueDate (not discountPercent - handled differently)
+            await this.dataSource.query(`
+                DO $$
+                BEGIN
+                    IF NOT EXISTS (
+                        SELECT 1 FROM information_schema.columns 
+                        WHERE LOWER(table_name) = 'invoice' 
+                        AND LOWER(column_name) = 'notes'
+                    ) THEN
+                        ALTER TABLE invoice ADD COLUMN notes TEXT;
+                    END IF;
+                    
+                    IF NOT EXISTS (
+                        SELECT 1 FROM information_schema.columns 
+                        WHERE LOWER(table_name) = 'invoice' 
+                        AND LOWER(column_name) = 'duedate'
+                    ) THEN
+                        ALTER TABLE invoice ADD COLUMN dueDate DATE;
+                    END IF;
+                    
+                    IF NOT EXISTS (
+                        SELECT 1 FROM information_schema.columns 
+                        WHERE LOWER(table_name) = 'invoice' 
+                        AND LOWER(column_name) = 'discountpercent'
+                    ) THEN
+                        ALTER TABLE invoice ADD COLUMN "discountPercent" DECIMAL(5,2) DEFAULT 0;
+                    END IF;
+                END $$;
+            `);
+            this.logger.log('Invoice columns ready');
+
+            // Invoice_item table: add discountPercent
+            await this.dataSource.query(`
+                DO $$
+                BEGIN
+                    IF NOT EXISTS (
+                        SELECT 1 FROM information_schema.columns 
+                        WHERE LOWER(table_name) = 'invoice_item' 
+                        AND LOWER(column_name) = 'discountpercent'
+                    ) THEN
+                        ALTER TABLE invoice_item ADD COLUMN "discountPercent" DECIMAL(5,2) DEFAULT 0;
+                    END IF;
+                END $$;
+            `);
+            this.logger.log('Invoice_item columns ready');
             
             this.logger.log('Database migrations completed successfully');
         } catch (error) {
-            this.logger.error('Error running database migrations', error);
-        }
-    }
-
-    private async addColumnIfNotExists(table: string, column: string, definition: string) {
-        const query = `
-            DO $$
-            BEGIN
-                IF NOT EXISTS (
-                    SELECT 1 FROM information_schema.columns 
-                    WHERE table_name = '${table}' AND column_name = '${column}'
-                ) THEN
-                    ALTER TABLE ${table} ADD COLUMN ${column} ${definition};
-                END IF;
-            END $$;
-        `;
-        
-        try {
-            await this.dataSource.query(query);
-            this.logger.log(`Column ${column} on ${table} is ready`);
-        } catch (error) {
-            this.logger.warn(`Could not add column ${column} to ${table}: ${error.message}`);
+            this.logger.error('Error running database migrations:', error.message);
         }
     }
 }

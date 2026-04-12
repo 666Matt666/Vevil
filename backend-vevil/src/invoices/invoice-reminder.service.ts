@@ -19,7 +19,7 @@ export class InvoiceReminderService {
     async sendPendingInvoiceReminders() {
         this.logger.log('Iniciando envío de recordatorios de facturas pendientes...');
 
-        if (!this.mailService.isMailConfigured()) {
+        if (!this.mailService.isConfigured()) {
             this.logger.warn('Email no configurado, saltando recordatorios');
             return;
         }

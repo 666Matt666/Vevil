@@ -1,9 +1,8 @@
 import { ConfigService } from '@nestjs/config';
-import { MailerService } from '@nestjs-modules/mailer';
 export declare class MailService {
-    private readonly mailerService;
     private readonly configService;
-    constructor(mailerService: MailerService, configService: ConfigService);
+    private resend;
+    constructor(configService: ConfigService);
     isConfigured(): boolean;
     private getFromAddress;
     private getBccAddress;

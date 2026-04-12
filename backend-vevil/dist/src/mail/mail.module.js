@@ -8,64 +8,12 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.MailModule = void 0;
 const common_1 = require("@nestjs/common");
-const config_1 = require("@nestjs/config");
-const mailer_1 = require("@nestjs-modules/mailer");
 const mail_service_1 = require("./mail.service");
 let MailModule = class MailModule {
 };
 exports.MailModule = MailModule;
 exports.MailModule = MailModule = __decorate([
     (0, common_1.Module)({
-        imports: [
-            mailer_1.MailerModule.forRootAsync({
-                imports: [config_1.ConfigModule],
-                inject: [config_1.ConfigService],
-                useFactory: (configService) => {
-                    const host = configService.get('MAIL_HOST');
-                    const port = configService.get('MAIL_PORT') || 587;
-                    const user = configService.get('MAIL_USER');
-                    const pass = configService.get('MAIL_PASSWORD');
-                    const secure = configService.get('MAIL_SECURE') === 'true';
-                    const resendKey = configService.get('RESEND_API_KEY');
-                    if (resendKey && resendKey.trim().length > 0) {
-                        return {
-                            transport: {
-                                host: 'smtp.resend.com',
-                                port: 587,
-                                secure: false,
-                                auth: {
-                                    user: 'resend',
-                                    pass: resendKey,
-                                },
-                            },
-                            defaults: {
-                                from: configService.get('MAIL_FROM') || 'onboarding@resend.dev',
-                            },
-                        };
-                    }
-                    if (!host || host.trim().length === 0) {
-                        return {
-                            transport: {
-                                jsonTransport: true,
-                            },
-                        };
-                    }
-                    return {
-                        transport: {
-                            host,
-                            port,
-                            secure,
-                            auth: user && pass ? { user, pass } : undefined,
-                        },
-                        defaults: {
-                            from: configService.get('MAIL_FROM') ||
-                                user ||
-                                'noreply@vevil.com',
-                        },
-                    };
-                },
-            }),
-        ],
         providers: [mail_service_1.MailService],
         exports: [mail_service_1.MailService],
     })

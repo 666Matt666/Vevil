@@ -1,66 +1,59 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { MailerService } from '@nestjs-modules/mailer';
+import { Resend } from 'resend';
 
 @Injectable()
 export class MailService {
+  private resend: Resend | null = null;
+
   constructor(
-    private readonly mailerService: MailerService,
     private readonly configService: ConfigService,
-  ) {}
+  ) {
+    const resendKey = this.configService.get<string>('RESEND_API_KEY');
+    if (resendKey && resendKey.trim().length > 0) {
+      this.resend = new Resend(resendKey);
+    }
+  }
 
   /**
-   * Indica si el envío de emails está configurado (hay MAIL_HOST o RESEND_API_KEY con valores válidos).
+   * Indica si el envío de emails está configurado (hay RESEND_API_KEY válido).
    */
   isConfigured(): boolean {
-    const host = this.configService.get<string>('MAIL_HOST');
     const resendKey = this.configService.get<string>('RESEND_API_KEY');
-    const hasMailHost = !!host && host.trim().length > 0;
     const hasResendKey = !!resendKey && resendKey.trim().length > 0;
-    console.log('[MailService] isConfigured check - MAIL_HOST:', hasMailHost ? 'SET' : 'NOT SET', '- RESEND_API_KEY:', hasResendKey ? 'SET' : 'NOT SET');
-    return hasMailHost || hasResendKey;
+    console.log('[MailService] isConfigured check - RESEND_API_KEY:', hasResendKey ? 'SET' : 'NOT SET');
+    return hasResendKey;
   }
 
   /**
    * Email (y opcionalmente nombre) que aparece como remitente.
-   * Orden: MAIL_FROM, MAIL_ADMIN_EMAIL, MAIL_USER, fallback.
    */
   private getFromAddress(): string {
-    const from =
-      this.configService.get<string>('MAIL_FROM') ||
-      this.configService.get<string>('MAIL_ADMIN_EMAIL') ||
-      this.configService.get<string>('MAIL_USER') ||
-      'noreply@vevil.com';
-    const name = this.configService.get<string>('MAIL_ADMIN_NAME') || this.configService.get<string>('MAIL_FROM_NAME');
-    if (name && from) {
-      return `${name} <${from}>`;
-    }
-    return from;
+    return 'onboarding@resend.dev';
   }
 
   /**
    * Obtiene el email BCC para copia de seguridad (mdibella@gmail.com)
    */
   private getBccAddress(): string | undefined {
-    return this.configService.get<string>('MAIL_BCC') || 'mdibella@gmail.com';
+    return 'mdibella@gmail.com';
   }
 
   /**
    * Envía el email con el enlace para restablecer la contraseña.
-   * No hace nada si MAIL_* no está configurado (evita errores en desarrollo sin SMTP).
    */
   async sendResetPasswordEmail(to: string, resetLink: string): Promise<void> {
     if (!this.isConfigured()) {
       if (this.configService.get<string>('NODE_ENV') === 'development') {
-        console.log('[Mail] Reset password link (MAIL_* not configured):', resetLink);
+        console.log('[Mail] Reset password link (RESEND not configured):', resetLink);
       }
       return;
     }
     console.log('[Mail] Sending reset email to:', to);
-    await this.mailerService.sendMail({
+    await this.resend!.emails.send({
+      from: this.getFromAddress(),
       to,
       bcc: this.getBccAddress(),
-      from: 'onboarding@resend.dev',
       subject: 'Restablecer tu contraseña - Vevil',
       html: `
         <p>Hola,</p>
@@ -83,10 +76,10 @@ export class MailService {
       }
       return;
     }
-    await this.mailerService.sendMail({
+    await this.resend!.emails.send({
+      from: this.getFromAddress(),
       to,
       bcc: this.getBccAddress(),
-      from: 'onboarding@resend.dev',
       subject: 'Confirmá tu solicitud de registro - Vevil',
       html: `
         <p>Hola,</p>
@@ -103,21 +96,20 @@ export class MailService {
 
   /**
    * Envía recordatorio de cobro al cliente por una factura pendiente.
-   * No hace nada si MAIL_* no está configurado o el cliente no tiene email.
    */
   async sendPaymentReminderEmail(to: string, customerName: string, invoiceNumber: string, total: number, currency: string): Promise<void> {
     if (!this.isConfigured()) {
       if (this.configService.get<string>('NODE_ENV') === 'development') {
-        console.log('[Mail] Payment reminder (MAIL_* not configured):', { to, invoiceNumber, total });
+        console.log('[Mail] Payment reminder (RESEND not configured):', { to, invoiceNumber, total });
       }
       return;
     }
     const totalStr = `${currency} ${Number(total).toLocaleString('es-PY', { minimumFractionDigits: 0 })}`;
     console.log('[Mail] Sending payment reminder to:', to, 'from:', this.getFromAddress(), 'bcc:', this.getBccAddress());
-    await this.mailerService.sendMail({
+    await this.resend!.emails.send({
+      from: this.getFromAddress(),
       to,
       bcc: this.getBccAddress(),
-      from: 'onboarding@resend.dev',
       subject: `Recordatorio de pago - Factura ${invoiceNumber} - Vevil`,
       html: `
         <p>Hola ${customerName || 'cliente'},</p>
@@ -139,10 +131,10 @@ export class MailService {
       }
       return;
     }
-    await this.mailerService.sendMail({
+    await this.resend!.emails.send({
+      from: this.getFromAddress(),
       to,
       bcc: this.getBccAddress(),
-      from: 'onboarding@resend.dev',
       subject: 'Creá tu contraseña - Vevil',
       html: `
         <p>Hola,</p>

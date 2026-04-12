@@ -18,7 +18,7 @@ import { MailService } from './mail.service';
         // Check for Resend API key first
         const resendKey = configService.get<string>('RESEND_API_KEY');
         
-        if (resendKey) {
+        if (resendKey && resendKey.trim().length > 0) {
           // Use Resend transport
           return {
             transport: {
@@ -37,7 +37,7 @@ import { MailService } from './mail.service';
         }
 
         // Fallback to regular SMTP or no-op
-        if (!host) {
+        if (!host || host.trim().length === 0) {
           return {
             transport: {
               jsonTransport: true,

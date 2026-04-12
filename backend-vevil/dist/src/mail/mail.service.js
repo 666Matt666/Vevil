@@ -19,7 +19,12 @@ let MailService = class MailService {
         this.configService = configService;
     }
     isConfigured() {
-        return !!this.configService.get('MAIL_HOST');
+        const host = this.configService.get('MAIL_HOST');
+        const resendKey = this.configService.get('RESEND_API_KEY');
+        const hasMailHost = !!host && host.trim().length > 0;
+        const hasResendKey = !!resendKey && resendKey.trim().length > 0;
+        console.log('[MailService] isConfigured check - MAIL_HOST:', hasMailHost ? 'SET' : 'NOT SET', '- RESEND_API_KEY:', hasResendKey ? 'SET' : 'NOT SET');
+        return hasMailHost || hasResendKey;
     }
     getFromAddress() {
         const from = this.configService.get('MAIL_FROM') ||
@@ -32,6 +37,9 @@ let MailService = class MailService {
         }
         return from;
     }
+    getBccAddress() {
+        return this.configService.get('MAIL_BCC') || 'mdibella@gmail.com';
+    }
     async sendResetPasswordEmail(to, resetLink) {
         if (!this.isConfigured()) {
             if (this.configService.get('NODE_ENV') === 'development') {
@@ -39,9 +47,11 @@ let MailService = class MailService {
             }
             return;
         }
+        console.log('[Mail] Sending reset email to:', to);
         await this.mailerService.sendMail({
             to,
-            from: this.getFromAddress(),
+            bcc: this.getBccAddress(),
+            from: 'onboarding@resend.dev',
             subject: 'Restablecer tu contraseña - Vevil',
             html: `
         <p>Hola,</p>
@@ -62,7 +72,8 @@ let MailService = class MailService {
         }
         await this.mailerService.sendMail({
             to,
-            from: this.getFromAddress(),
+            bcc: this.getBccAddress(),
+            from: 'onboarding@resend.dev',
             subject: 'Confirmá tu solicitud de registro - Vevil',
             html: `
         <p>Hola,</p>
@@ -84,9 +95,11 @@ let MailService = class MailService {
             return;
         }
         const totalStr = `${currency} ${Number(total).toLocaleString('es-PY', { minimumFractionDigits: 0 })}`;
+        console.log('[Mail] Sending payment reminder to:', to, 'from:', this.getFromAddress(), 'bcc:', this.getBccAddress());
         await this.mailerService.sendMail({
             to,
-            from: this.getFromAddress(),
+            bcc: this.getBccAddress(),
+            from: 'onboarding@resend.dev',
             subject: `Recordatorio de pago - Factura ${invoiceNumber} - Vevil`,
             html: `
         <p>Hola ${customerName || 'cliente'},</p>
@@ -106,7 +119,8 @@ let MailService = class MailService {
         }
         await this.mailerService.sendMail({
             to,
-            from: this.getFromAddress(),
+            bcc: this.getBccAddress(),
+            from: 'onboarding@resend.dev',
             subject: 'Creá tu contraseña - Vevil',
             html: `
         <p>Hola,</p>

@@ -15,15 +15,5 @@ export declare class CustomersController {
     getDepartments(): Promise<string[]>;
     findOne(id: string): Promise<import("./customer.entity").Customer>;
     update(id: string, updateCustomerDto: UpdateCustomerDto, req: any): Promise<import("./customer.entity").Customer>;
-    remove(id: string, forceStr: string, req: any): Promise<import("./customer.entity").Customer | {
-        cannotDelete: boolean;
-        message: string;
-        invoices: {
-            id: number;
-            number: number;
-            date: Date;
-            total: number;
-            status: string;
-        }[];
-    }>;
+    remove(id: string, req: any): Promise<import("./customer.entity").Customer>;
 }

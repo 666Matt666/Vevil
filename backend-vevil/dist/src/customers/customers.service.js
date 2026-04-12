@@ -65,26 +65,11 @@ let CustomersService = class CustomersService {
         this.customersRepository.merge(customer, updateCustomerDto);
         return this.customersRepository.save(customer);
     }
-    async remove(id, force = false) {
+    async remove(id) {
         const customer = await this.findOne(id);
         const invoices = await this.invoicesRepository.find({ where: { customerId: id } });
-        if (invoices.length > 0 && !force) {
-            return {
-                cannotDelete: true,
-                message: `El cliente tiene ${invoices.length} factura(s) asociada(s)`,
-                invoices: invoices.map(inv => ({
-                    id: inv.id,
-                    number: inv.id,
-                    date: inv.date,
-                    total: inv.total,
-                    status: inv.status,
-                })),
-            };
-        }
-        if (force && invoices.length > 0) {
-            for (const inv of invoices) {
-                await this.invoicesRepository.delete(inv.id);
-            }
+        if (invoices.length > 0) {
+            throw new common_1.BadRequestException(`No se puede eliminar el cliente porque tiene ${invoices.length} factura(s) asociada(s). Elimine las facturas primero.`);
         }
         return this.customersRepository.remove(customer);
     }

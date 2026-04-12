@@ -10,12 +10,15 @@ export class MailService {
   ) {}
 
   /**
-   * Indica si el envío de emails está configurado (hay al menos MAIL_HOST).
+   * Indica si el envío de emails está configurado (hay MAIL_HOST o RESEND_API_KEY con valores válidos).
    */
   isConfigured(): boolean {
     const host = this.configService.get<string>('MAIL_HOST');
-    console.log('[MailService] isConfigured check - MAIL_HOST:', host ? 'SET' : 'NOT SET');
-    return !!host;
+    const resendKey = this.configService.get<string>('RESEND_API_KEY');
+    const hasMailHost = !!host && host.trim().length > 0;
+    const hasResendKey = !!resendKey && resendKey.trim().length > 0;
+    console.log('[MailService] isConfigured check - MAIL_HOST:', hasMailHost ? 'SET' : 'NOT SET', '- RESEND_API_KEY:', hasResendKey ? 'SET' : 'NOT SET');
+    return hasMailHost || hasResendKey;
   }
 
   /**

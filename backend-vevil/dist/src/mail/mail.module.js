@@ -26,7 +26,24 @@ exports.MailModule = MailModule = __decorate([
                     const user = configService.get('MAIL_USER');
                     const pass = configService.get('MAIL_PASSWORD');
                     const secure = configService.get('MAIL_SECURE') === 'true';
-                    if (!host) {
+                    const resendKey = configService.get('RESEND_API_KEY');
+                    if (resendKey && resendKey.trim().length > 0) {
+                        return {
+                            transport: {
+                                host: 'smtp.resend.com',
+                                port: 587,
+                                secure: false,
+                                auth: {
+                                    user: 'resend',
+                                    pass: resendKey,
+                                },
+                            },
+                            defaults: {
+                                from: configService.get('MAIL_FROM') || 'onboarding@resend.dev',
+                            },
+                        };
+                    }
+                    if (!host || host.trim().length === 0) {
                         return {
                             transport: {
                                 jsonTransport: true,

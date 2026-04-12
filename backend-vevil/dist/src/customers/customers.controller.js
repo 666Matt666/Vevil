@@ -68,15 +68,11 @@ let CustomersController = class CustomersController {
         }).catch(() => { });
         return updated;
     }
-    async remove(id, forceStr, req) {
-        const force = forceStr === 'true';
-        const result = await this.customersService.remove(+id, force);
-        if (result && result.cannotDelete) {
-            return result;
-        }
+    async remove(id, req) {
+        const result = await this.customersService.remove(+id);
         await this.auditService.log({
             ...this.userFromReq(req),
-            action: force ? 'customer.deleted_with_invoices' : 'customer.deleted',
+            action: 'customer.deleted',
             entityType: 'customer',
             entityId: id,
             ip: req?.ip ?? req?.headers?.['x-forwarded-for'] ?? null,
@@ -128,10 +124,9 @@ __decorate([
 __decorate([
     (0, common_1.Delete)(':id'),
     __param(0, (0, common_1.Param)('id')),
-    __param(1, (0, common_1.Query)('force')),
-    __param(2, (0, common_1.Request)()),
+    __param(1, (0, common_1.Request)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, String, Object]),
+    __metadata("design:paramtypes", [String, Object]),
     __metadata("design:returntype", Promise)
 ], CustomersController.prototype, "remove", null);
 exports.CustomersController = CustomersController = __decorate([

@@ -19,15 +19,5 @@ export declare class CustomersService {
     getDepartments(): Promise<string[]>;
     findOne(id: number): Promise<Customer>;
     update(id: number, updateCustomerDto: UpdateCustomerDto): Promise<Customer>;
-    remove(id: number, force?: boolean): Promise<Customer | {
-        cannotDelete: boolean;
-        message: string;
-        invoices: {
-            id: number;
-            number: number;
-            date: Date;
-            total: number;
-            status: string;
-        }[];
-    }>;
+    remove(id: number): Promise<Customer>;
 }

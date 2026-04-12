@@ -18,6 +18,7 @@ const products_module_1 = require("../products/products.module");
 const customers_module_1 = require("../customers/customers.module");
 const stock_movements_module_1 = require("../stock-movements/stock-movements.module");
 const mail_module_1 = require("../mail/mail.module");
+const invoice_reminder_service_1 = require("./invoice-reminder.service");
 let InvoicesModule = class InvoicesModule {
 };
 exports.InvoicesModule = InvoicesModule;
@@ -31,7 +32,8 @@ exports.InvoicesModule = InvoicesModule = __decorate([
             mail_module_1.MailModule,
         ],
         controllers: [invoices_controller_1.InvoicesController],
-        providers: [invoices_service_1.InvoicesService],
+        providers: [invoices_service_1.InvoicesService, invoice_reminder_service_1.InvoiceReminderService],
+        exports: [invoice_reminder_service_1.InvoiceReminderService],
     })
 ], InvoicesModule);
 //# sourceMappingURL=invoices.module.js.map

@@ -20,6 +20,7 @@ import { MailModule } from './mail/mail.module';
 import { PendingRegistrationsModule } from './pending-registrations/pending-registrations.module';
 import { WebAuthnModule } from './webauthn/webauthn.module';
 import { AuditModule } from './audit/audit.module';
+import { BackupModule } from './backup/backup.module';
 import { User } from './users/user.entity';
 // import { ProfileModule } from './profile/profile.module';
 
@@ -140,6 +141,8 @@ import { User } from './users/user.entity';
     PendingRegistrationsModule,
     WebAuthnModule,
     AuditModule,
+
+    BackupModule,
 
     // ProfileModule,
   ],

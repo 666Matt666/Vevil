@@ -134,14 +134,14 @@ export const hasActiveSession = async (): Promise<boolean> => {
 export const clearTokens = async (): Promise<void> => {
     if (import.meta.env.DEV) console.log('[API] clearTokens: Starting logout...');
     try {
-        await fetch(`${API_BASE_URL}/auth/logout`, {
+        const res = await fetch(`${API_BASE_URL}/auth/logout`, {
             method: 'POST',
             credentials: 'include',
         });
-        if (import.meta.env.DEV) console.log('[API] clearTokens: Logout request sent');
+        if (import.meta.env.DEV) console.log('[API] clearTokens: Logout request sent, status:', res.status);
+        // Si el servidor devuelve 401, el token ya no es válido - igualmente limpiamos localmente
     } catch (e) {
         if (import.meta.env.DEV) console.error('[API] clearTokens: Error', e);
-        // Ignorar errores en logout
     }
     // Limpiar tokens de localStorage
     clearStoredToken('vevil_access_token');

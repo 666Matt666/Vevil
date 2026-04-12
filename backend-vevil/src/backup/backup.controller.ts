@@ -2,8 +2,10 @@ import { Controller, Get, Post, Delete, Param, Res, Query, UseGuards } from '@ne
 import { BackupService } from './backup.service';
 import { BackupType, BackupFrequency, BackupSlot } from './backup.entity';
 import { Response } from 'express';
+import { AuthGuard } from '@nestjs/passport';
 
 @Controller('backups')
+@UseGuards(AuthGuard('jwt'))
 export class BackupController {
   constructor(private readonly backupService: BackupService) {}
 

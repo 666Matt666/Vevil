@@ -15,6 +15,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.BackupController = void 0;
 const common_1 = require("@nestjs/common");
 const backup_service_1 = require("./backup.service");
+const passport_1 = require("@nestjs/passport");
 let BackupController = class BackupController {
     constructor(backupService) {
         this.backupService = backupService;
@@ -125,6 +126,7 @@ __decorate([
 ], BackupController.prototype, "deleteBackup", null);
 exports.BackupController = BackupController = __decorate([
     (0, common_1.Controller)('backups'),
+    (0, common_1.UseGuards)((0, passport_1.AuthGuard)('jwt')),
     __metadata("design:paramtypes", [backup_service_1.BackupService])
 ], BackupController);
 //# sourceMappingURL=backup.controller.js.map

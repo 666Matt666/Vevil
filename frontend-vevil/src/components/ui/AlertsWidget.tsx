@@ -25,7 +25,11 @@ export const AlertsWidget: React.FC = () => {
             const products = await productsApi.getAll();
             
             if (config.lowStockEnabled) {
-                const lowStock = products.filter(p => (p.stock ?? 0) <= (p.minStock ?? config.lowStockThreshold));
+                const threshold = config.lowStockThreshold;
+                const lowStock = products.filter(p => {
+                    const productMinStock = p.minStock != null && p.minStock > 0 ? p.minStock : threshold;
+                    return (p.stock ?? 0) <= productMinStock;
+                });
                 if (lowStock.length > 0) {
                     newAlerts.push({
                         type: 'warning',

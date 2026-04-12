@@ -704,7 +704,14 @@ export const customersApi = {
             method: 'POST',
             body: JSON.stringify(customer),
         });
-        if (!response.ok) throw new Error('Error al crear cliente');
+        if (!response.ok) {
+            let errorMsg = 'Error al crear cliente';
+            try {
+                const data = await response.json();
+                errorMsg = data.message || data.error || JSON.stringify(data);
+            } catch {}
+            throw new Error(errorMsg);
+        }
         return response.json();
     },
 

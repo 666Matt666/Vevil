@@ -226,13 +226,14 @@ export class InvoicesService {
             const customerName = invoice.customer?.name || 'Cliente';
             
             if (!this.mailService.isConfigured()) {
+                console.log('[sendReminder] MAIL_HOST not configured');
                 return { sent: false, reason: 'Email no configurado en el servidor.' };
             }
             
             await this.mailService.sendPaymentReminderEmail(email, customerName, invoiceNumber, total, currency);
             return { sent: true };
         } catch (error) {
-            console.error('[sendReminder] Error:', error.message);
+            console.error('[sendReminder] Error:', error.message, error.stack);
             return { sent: false, reason: `Error al enviar: ${error.message}` };
         }
     }

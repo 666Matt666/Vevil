@@ -13,7 +13,9 @@ export class MailService {
    * Indica si el envío de emails está configurado (hay al menos MAIL_HOST).
    */
   isConfigured(): boolean {
-    return !!this.configService.get<string>('MAIL_HOST');
+    const host = this.configService.get<string>('MAIL_HOST');
+    console.log('[MailService] isConfigured check - MAIL_HOST:', host ? 'SET' : 'NOT SET');
+    return !!host;
   }
 
   /**

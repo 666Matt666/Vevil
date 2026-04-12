@@ -26,29 +26,6 @@ const Layout: React.FC = () => {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
     const [isHelpOpen, setIsHelpOpen] = useState(false);
-    const [globalSearch, setGlobalSearch] = useState('');
-    const [searchResults, setSearchResults] = useState<{type: string; label: string; path: string}[]>([]);
-    const [showSearchResults, setShowSearchResults] = useState(false);
-    
-    // TEMPORAL: Deshabilitar verificación de autenticación para pruebas
-    // const hasToken = Boolean(getAccessToken());
-    // 
-    // // Redirigir al login si no hay token
-    // useEffect(() => {
-    //     if (!hasToken) {
-    //         navigate('/login', { replace: true });
-    //     }
-    // }, [hasToken, navigate]);
-    // 
-    // // Escuchar evento de sesión expirada para redirigir al login
-    // useEffect(() => {
-    //     const handleSessionExpired = () => {
-    //         console.log('[Layout] Session expired event received, redirecting to login');
-    //         navigate('/login', { replace: true });
-    //     };
-    //     window.addEventListener('vevil-session-expired', handleSessionExpired);
-    //     return () => window.removeEventListener('vevil-session-expired', handleSessionExpired);
-    // }, [navigate]);
     
     // Obtener profile con refetchOnMount=true para detectar cambios de usuario al montar
     // Solo intentar obtener profile si hay token
@@ -156,76 +133,6 @@ const Layout: React.FC = () => {
         setIsMobileMenuOpen(false);
         setIsHelpOpen(false);
     }, [location.pathname]);
-
-    // Búsqueda global
-    useEffect(() => {
-        if (!globalSearch.trim()) {
-            setSearchResults([]);
-            setShowSearchResults(false);
-            return;
-        }
-        const timer = setTimeout(() => {
-            const search = globalSearch.toLowerCase();
-            const results: {type: string; label: string; path: string}[] = [];
-            
-            // Productos
-            if ('productos'.includes(search) || search.length > 2) {
-                results.push({ type: '📦', label: 'Productos', path: '/products' });
-            }
-            // Clientes
-            if ('clientes'.includes(search) || search.length > 2) {
-                results.push({ type: '👥', label: 'Clientes', path: '/customers' });
-            }
-            // Facturas
-            if ('facturas'.includes(search) || 'factura'.includes(search) || search.length > 2) {
-                results.push({ type: '📄', label: 'Facturas', path: '/invoices' });
-            }
-            // Configuración
-            if ('configuración'.includes(search) || 'config'.includes(search) || search.length > 2) {
-                results.push({ type: '⚙️', label: 'Configuración', path: '/settings' });
-            }
-            // Reportes
-            if ('reportes'.includes(search) || 'reporte'.includes(search) || search.length > 2) {
-                results.push({ type: '📊', label: 'Reportes', path: '/reports' });
-            }
-            // Cuentas
-            if ('cuentas'.includes(search) || 'cobrar'.includes(search) || search.length > 2) {
-                results.push({ type: '💳', label: 'Cuentas por Cobrar', path: '/accounts' });
-            }
-            // Stock
-            if ('stock'.includes(search) || 'inventario'.includes(search) || search.length > 2) {
-                results.push({ type: '📥', label: 'Movimientos de Stock', path: '/stock-movements' });
-            }
-            // Usuarios (solo admin)
-            if (isAdmin && ('usuarios'.includes(search) || 'usuarios'.includes(search))) {
-                results.push({ type: '👥', label: 'Gestión de Usuarios', path: '/admin/users' });
-            }
-            
-            setSearchResults(results.slice(0, 6));
-            setShowSearchResults(true);
-        }, 300);
-        return () => clearTimeout(timer);
-    }, [globalSearch, isAdmin]);
-
-    const handleSearchSelect = (path: string) => {
-        navigate(path);
-        setGlobalSearch('');
-        setShowSearchResults(false);
-    };
-
-    // TEMPORAL: Deshabilitar verificación de autenticación para pruebas
-    // if (!hasToken) {
-    //     return <Navigate to="/login" replace />;
-    // }
-    
-    // Mostrar loading solo si está cargando y no hay profile guardado
-    if (profileLoading && !profile) {
-        return (
-            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-                <div>Cargando...</div>
-            </div>
-        );
-    }
 
     const handleLogout = async () => {
         // Usar la función clearTokens que llama al backend y limpia las cookies HttpOnly
@@ -409,68 +316,6 @@ const Layout: React.FC = () => {
                             </button>
                         </div>
                     )}
-
-                    {/* Buscador global */}
-                    <div style={{ position: 'relative' }}>
-                        <input
-                            type="text"
-                            placeholder="Buscar..."
-                            value={globalSearch}
-                            onChange={(e) => setGlobalSearch(e.target.value)}
-                            onFocus={() => globalSearch.trim() && setShowSearchResults(true)}
-                            style={{
-                                width: '100%',
-                                padding: '10px 14px',
-                                borderRadius: '8px',
-                                border: '1px solid #475569',
-                                backgroundColor: '#0f172a',
-                                color: 'white',
-                                fontSize: '14px',
-                                outline: 'none',
-                                boxSizing: 'border-box'
-                            }}
-                        />
-                        {showSearchResults && searchResults.length > 0 && (
-                            <div style={{
-                                position: 'absolute',
-                                top: '100%',
-                                left: 0,
-                                right: 0,
-                                backgroundColor: '#1e293b',
-                                border: '1px solid #475569',
-                                borderRadius: '8px',
-                                marginTop: '4px',
-                                maxHeight: '300px',
-                                overflow: 'auto',
-                                zIndex: 1000
-                            }}>
-                                {searchResults.map((result, i) => (
-                                    <button
-                                        key={i}
-                                        onClick={() => handleSearchSelect(result.path)}
-                                        style={{
-                                            width: '100%',
-                                            padding: '12px 16px',
-                                            border: 'none',
-                                            backgroundColor: 'transparent',
-                                            color: 'white',
-                                            textAlign: 'left',
-                                            cursor: 'pointer',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            gap: '12px',
-                                            fontSize: '14px'
-                                        }}
-                                        onMouseOver={(e) => (e.currentTarget.style.backgroundColor = '#334155')}
-                                        onMouseOut={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
-                                    >
-                                        <span>{result.type}</span>
-                                        <span>{result.label}</span>
-                                    </button>
-                                ))}
-                            </div>
-                        )}
-                    </div>
                 </div>
 
                 {/* Navigation */}

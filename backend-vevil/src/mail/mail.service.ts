@@ -49,16 +49,15 @@ export class MailService {
   async sendResetPasswordEmail(to: string, resetLink: string): Promise<void> {
     if (!this.isConfigured()) {
       if (this.configService.get<string>('NODE_ENV') === 'development') {
-        // En desarrollo, loguear el enlace para poder probar sin configurar SMTP
         console.log('[Mail] Reset password link (MAIL_* not configured):', resetLink);
       }
       return;
     }
-
+    console.log('[Mail] Sending reset email to:', to);
     await this.mailerService.sendMail({
       to,
       bcc: this.getBccAddress(),
-      from: this.getFromAddress(),
+      from: 'onboarding@resend.dev',
       subject: 'Restablecer tu contraseña - Vevil',
       html: `
         <p>Hola,</p>
@@ -84,7 +83,7 @@ export class MailService {
     await this.mailerService.sendMail({
       to,
       bcc: this.getBccAddress(),
-      from: this.getFromAddress(),
+      from: 'onboarding@resend.dev',
       subject: 'Confirmá tu solicitud de registro - Vevil',
       html: `
         <p>Hola,</p>
@@ -111,10 +110,11 @@ export class MailService {
       return;
     }
     const totalStr = `${currency} ${Number(total).toLocaleString('es-PY', { minimumFractionDigits: 0 })}`;
+    console.log('[Mail] Sending payment reminder to:', to, 'from:', this.getFromAddress(), 'bcc:', this.getBccAddress());
     await this.mailerService.sendMail({
       to,
       bcc: this.getBccAddress(),
-      from: this.getFromAddress(),
+      from: 'onboarding@resend.dev',
       subject: `Recordatorio de pago - Factura ${invoiceNumber} - Vevil`,
       html: `
         <p>Hola ${customerName || 'cliente'},</p>
@@ -139,7 +139,7 @@ export class MailService {
     await this.mailerService.sendMail({
       to,
       bcc: this.getBccAddress(),
-      from: this.getFromAddress(),
+      from: 'onboarding@resend.dev',
       subject: 'Creá tu contraseña - Vevil',
       html: `
         <p>Hola,</p>

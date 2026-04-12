@@ -34,6 +34,13 @@ export class MailService {
   }
 
   /**
+   * Obtiene el email BCC para copia de seguridad (mdibella@gmail.com)
+   */
+  private getBccAddress(): string | undefined {
+    return this.configService.get<string>('MAIL_BCC') || 'mdibella@gmail.com';
+  }
+
+  /**
    * Envía el email con el enlace para restablecer la contraseña.
    * No hace nada si MAIL_* no está configurado (evita errores en desarrollo sin SMTP).
    */
@@ -48,6 +55,7 @@ export class MailService {
 
     await this.mailerService.sendMail({
       to,
+      bcc: this.getBccAddress(),
       from: this.getFromAddress(),
       subject: 'Restablecer tu contraseña - Vevil',
       html: `
@@ -73,6 +81,7 @@ export class MailService {
     }
     await this.mailerService.sendMail({
       to,
+      bcc: this.getBccAddress(),
       from: this.getFromAddress(),
       subject: 'Confirmá tu solicitud de registro - Vevil',
       html: `
@@ -102,6 +111,7 @@ export class MailService {
     const totalStr = `${currency} ${Number(total).toLocaleString('es-PY', { minimumFractionDigits: 0 })}`;
     await this.mailerService.sendMail({
       to,
+      bcc: this.getBccAddress(),
       from: this.getFromAddress(),
       subject: `Recordatorio de pago - Factura ${invoiceNumber} - Vevil`,
       html: `
@@ -126,6 +136,7 @@ export class MailService {
     }
     await this.mailerService.sendMail({
       to,
+      bcc: this.getBccAddress(),
       from: this.getFromAddress(),
       subject: 'Creá tu contraseña - Vevil',
       html: `

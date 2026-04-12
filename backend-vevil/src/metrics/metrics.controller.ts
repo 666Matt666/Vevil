@@ -23,4 +23,15 @@ export class MetricsController {
       from && to ? { from, to } : undefined,
     );
   }
+
+  @Get('daily-revenue')
+  @ApiOperation({ summary: 'Obtener ingresos diarios para gráficos' })
+  @ApiQuery({ name: 'days', required: false, description: 'Número de días (default 30)', type: Number })
+  @ApiResponse({ status: 200, description: 'Array de ingresos por día.' })
+  async getDailyRevenue(
+    @Query('days') days?: string,
+  ): Promise<{ date: string; revenue: number }[]> {
+    const daysNum = days ? parseInt(days, 10) : 30;
+    return this.metricsService.getDailyRevenue(Math.min(daysNum, 365));
+  }
 }

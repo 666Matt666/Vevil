@@ -24,6 +24,10 @@ let MetricsController = class MetricsController {
     async getMetrics(from, to) {
         return this.metricsService.getDashboardMetrics(from && to ? { from, to } : undefined);
     }
+    async getDailyRevenue(days) {
+        const daysNum = days ? parseInt(days, 10) : 30;
+        return this.metricsService.getDailyRevenue(Math.min(daysNum, 365));
+    }
 };
 exports.MetricsController = MetricsController;
 __decorate([
@@ -39,6 +43,16 @@ __decorate([
     __metadata("design:paramtypes", [String, String]),
     __metadata("design:returntype", Promise)
 ], MetricsController.prototype, "getMetrics", null);
+__decorate([
+    (0, common_1.Get)('daily-revenue'),
+    (0, swagger_1.ApiOperation)({ summary: 'Obtener ingresos diarios para gráficos' }),
+    (0, swagger_1.ApiQuery)({ name: 'days', required: false, description: 'Número de días (default 30)', type: Number }),
+    (0, swagger_1.ApiResponse)({ status: 200, description: 'Array de ingresos por día.' }),
+    __param(0, (0, common_1.Query)('days')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", Promise)
+], MetricsController.prototype, "getDailyRevenue", null);
 exports.MetricsController = MetricsController = __decorate([
     (0, common_1.Controller)('metrics'),
     (0, swagger_1.ApiTags)('Métricas'),

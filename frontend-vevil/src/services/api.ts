@@ -912,6 +912,11 @@ export const metricsApi = {
         if (!response.ok) throw new Error('Error al obtener métricas');
         return response.json();
     },
+    getDailyRevenue: async (days: number = 30): Promise<{ date: string; revenue: number }[]> => {
+        const response = await fetchWithAuth(`/metrics/daily-revenue?days=${days}`);
+        if (!response.ok) throw new Error('Error al obtener ingresos diarios');
+        return response.json();
+    },
 };
 
 // ============ AUDITORÍA ============

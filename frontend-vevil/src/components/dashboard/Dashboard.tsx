@@ -7,6 +7,7 @@ import { formatMoney } from '../settings/Settings';
 import { copy } from '../../copy';
 import { loadUsage, saveUsage, recordDashboardUsage, type DashboardUsageKey } from '../../utils/dashboardUsage';
 import { fadeInUp, staggerContainer } from '../../hooks/useAnimations';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 type ProfileUser = { name?: string; lastName?: string; gender?: 'male' | 'female' };
 
@@ -123,6 +124,7 @@ const Dashboard: React.FC = () => {
     const [customFrom, setCustomFrom] = useState('');
     const [customTo, setCustomTo] = useState('');
     const [usage, setUsage] = useState<Record<DashboardUsageKey, number>>(() => loadUsage());
+    const [dailyRevenue, setDailyRevenue] = useState<{ date: string; revenue: number }[]>([]);
 
     useEffect(() => {
         getProfile()
@@ -132,6 +134,7 @@ const Dashboard: React.FC = () => {
 
     useEffect(() => {
         loadMetrics(null);
+        loadDailyRevenue();
     }, []);
 
     // Actualizar conteo de uso al entrar al dashboard (orden "más usados" al día)
@@ -147,7 +150,7 @@ const Dashboard: React.FC = () => {
         } catch (err) {
             console.error('Error loading metrics:', err);
             try {
-                const fallback = await statsApi.getDashboardStats();
+                const fallback = await statsApi.getBasicStats();
                 setMetrics({
                     ...defaultMetrics,
                     totalProducts: fallback.totalProducts,
@@ -161,6 +164,16 @@ const Dashboard: React.FC = () => {
             }
         } finally {
             setLoading(false);
+        }
+    };
+
+    const loadDailyRevenue = async () => {
+        try {
+            const data = await metricsApi.getDailyRevenue(30);
+            setDailyRevenue(data);
+        } catch (err) {
+            console.error('Error loading daily revenue:', err);
+            setDailyRevenue([]);
         }
     };
 
@@ -531,6 +544,55 @@ const Dashboard: React.FC = () => {
                     )}
                 </div>
             </div>
+
+            {/* Gráfico de ingresos diarios */}
+            {dailyRevenue.length > 0 && (
+                <div style={{
+                    marginTop: '24px',
+                    backgroundColor: 'white',
+                    padding: '20px',
+                    borderRadius: '12px',
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
+                    border: '1px solid #e2e8f0'
+                }}>
+                    <h3 style={{ fontSize: '16px', fontWeight: 600, color: '#1e293b', margin: '0 0 16px 0' }}>
+                        Ingresos últimos 30 días
+                    </h3>
+                    <ResponsiveContainer width="100%" height={250}>
+                        <AreaChart data={dailyRevenue} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                            <XAxis 
+                                dataKey="date" 
+                                tick={{ fontSize: 11, fill: '#64748b' }}
+                                tickFormatter={(value) => {
+                                    const d = new Date(value);
+                                    return `${d.getDate()}/${d.getMonth() + 1}`;
+                                }}
+                            />
+                            <YAxis 
+                                tick={{ fontSize: 11, fill: '#64748b' }}
+                                tickFormatter={(value) => `₲${(value / 1000).toFixed(0)}k`}
+                            />
+                            <Tooltip 
+                                formatter={(value: number) => [formatMoney(value, 'PYG'), 'Ingresos']}
+                                labelFormatter={(label) => new Date(label).toLocaleDateString('es-PY')}
+                                contentStyle={{ 
+                                    borderRadius: '8px', 
+                                    border: '1px solid #e2e8f0',
+                                    boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                                }}
+                            />
+                            <Area 
+                                type="monotone" 
+                                dataKey="revenue" 
+                                stroke="#22c55e" 
+                                fill="#22c55e" 
+                                fillOpacity={0.2}
+                            />
+                        </AreaChart>
+                    </ResponsiveContainer>
+                </div>
+            )}
 
             {/* Métricas y controles - Filtros + métricas */}
             <div style={{ marginTop: '32px' }}>

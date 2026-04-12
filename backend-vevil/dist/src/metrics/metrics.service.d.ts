@@ -48,6 +48,10 @@ export declare class MetricsService {
         from?: string;
         to?: string;
     }): Promise<DashboardMetrics>;
+    getDailyRevenue(days?: number): Promise<{
+        date: string;
+        revenue: number;
+    }[]>;
     private getTotalRevenue;
     private getRevenueSince;
     private getRevenueBetween;

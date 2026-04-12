@@ -98,6 +98,25 @@ let MetricsService = class MetricsService {
         }
         return result;
     }
+    async getDailyRevenue(days = 30) {
+        const since = new Date();
+        since.setDate(since.getDate() - days);
+        since.setHours(0, 0, 0, 0);
+        const to = new Date();
+        to.setHours(23, 59, 59, 999);
+        const rows = await this.invoiceRepo
+            .createQueryBuilder('invoice')
+            .select("TO_CHAR(invoice.date, 'YYYY-MM-DD')", 'date')
+            .addSelect('COALESCE(SUM(invoice.total), 0)', 'revenue')
+            .where('invoice.date >= :since AND invoice.date <= :to', { since, to })
+            .groupBy("TO_CHAR(invoice.date, 'YYYY-MM-DD')")
+            .orderBy('date', 'ASC')
+            .getRawMany();
+        return rows.map(r => ({
+            date: r.date,
+            revenue: parseFloat(r.revenue || '0'),
+        }));
+    }
     async getTotalRevenue() {
         const result = await this.invoiceRepo
             .createQueryBuilder('invoice')

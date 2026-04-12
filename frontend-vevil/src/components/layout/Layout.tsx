@@ -112,7 +112,11 @@ const Layout: React.FC = () => {
         ...baseMenuItems,
         { label: 'Usuarios', icon: '👥', path: '/admin/users', description: 'Gestión de usuarios' },
         { label: 'Auditoría', icon: '📋', path: '/audit' },
-    ] : baseMenuItems;
+        { label: 'Configuración', icon: '⚙️', path: '/settings' },
+    ] : [
+        ...menuItems,
+        { label: 'Configuración', icon: '⚙️', path: '/settings' },
+    ];
 
     // Detectar cambio de tamaño de pantalla
     useEffect(() => {

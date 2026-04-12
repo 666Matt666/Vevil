@@ -106,6 +106,13 @@ const InvoiceList: React.FC = () => {
         items?: string;
     }>({});
 
+    // Plantillas de facturas
+    const [invoiceTemplates, setInvoiceTemplates] = useState<{name: string; items: {productId: number; quantity: number}[]; paymentMethod: string; currency: string}[]>(() => {
+        const saved = localStorage.getItem('invoice_templates');
+        return saved ? JSON.parse(saved) : [];
+    });
+    const [showTemplateDropdown, setShowTemplateDropdown] = useState(false);
+
     // Filtros
     const [searchText, setSearchText] = useState('');
     const [filterCustomerId, setFilterCustomerId] = useState('all');
@@ -294,6 +301,39 @@ const InvoiceList: React.FC = () => {
 
     const addItem = () => {
         setItems([...items, { productId: 0, quantity: 1 }]);
+    };
+
+    const saveAsTemplate = () => {
+        const templateName = prompt('Nombre de la plantilla:');
+        if (!templateName) return;
+        const validItems = items.filter(i => i.productId > 0);
+        if (validItems.length === 0) {
+            alert('Agregá al menos un producto antes de guardar la plantilla');
+            return;
+        }
+        const newTemplates = [...invoiceTemplates, {
+            name: templateName,
+            items: validItems,
+            paymentMethod: selectedPaymentMethod,
+            currency: selectedCurrency
+        }];
+        setInvoiceTemplates(newTemplates);
+        localStorage.setItem('invoice_templates', JSON.stringify(newTemplates));
+        alert('Plantilla guardada');
+    };
+
+    const loadTemplate = (template: typeof invoiceTemplates[0]) => {
+        setItems(template.items.map(i => ({ productId: i.productId, quantity: i.quantity })));
+        setSelectedPaymentMethod(template.paymentMethod);
+        setSelectedCurrency(template.currency);
+        setShowTemplateDropdown(false);
+    };
+
+    const deleteTemplate = (index: number) => {
+        if (!confirm('¿Eliminar esta plantilla?')) return;
+        const newTemplates = invoiceTemplates.filter((_, i) => i !== index);
+        setInvoiceTemplates(newTemplates);
+        localStorage.setItem('invoice_templates', JSON.stringify(newTemplates));
     };
 
     const removeItem = (index: number) => {
@@ -1000,6 +1040,87 @@ const InvoiceList: React.FC = () => {
                                         }}
                                     >
                                         + Agregar producto
+                                    </button>
+                                    {invoiceTemplates.length > 0 && (
+                                        <div style={{ position: 'relative', display: 'inline-block' }}>
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowTemplateDropdown(!showTemplateDropdown)}
+                                                style={{
+                                                    ...buttonStyle,
+                                                    backgroundColor: '#dbeafe',
+                                                    color: '#1e40af',
+                                                    marginLeft: '8px',
+                                                    fontSize: '12px'
+                                                }}
+                                            >
+                                                📋 Plantillas ({invoiceTemplates.length})
+                                            </button>
+                                            {showTemplateDropdown && (
+                                                <div style={{
+                                                    position: 'absolute',
+                                                    top: '100%',
+                                                    left: 0,
+                                                    backgroundColor: 'white',
+                                                    border: '1px solid #e2e8f0',
+                                                    borderRadius: '8px',
+                                                    minWidth: '200px',
+                                                    maxHeight: '200px',
+                                                    overflow: 'auto',
+                                                    zIndex: 100,
+                                                    boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+                                                }}>
+                                                    {invoiceTemplates.map((t, i) => (
+                                                        <div key={i} style={{
+                                                            display: 'flex',
+                                                            justifyContent: 'space-between',
+                                                            alignItems: 'center',
+                                                            padding: '8px 12px',
+                                                            borderBottom: '1px solid #f1f5f9'
+                                                        }}>
+                                                            <button
+                                                                onClick={() => loadTemplate(t)}
+                                                                style={{
+                                                                    background: 'none',
+                                                                    border: 'none',
+                                                                    textAlign: 'left',
+                                                                    cursor: 'pointer',
+                                                                    color: '#1e293b',
+                                                                    flex: 1
+                                                                }}
+                                                            >
+                                                                {t.name}
+                                                            </button>
+                                                            <button
+                                                                onClick={() => deleteTemplate(i)}
+                                                                style={{
+                                                                    background: 'none',
+                                                                    border: 'none',
+                                                                    color: '#ef4444',
+                                                                    cursor: 'pointer',
+                                                                    fontSize: '12px'
+                                                                }}
+                                                            >
+                                                                🗑️
+                                                            </button>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+                                    <button
+                                        type="button"
+                                        onClick={saveAsTemplate}
+                                        style={{
+                                            ...buttonStyle,
+                                            backgroundColor: '#dcfce7',
+                                            color: '#166534',
+                                            marginLeft: '8px',
+                                            fontSize: '12px'
+                                        }}
+                                    >
+                                        💾 Guardar Plantilla
                                     </button>
                                 </div>
                                 {formErrors.items && (

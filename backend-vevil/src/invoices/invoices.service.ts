@@ -211,20 +211,30 @@ export class InvoicesService {
      * Retorna { sent: true } si se envió, { sent: false, reason } si no (sin email, no configurado, o no pendiente).
      */
     async sendReminder(invoiceId: number): Promise<{ sent: boolean; reason?: string }> {
-        const invoice = await this.findOne(invoiceId);
-        if (invoice.status !== 'pending') {
-            return { sent: false, reason: 'Solo se pueden enviar recordatorios de facturas pendientes.' };
+        try {
+            const invoice = await this.findOne(invoiceId);
+            if (invoice.status !== 'pending') {
+                return { sent: false, reason: 'Solo se pueden enviar recordatorios de facturas pendientes.' };
+            }
+            const email = invoice.customer?.email?.trim();
+            if (!email) {
+                return { sent: false, reason: 'El cliente no tiene email registrado.' };
+            }
+            const invoiceNumber = String(invoice.id).padStart(7, '0');
+            const total = Number(invoice.total);
+            const currency = invoice.currency || 'PYG';
+            const customerName = invoice.customer?.name || 'Cliente';
+            
+            if (!this.mailService.isConfigured()) {
+                return { sent: false, reason: 'Email no configurado en el servidor.' };
+            }
+            
+            await this.mailService.sendPaymentReminderEmail(email, customerName, invoiceNumber, total, currency);
+            return { sent: true };
+        } catch (error) {
+            console.error('[sendReminder] Error:', error.message);
+            return { sent: false, reason: `Error al enviar: ${error.message}` };
         }
-        const email = invoice.customer?.email?.trim();
-        if (!email) {
-            return { sent: false, reason: 'El cliente no tiene email registrado.' };
-        }
-        const invoiceNumber = String(invoice.id).padStart(7, '0');
-        const total = Number(invoice.total);
-        const currency = invoice.currency || 'PYG';
-        const customerName = invoice.customer?.name || 'Cliente';
-        await this.mailService.sendPaymentReminderEmail(email, customerName, invoiceNumber, total, currency);
-        return { sent: true };
     }
 
     async update(id: number, updateInvoiceDto: UpdateInvoiceDto): Promise<Invoice> {

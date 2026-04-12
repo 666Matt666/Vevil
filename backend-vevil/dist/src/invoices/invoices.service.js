@@ -43,8 +43,11 @@ let InvoicesService = class InvoicesService {
             invoice.customer = customer;
             invoice.currency = createInvoiceDto.currency || 'PYG';
             invoice.status = createInvoiceDto.status || 'pending';
+            invoice.notes = createInvoiceDto.notes || null;
+            invoice.discountPercent = createInvoiceDto.discountPercent || 0;
+            invoice.dueDate = createInvoiceDto.dueDate ? new Date(createInvoiceDto.dueDate) : null;
             invoice.items = [];
-            let total = 0;
+            let subtotal = 0;
             for (const itemDto of createInvoiceDto.items) {
                 const databaseType = queryRunner.connection.options.type;
                 let productResult;
@@ -73,14 +76,19 @@ let InvoicesService = class InvoicesService {
                     throw new common_1.BadRequestException(`Insufficient stock for product ${product.name}. Available: ${product.stock}, Requested: ${itemDto.quantity}`);
                 }
                 await queryRunner.query('UPDATE product SET stock = stock - $1 WHERE id = $2', [itemDto.quantity, itemDto.productId]);
+                const itemTotal = parseFloat(product.price) * itemDto.quantity;
+                const itemDiscount = itemTotal * ((itemDto.discountPercent || 0) / 100);
+                const itemFinalTotal = itemTotal - itemDiscount;
                 const invoiceItem = new invoice_item_entity_1.InvoiceItem();
                 invoiceItem.product = product;
                 invoiceItem.quantity = itemDto.quantity;
                 invoiceItem.priceAtSale = product.price;
+                invoiceItem.discountPercent = itemDto.discountPercent || 0;
                 invoice.items.push(invoiceItem);
-                total += parseFloat(product.price) * itemDto.quantity;
+                subtotal += itemFinalTotal;
             }
-            invoice.total = total;
+            const invoiceDiscount = subtotal * (invoice.discountPercent / 100);
+            invoice.total = subtotal - invoiceDiscount;
             const savedInvoice = await queryRunner.manager.save(invoice_entity_1.Invoice, invoice);
             await queryRunner.commitTransaction();
             for (const itemDto of createInvoiceDto.items) {

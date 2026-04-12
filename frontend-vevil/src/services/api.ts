@@ -742,6 +742,7 @@ export interface InvoiceItem {
     product?: Product;
     quantity: number;
     priceAtSale: number;
+    discountPercent?: number;
 }
 
 export interface Payment {
@@ -760,6 +761,9 @@ export interface Invoice {
     total: number;
     currency?: string;
     status?: string;
+    notes?: string;
+    discountPercent?: number;
+    dueDate?: string;
     items: InvoiceItem[];
     payments?: Payment[];
 }
@@ -791,7 +795,15 @@ export const invoicesApi = {
         return response.json();
     },
 
-    create: async (invoice: { customerId: number; currency?: string; status?: string; items: { productId: number; quantity: number }[] }): Promise<Invoice> => {
+    create: async (invoice: { 
+        customerId: number; 
+        currency?: string; 
+        status?: string; 
+        items: { productId: number; quantity: number; discountPercent?: number }[];
+        notes?: string;
+        discountPercent?: number;
+        dueDate?: string;
+    }): Promise<Invoice> => {
         const response = await fetchWithAuth('/invoices', {
             method: 'POST',
             body: JSON.stringify(invoice),

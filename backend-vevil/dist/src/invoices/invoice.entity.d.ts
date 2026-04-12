@@ -11,4 +11,7 @@ export declare class Invoice {
     status: string;
     items: InvoiceItem[];
     payments: Payment[];
+    notes: string | null;
+    discountPercent: number;
+    dueDate: Date | null;
 }

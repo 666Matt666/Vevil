@@ -8,5 +8,6 @@ export declare class InvoiceItem {
     productId: number;
     invoice: Invoice;
     invoiceId: number;
+    discountPercent: number;
     getTotal(): number;
 }

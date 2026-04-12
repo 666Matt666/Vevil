@@ -30,6 +30,11 @@ __decorate([
     (0, class_validator_1.IsNumber)(),
     __metadata("design:type", Number)
 ], UpdateInvoiceItemDto.prototype, "priceAtSale", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsNumber)(),
+    __metadata("design:type", Number)
+], UpdateInvoiceItemDto.prototype, "discountPercent", void 0);
 class UpdateInvoiceDto {
 }
 exports.UpdateInvoiceDto = UpdateInvoiceDto;
@@ -55,4 +60,19 @@ __decorate([
     (0, class_transformer_1.Type)(() => UpdateInvoiceItemDto),
     __metadata("design:type", Array)
 ], UpdateInvoiceDto.prototype, "items", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], UpdateInvoiceDto.prototype, "notes", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsNumber)(),
+    __metadata("design:type", Number)
+], UpdateInvoiceDto.prototype, "discountPercent", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsDateString)(),
+    __metadata("design:type", String)
+], UpdateInvoiceDto.prototype, "dueDate", void 0);
 //# sourceMappingURL=update-invoice.dto.js.map

@@ -15,7 +15,9 @@ const product_entity_1 = require("../products/product.entity");
 const invoice_entity_1 = require("./invoice.entity");
 let InvoiceItem = class InvoiceItem {
     getTotal() {
-        return this.quantity * this.priceAtSale;
+        const subtotal = this.quantity * this.priceAtSale;
+        const discount = subtotal * (this.discountPercent / 100);
+        return subtotal - discount;
     }
 };
 exports.InvoiceItem = InvoiceItem;
@@ -47,6 +49,10 @@ __decorate([
     (0, typeorm_1.Column)(),
     __metadata("design:type", Number)
 ], InvoiceItem.prototype, "invoiceId", void 0);
+__decorate([
+    (0, typeorm_1.Column)('decimal', { precision: 5, scale: 2, default: 0 }),
+    __metadata("design:type", Number)
+], InvoiceItem.prototype, "discountPercent", void 0);
 exports.InvoiceItem = InvoiceItem = __decorate([
     (0, typeorm_1.Entity)()
 ], InvoiceItem);

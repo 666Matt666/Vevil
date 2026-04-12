@@ -1,4 +1,4 @@
-import { IsNumber, IsArray, ValidateNested, IsOptional, IsString, IsIn, ArrayMinSize, Min } from 'class-validator';
+import { IsNumber, IsArray, ValidateNested, IsOptional, IsString, IsIn, ArrayMinSize, Min, IsDateString } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class CreateInvoiceItemDto {
@@ -8,6 +8,10 @@ export class CreateInvoiceItemDto {
     @IsNumber()
     @Min(1, { message: 'La cantidad debe ser al menos 1' })
     quantity: number;
+
+    @IsOptional()
+    @IsNumber()
+    discountPercent?: number;
 }
 
 export class CreateInvoiceDto {
@@ -28,4 +32,16 @@ export class CreateInvoiceDto {
     @ValidateNested({ each: true })
     @Type(() => CreateInvoiceItemDto)
     items: CreateInvoiceItemDto[];
+
+    @IsOptional()
+    @IsString()
+    notes?: string;
+
+    @IsOptional()
+    @IsNumber()
+    discountPercent?: number;
+
+    @IsOptional()
+    @IsDateString()
+    dueDate?: string;
 }

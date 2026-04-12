@@ -99,6 +99,9 @@ const InvoiceList: React.FC = () => {
     const [selectedCurrency, setSelectedCurrency] = useState<string>('PYG');
     const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>('cash');
     const [items, setItems] = useState<InvoiceItem[]>([{ productId: 0, quantity: 1 }]);
+    const [invoiceNotes, setInvoiceNotes] = useState<string>('');
+    const [invoiceDiscount, setInvoiceDiscount] = useState<number>(0);
+    const [invoiceDueDate, setInvoiceDueDate] = useState<string>('');
     
     // Validation errors state
     const [formErrors, setFormErrors] = useState<{
@@ -297,6 +300,9 @@ const InvoiceList: React.FC = () => {
         setSelectedCustomerId('');
         setSelectedCurrency('PYG');
         setItems([{ productId: 0, quantity: 1 }]);
+        setInvoiceNotes('');
+        setInvoiceDiscount(0);
+        setInvoiceDueDate('');
     };
 
     const addItem = () => {
@@ -342,9 +348,9 @@ const InvoiceList: React.FC = () => {
         }
     };
 
-    const updateItem = (index: number, field: 'productId' | 'quantity', value: number) => {
+    const updateItem = (index: number, field: 'productId' | 'quantity' | 'discountPercent', value: number) => {
         const newItems = [...items];
-        newItems[index][field] = value;
+        newItems[index] = { ...newItems[index], [field]: value };
         setItems(newItems);
     };
 
@@ -352,10 +358,18 @@ const InvoiceList: React.FC = () => {
         return items.reduce((sum, item) => {
             const product = products.find(p => p.id === item.productId);
             if (product) {
-                return sum + (Number(product.price) * item.quantity);
+                const itemTotal = Number(product.price) * item.quantity;
+                const discount = itemTotal * ((item.discountPercent || 0) / 100);
+                return sum + (itemTotal - discount);
             }
             return sum;
         }, 0);
+    };
+
+    const calculateFinalTotal = () => {
+        const subtotal = calculateTotal();
+        const discount = subtotal * (invoiceDiscount / 100);
+        return subtotal - discount;
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -392,7 +406,10 @@ const InvoiceList: React.FC = () => {
                 customerId: parseInt(selectedCustomerId),
                 currency: selectedCurrency,
                 status,
-                items: validItems
+                items: validItems,
+                notes: invoiceNotes || undefined,
+                discountPercent: invoiceDiscount || undefined,
+                dueDate: invoiceDueDate || undefined
             });
             closeModal();
             showToast('Factura creada exitosamente', 'success');
@@ -1025,6 +1042,39 @@ const InvoiceList: React.FC = () => {
                                 </div>
                             </div>
 
+                            {/* Notes, discount, due date */}
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px', marginBottom: '24px' }}>
+                                <div>
+                                    <label style={labelStyle}>Notas</label>
+                                    <textarea
+                                        value={invoiceNotes}
+                                        onChange={(e) => setInvoiceNotes(e.target.value)}
+                                        placeholder="Observaciones..."
+                                        style={{ ...inputStyle, minHeight: '60px', resize: 'vertical' }}
+                                    />
+                                </div>
+                                <div>
+                                    <label style={labelStyle}>Descuento (%)</label>
+                                    <input
+                                        type="number"
+                                        min="0"
+                                        max="100"
+                                        value={invoiceDiscount}
+                                        onChange={(e) => setInvoiceDiscount(Math.max(0, Math.min(100, parseFloat(e.target.value) || 0)))}
+                                        style={inputStyle}
+                                    />
+                                </div>
+                                <div>
+                                    <label style={labelStyle}>Fecha Vencimiento</label>
+                                    <input
+                                        type="date"
+                                        value={invoiceDueDate}
+                                        onChange={(e) => setInvoiceDueDate(e.target.value)}
+                                        style={inputStyle}
+                                    />
+                                </div>
+                            </div>
+
                             {/* Items */}
                             <div style={{ marginBottom: '24px' }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: formErrors.items ? '4px' : '12px' }}>
@@ -1132,7 +1182,7 @@ const InvoiceList: React.FC = () => {
                                 {items.map((item, index) => (
                                     <div key={index} style={{ 
                                         display: 'grid', 
-                                        gridTemplateColumns: '2fr 1fr auto', 
+                                        gridTemplateColumns: '2fr 1fr 1fr auto', 
                                         gap: '12px', 
                                         marginBottom: '12px',
                                         padding: '12px',
@@ -1158,6 +1208,15 @@ const InvoiceList: React.FC = () => {
                                             onChange={(e) => updateItem(index, 'quantity', parseInt(e.target.value) || 1)}
                                             style={inputStyle}
                                             placeholder="Cantidad"
+                                        />
+                                        <input
+                                            type="number"
+                                            min="0"
+                                            max="100"
+                                            value={item.discountPercent || 0}
+                                            onChange={(e) => updateItem(index, 'discountPercent', parseFloat(e.target.value) || 0)}
+                                            style={inputStyle}
+                                            placeholder="Desc %"
                                         />
                                         <button
                                             type="button"
@@ -1189,16 +1248,24 @@ const InvoiceList: React.FC = () => {
                                         {formatMoney(calculateTotal(), selectedCurrency)}
                                     </span>
                                 </div>
+                                {invoiceDiscount > 0 && (
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                                        <span style={{ fontSize: '14px', color: '#16a34a' }}>Descuento ({invoiceDiscount}%):</span>
+                                        <span style={{ fontSize: '16px', color: '#16a34a' }}>
+                                            -{formatMoney(calculateTotal() * (invoiceDiscount / 100), selectedCurrency)}
+                                        </span>
+                                    </div>
+                                )}
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                                     <span style={{ fontSize: '14px', color: '#64748b' }}>IVA (10%):</span>
                                     <span style={{ fontSize: '16px', color: '#1e293b' }}>
-                                        {formatMoney(calculateTotal() * 0.10, selectedCurrency)}
+                                        {formatMoney(calculateFinalTotal() * 0.10, selectedCurrency)}
                                     </span>
                                 </div>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '8px', borderTop: '1px solid #e2e8f0' }}>
                                     <span style={{ fontSize: '16px', fontWeight: 600, color: '#475569' }}>Total:</span>
                                     <span style={{ fontSize: '24px', fontWeight: 700, color: '#f97316' }}>
-                                        {formatMoney(calculateTotal() * 1.10, selectedCurrency)}
+                                        {formatMoney(calculateFinalTotal() * 1.10, selectedCurrency)}
                                     </span>
                                 </div>
                             </div>

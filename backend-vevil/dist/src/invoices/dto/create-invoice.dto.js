@@ -24,6 +24,11 @@ __decorate([
     (0, class_validator_1.Min)(1, { message: 'La cantidad debe ser al menos 1' }),
     __metadata("design:type", Number)
 ], CreateInvoiceItemDto.prototype, "quantity", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsNumber)(),
+    __metadata("design:type", Number)
+], CreateInvoiceItemDto.prototype, "discountPercent", void 0);
 class CreateInvoiceDto {
 }
 exports.CreateInvoiceDto = CreateInvoiceDto;
@@ -49,4 +54,19 @@ __decorate([
     (0, class_transformer_1.Type)(() => CreateInvoiceItemDto),
     __metadata("design:type", Array)
 ], CreateInvoiceDto.prototype, "items", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], CreateInvoiceDto.prototype, "notes", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsNumber)(),
+    __metadata("design:type", Number)
+], CreateInvoiceDto.prototype, "discountPercent", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsDateString)(),
+    __metadata("design:type", String)
+], CreateInvoiceDto.prototype, "dueDate", void 0);
 //# sourceMappingURL=create-invoice.dto.js.map

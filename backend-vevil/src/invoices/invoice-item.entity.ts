@@ -1,6 +1,6 @@
 import { Entity, PrimaryGeneratedColumn, Column, ManyToOne } from 'typeorm';
-import { Product } from '../products/product.entity'; // Asegúrate de que esta ruta sea correcta
-import { Invoice } from './invoice.entity'; // Asegúrate de que esta ruta sea correcta
+import { Product } from '../products/product.entity';
+import { Invoice } from './invoice.entity';
 
 @Entity()
 export class InvoiceItem {
@@ -11,22 +11,27 @@ export class InvoiceItem {
   quantity: number;
 
   @Column('decimal', { precision: 10, scale: 2, default: 0 })
-  priceAtSale: number; // Precio del producto en el momento de la venta
+  priceAtSale: number;
 
   @ManyToOne(() => Product, (product) => product.invoiceItems, { eager: true })
   product: Product;
 
   @Column()
-  productId: number; // Columna para la clave foránea de Product
+  productId: number;
 
   @ManyToOne(() => Invoice, (invoice) => invoice.items, { onDelete: 'CASCADE' })
   invoice: Invoice;
 
   @Column()
-  invoiceId: number; // Columna para la clave foránea de Invoice
+  invoiceId: number;
 
-  // Puedes añadir un método para calcular el total del item
+  /** Descuento por línea (porcentaje 0-100) */
+  @Column('decimal', { precision: 5, scale: 2, default: 0 })
+  discountPercent: number;
+
   getTotal(): number {
-    return this.quantity * this.priceAtSale;
+    const subtotal = this.quantity * this.priceAtSale;
+    const discount = subtotal * (this.discountPercent / 100);
+    return subtotal - discount;
   }
 }

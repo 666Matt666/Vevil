@@ -4,10 +4,10 @@ import { InvoiceItem } from './invoice-item.entity';
 import { Payment } from './payment.entity';
 
 @Entity()
-@Index(['customerId']) // Filtrado por cliente
-@Index(['date']) // Filtrado por fecha
-@Index(['status']) // Filtrado por estado
-@Index(['customerId', 'status']) // Consulta de facturas por cliente y estado
+@Index(['customerId'])
+@Index(['date'])
+@Index(['status'])
+@Index(['customerId', 'status'])
 export class Invoice {
     @PrimaryGeneratedColumn()
     id: number;
@@ -36,4 +36,16 @@ export class Invoice {
 
     @OneToMany(() => Payment, (p) => p.invoice)
     payments: Payment[];
+
+    /** Notas u observaciones de la factura */
+    @Column({ type: 'text', nullable: true })
+    notes: string | null;
+
+    /** Descuento global aplicado (porcentaje 0-100) */
+    @Column('decimal', { precision: 5, scale: 2, default: 0 })
+    discountPercent: number;
+
+    /** Fecha de vencimiento de la factura */
+    @Column({ type: 'date', nullable: true })
+    dueDate: Date | null;
 }

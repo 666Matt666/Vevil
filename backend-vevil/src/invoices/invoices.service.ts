@@ -37,17 +37,17 @@ export class InvoicesService {
             invoice.customer = customer;
             invoice.currency = createInvoiceDto.currency || 'PYG';
             invoice.status = createInvoiceDto.status || 'pending';
+            invoice.notes = createInvoiceDto.notes || null;
+            invoice.discountPercent = createInvoiceDto.discountPercent || 0;
+            invoice.dueDate = createInvoiceDto.dueDate ? new Date(createInvoiceDto.dueDate) : null;
             invoice.items = [];
-            let total = 0;
+            let subtotal = 0;
 
             for (const itemDto of createInvoiceDto.items) {
-                // Pessimistic locking: SELECT ... FOR UPDATE para evitar race conditions
-                // Solo funciona en PostgreSQL. Para SQLite usamos método alternativo.
                 const databaseType = queryRunner.connection.options.type;
                 let productResult;
                 
                 if (databaseType === 'postgres') {
-                    // PostgreSQL: usar FOR UPDATE para locking pesimista
                     const productQuery = `
                         SELECT id, name, price, stock, currency 
                         FROM product 
@@ -56,8 +56,6 @@ export class InvoicesService {
                     `;
                     productResult = await queryRunner.query(productQuery, [itemDto.productId]);
                 } else {
-                    // SQLite/otros: obtener producto directamente (sin locking)
-                    // El transaction isolation previene problemas en la mayoría de casos
                     const productQuery = `
                         SELECT id, name, price, stock, currency 
                         FROM product 
@@ -76,27 +74,31 @@ export class InvoicesService {
                     throw new BadRequestException(`Insufficient stock for product ${product.name}. Available: ${product.stock}, Requested: ${itemDto.quantity}`);
                 }
 
-                // Deduct stock (update with new value)
                 await queryRunner.query(
                     'UPDATE product SET stock = stock - $1 WHERE id = $2',
                     [itemDto.quantity, itemDto.productId]
                 );
 
+                const itemTotal = parseFloat(product.price) * itemDto.quantity;
+                const itemDiscount = itemTotal * ((itemDto.discountPercent || 0) / 100);
+                const itemFinalTotal = itemTotal - itemDiscount;
+
                 const invoiceItem = new InvoiceItem();
                 invoiceItem.product = product as any;
                 invoiceItem.quantity = itemDto.quantity;
-                invoiceItem.priceAtSale = product.price; // Snapshot price at time of invoice
+                invoiceItem.priceAtSale = product.price;
+                invoiceItem.discountPercent = itemDto.discountPercent || 0;
 
                 invoice.items.push(invoiceItem);
-                total += parseFloat(product.price) * itemDto.quantity;
+                subtotal += itemFinalTotal;
             }
 
-            invoice.total = total;
+            const invoiceDiscount = subtotal * (invoice.discountPercent / 100);
+            invoice.total = subtotal - invoiceDiscount;
 
             const savedInvoice = await queryRunner.manager.save(Invoice, invoice);
             await queryRunner.commitTransaction();
 
-            // Registrar movimientos de stock por venta (historial)
             for (const itemDto of createInvoiceDto.items) {
                 await this.stockMovementsService.recordSale(
                     itemDto.productId,

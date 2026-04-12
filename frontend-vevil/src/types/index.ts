@@ -134,6 +134,7 @@ export interface Invoice {
   total: number;
   status: 'pending' | 'paid' | 'overdue' | 'cancelled';
   notes?: string;
+  discountPercent?: number;
   items: InvoiceItem[];
   payments?: Payment[];
   createdAt?: string;
@@ -147,6 +148,7 @@ export interface InvoiceItem {
   description: string;
   quantity: number;
   unitPrice: number;
+  discountPercent?: number;
   total: number;
 }
 
@@ -168,8 +170,10 @@ export interface CreateInvoiceDto {
     productId: string;
     quantity: number;
     unitPrice: number;
+    discountPercent?: number;
   }[];
   notes?: string;
+  discountPercent?: number;
 }
 
 // ============================================

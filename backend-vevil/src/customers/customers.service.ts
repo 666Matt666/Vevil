@@ -16,6 +16,7 @@ export class CustomersService {
     ) { }
 
     create(createCustomerDto: CreateCustomerDto) {
+        console.log('[CustomersService] create called with:', JSON.stringify(createCustomerDto));
         const customer = this.customersRepository.create(createCustomerDto);
         return this.customersRepository.save(customer);
     }

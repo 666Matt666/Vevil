@@ -9,7 +9,6 @@ import { join } from 'path';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AppSeedService } from './app-seed.service';
-import { DatabaseMigrationService } from './database-migration.service';
 import { UsersModule } from './users/users.module';
 import { AuthModule } from './auth/auth.module';
 import { ProductsModule } from './products/products.module';
@@ -148,7 +147,6 @@ import { User } from './users/user.entity';
   providers: [
     AppService,
     AppSeedService,
-    DatabaseMigrationService,
     { provide: APP_GUARD, useClass: ThrottlerGuard },
   ],
 })

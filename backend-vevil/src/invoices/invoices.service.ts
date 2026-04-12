@@ -37,9 +37,6 @@ export class InvoicesService {
             invoice.customer = customer;
             invoice.currency = createInvoiceDto.currency || 'PYG';
             invoice.status = createInvoiceDto.status || 'pending';
-            invoice.notes = createInvoiceDto.notes || null;
-            invoice.discountPercent = createInvoiceDto.discountPercent || 0;
-            invoice.dueDate = createInvoiceDto.dueDate ? new Date(createInvoiceDto.dueDate) : null;
             invoice.items = [];
             let subtotal = 0;
 
@@ -80,21 +77,17 @@ export class InvoicesService {
                 );
 
                 const itemTotal = parseFloat(product.price) * itemDto.quantity;
-                const itemDiscount = itemTotal * ((itemDto.discountPercent || 0) / 100);
-                const itemFinalTotal = itemTotal - itemDiscount;
 
                 const invoiceItem = new InvoiceItem();
                 invoiceItem.product = product as any;
                 invoiceItem.quantity = itemDto.quantity;
                 invoiceItem.priceAtSale = product.price;
-                invoiceItem.discountPercent = itemDto.discountPercent || 0;
 
                 invoice.items.push(invoiceItem);
-                subtotal += itemFinalTotal;
+                subtotal += itemTotal;
             }
 
-            const invoiceDiscount = subtotal * (invoice.discountPercent / 100);
-            invoice.total = subtotal - invoiceDiscount;
+            invoice.total = subtotal;
 
             const savedInvoice = await queryRunner.manager.save(Invoice, invoice);
             await queryRunner.commitTransaction();

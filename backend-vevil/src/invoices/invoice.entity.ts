@@ -36,16 +36,4 @@ export class Invoice {
 
     @OneToMany(() => Payment, (p) => p.invoice)
     payments: Payment[];
-
-    /** Notas u observaciones de la factura */
-    @Column({ type: 'text', nullable: true, name: 'notes' })
-    notes: string | null;
-
-    /** Descuento global aplicado (porcentaje 0-100) */
-    @Column('decimal', { precision: 5, scale: 2, default: 0, name: 'discountPercent' })
-    discountPercent: number;
-
-    /** Fecha de vencimiento de la factura */
-    @Column({ type: 'date', nullable: true, name: 'dueDate' })
-    dueDate: Date | null;
 }

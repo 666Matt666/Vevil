@@ -53,18 +53,6 @@ __decorate([
     (0, typeorm_1.OneToMany)(() => payment_entity_1.Payment, (p) => p.invoice),
     __metadata("design:type", Array)
 ], Invoice.prototype, "payments", void 0);
-__decorate([
-    (0, typeorm_1.Column)({ type: 'text', nullable: true, name: 'notes' }),
-    __metadata("design:type", String)
-], Invoice.prototype, "notes", void 0);
-__decorate([
-    (0, typeorm_1.Column)('decimal', { precision: 5, scale: 2, default: 0, name: 'discountPercent' }),
-    __metadata("design:type", Number)
-], Invoice.prototype, "discountPercent", void 0);
-__decorate([
-    (0, typeorm_1.Column)({ type: 'date', nullable: true, name: 'dueDate' }),
-    __metadata("design:type", Date)
-], Invoice.prototype, "dueDate", void 0);
 exports.Invoice = Invoice = __decorate([
     (0, typeorm_1.Entity)(),
     (0, typeorm_1.Index)(['customerId']),

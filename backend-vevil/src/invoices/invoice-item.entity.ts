@@ -24,14 +24,4 @@ export class InvoiceItem {
 
   @Column()
   invoiceId: number;
-
-  /** Descuento por línea (porcentaje 0-100) */
-  @Column('decimal', { precision: 5, scale: 2, default: 0, name: 'discountPercent' })
-  discountPercent: number;
-
-  getTotal(): number {
-    const subtotal = this.quantity * this.priceAtSale;
-    const discount = subtotal * (this.discountPercent / 100);
-    return subtotal - discount;
-  }
 }

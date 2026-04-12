@@ -43,9 +43,6 @@ let InvoicesService = class InvoicesService {
             invoice.customer = customer;
             invoice.currency = createInvoiceDto.currency || 'PYG';
             invoice.status = createInvoiceDto.status || 'pending';
-            invoice.notes = createInvoiceDto.notes || null;
-            invoice.discountPercent = createInvoiceDto.discountPercent || 0;
-            invoice.dueDate = createInvoiceDto.dueDate ? new Date(createInvoiceDto.dueDate) : null;
             invoice.items = [];
             let subtotal = 0;
             for (const itemDto of createInvoiceDto.items) {
@@ -77,18 +74,14 @@ let InvoicesService = class InvoicesService {
                 }
                 await queryRunner.query('UPDATE product SET stock = stock - $1 WHERE id = $2', [itemDto.quantity, itemDto.productId]);
                 const itemTotal = parseFloat(product.price) * itemDto.quantity;
-                const itemDiscount = itemTotal * ((itemDto.discountPercent || 0) / 100);
-                const itemFinalTotal = itemTotal - itemDiscount;
                 const invoiceItem = new invoice_item_entity_1.InvoiceItem();
                 invoiceItem.product = product;
                 invoiceItem.quantity = itemDto.quantity;
                 invoiceItem.priceAtSale = product.price;
-                invoiceItem.discountPercent = itemDto.discountPercent || 0;
                 invoice.items.push(invoiceItem);
-                subtotal += itemFinalTotal;
+                subtotal += itemTotal;
             }
-            const invoiceDiscount = subtotal * (invoice.discountPercent / 100);
-            invoice.total = subtotal - invoiceDiscount;
+            invoice.total = subtotal;
             const savedInvoice = await queryRunner.manager.save(invoice_entity_1.Invoice, invoice);
             await queryRunner.commitTransaction();
             for (const itemDto of createInvoiceDto.items) {

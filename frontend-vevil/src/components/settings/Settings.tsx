@@ -288,7 +288,7 @@ const cardStyle: React.CSSProperties = {
 
 type Section = 'profile' | 'company' | 'invoice' | 'currencies' | 'tax' | 'productTypes' | 'units' | 'payments' | 'alerts' | 'appearance' | 'backup';
 
-const sections: { id: Section; label: string; icon: string }[] = [
+const menuSections: { id: Section; label: string; icon: string }[] = [
     { id: 'company' as Section, label: 'Datos de Empresa', icon: '🏢' },
     { id: 'invoice' as Section, label: 'Facturación', icon: '🧾' },
     { id: 'currencies' as Section, label: 'Monedas', icon: '💰' },

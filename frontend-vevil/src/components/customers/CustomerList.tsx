@@ -161,6 +161,7 @@ const CustomerList: React.FC = () => {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setSaving(true);
+        setError(null);
 
         try {
             const customerData: any = {
@@ -168,9 +169,9 @@ const CustomerList: React.FC = () => {
                 email: formData.email,
                 address_street: formData.address_street || undefined,
                 address_city: formData.address_city || undefined,
-                address_province: formData.address_department || undefined,  // Departamento
-                address_zip: formData.ci || undefined,  // CI (usamos este campo)
-                tax_id: formData.ruc || undefined  // RUC
+                address_province: formData.address_department || undefined,
+                address_zip: formData.ci || undefined,
+                tax_id: formData.ruc || undefined
             };
 
             if (formData.phone) {
@@ -180,13 +181,35 @@ const CustomerList: React.FC = () => {
             if (editingCustomer) {
                 await customersApi.update(editingCustomer.id, customerData);
                 setSuccessMessage('Cliente actualizado');
+                closeModal();
+                loadCustomers();
             } else {
+                // Check if customer with this email already exists
+                const { data: existingCustomers } = await customersApi.getPage(1, 1, { search: formData.email });
+                const existingCustomer = existingCustomers.find((c: Customer) => c.email.toLowerCase() === formData.email.toLowerCase());
+                
+                if (existingCustomer) {
+                    // Ask if user wants to edit the existing customer
+                    setError('Ya existe un cliente con este email. ¿Desea modificarlo?');
+                    setEditingCustomer(existingCustomer);
+                    setFormData({
+                        name: existingCustomer.name || '',
+                        email: existingCustomer.email || '',
+                        phone: existingCustomer.phones?.[0]?.number || '',
+                        ci: existingCustomer.address_zip || '',
+                        address_street: existingCustomer.address_street || '',
+                        address_city: existingCustomer.address_city || '',
+                        address_department: existingCustomer.address_province || '',
+                        ruc: existingCustomer.tax_id || ''
+                    });
+                    return;
+                }
+
                 await customersApi.create(customerData);
                 setSuccessMessage('Cliente creado');
+                closeModal();
+                loadCustomers();
             }
-
-            closeModal();
-            loadCustomers();
         } catch (err) {
             setError(getErrorMessage(err, 'Error al guardar'));
         } finally {

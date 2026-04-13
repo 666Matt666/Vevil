@@ -33,16 +33,22 @@ const BackupList: React.FC = () => {
     const [previewLoading, setPreviewLoading] = useState(false);
     const [currentDate, setCurrentDate] = useState(new Date());
 
-    const getBackupSchedule = (date: Date): { time: string; frequency: string } => {
+    const getBackupSchedule = (date: Date): { time: string; frequency: string } | null => {
         const day = date.getDay();
         const dayOfMonth = date.getDate();
         
+        // No hay backups los domingos (día 0)
+        if (day === 0) return null;
+        
+        // Mensual: 1° del mes (solo si no es domingo)
         if (dayOfMonth === 1) {
             return { time: '02:00', frequency: 'mensual' };
         }
+        // Semanal: Sábados (día 6)
         if (day === 6) {
             return { time: '02:00', frequency: 'semanal' };
         }
+        // Diario: Lunes a Sábado (días 1-6), excepto el 1° del mes
         return { time: '02:00', frequency: 'diario' };
     };
 
@@ -132,6 +138,9 @@ const BackupList: React.FC = () => {
             if (!isCurrentMonth) return;
             
             const schedule = getBackupSchedule(date);
+            // No hay backup programado los domingos
+            if (!schedule) return;
+            
             const dateStr = date.toISOString().split('T')[0];
             
             const backupForDate = backups.find(b => {

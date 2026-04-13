@@ -3,7 +3,7 @@ import { AuthGuard } from '@nestjs/passport';
 import { SuppliersService } from './suppliers.service';
 import { Supplier } from './supplier.entity';
 
-@Controller('api/suppliers')
+@Controller('suppliers')
 @UseGuards(AuthGuard('jwt'))
 export class SuppliersController {
     constructor(private readonly suppliersService: SuppliersService) {}

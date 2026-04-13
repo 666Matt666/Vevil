@@ -308,8 +308,8 @@ const BackupList: React.FC = () => {
                             cursor: 'pointer',
                         }}
                     >
-                        <option value="local">💾 Servidor local</option>
-                        <option value="github">🐙 GitHub</option>
+                        <option value="local">💾 Render Disk</option>
+                        <option value="github">🐙 GitHub (vevil-backups)</option>
                     </select>
                     <button
                         onClick={triggerBackup}

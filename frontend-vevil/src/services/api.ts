@@ -597,17 +597,17 @@ export interface Supplier {
 
 export const suppliersApi = {
     getAll: async (): Promise<Supplier[]> => {
-        const response = await fetchWithAuth('/api/suppliers');
+        const response = await fetchWithAuth('/suppliers');
         if (!response.ok) throw new Error('Error al obtener proveedores');
         return response.json();
     },
     getById: async (id: number): Promise<Supplier> => {
-        const response = await fetchWithAuth(`/api/suppliers/${id}`);
+        const response = await fetchWithAuth(`/suppliers/${id}`);
         if (!response.ok) throw new Error('Error al obtener proveedor');
         return response.json();
     },
     create: async (supplier: Omit<Supplier, 'id' | 'created_at' | 'updated_at'>): Promise<Supplier> => {
-        const response = await fetchWithAuth('/api/suppliers', {
+        const response = await fetchWithAuth('/suppliers', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(supplier),
@@ -619,7 +619,7 @@ export const suppliersApi = {
         return response.json();
     },
     update: async (id: number, supplier: Partial<Supplier>): Promise<Supplier> => {
-        const response = await fetchWithAuth(`/api/suppliers/${id}`, {
+        const response = await fetchWithAuth(`/suppliers/${id}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(supplier),
@@ -631,7 +631,7 @@ export const suppliersApi = {
         return response.json();
     },
     delete: async (id: number): Promise<void> => {
-        const response = await fetchWithAuth(`/api/suppliers/${id}`, {
+        const response = await fetchWithAuth(`/suppliers/${id}`, {
             method: 'DELETE',
         });
         if (!response.ok) throw new Error('Error al eliminar proveedor');

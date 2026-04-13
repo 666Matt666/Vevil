@@ -33,6 +33,32 @@ const BackupList: React.FC = () => {
     const [previewLoading, setPreviewLoading] = useState(false);
     const [currentDate, setCurrentDate] = useState(new Date());
 
+    const getBackupSchedule = (date: Date): { time: string; frequency: string } => {
+        const day = date.getDay();
+        const dayOfMonth = date.getDate();
+        
+        if (dayOfMonth === 1) {
+            return { time: '02:00', frequency: 'mensual' };
+        }
+        if (day === 6) {
+            return { time: '02:00', frequency: 'semanal' };
+        }
+        return { time: '02:00', frequency: 'diario' };
+    };
+
+    const getSlotForDate = (date: Date, frequency: string): string => {
+        if (frequency === 'diario') {
+            const day = date.getDate();
+            return `diario_${((day - 1) % 3) + 1}`;
+        }
+        if (frequency === 'semanal') {
+            const week = Math.ceil(date.getDate() / 7);
+            return `semanal_${week}`;
+        }
+        const month = date.getMonth();
+        return `mensual_${(month % 3) + 1}`;
+    };
+
     const loadBackups = async () => {
         try {
             const res = await fetch('/api/backups');
@@ -48,19 +74,6 @@ const BackupList: React.FC = () => {
     useEffect(() => {
         loadBackups();
     }, []);
-
-    const getBackupSchedule = (date: Date): { time: string; frequency: string } => {
-        const day = date.getDay();
-        const dayOfMonth = date.getDate();
-        
-        if (dayOfMonth === 1) {
-            return { time: '02:00', frequency: 'mensual' };
-        }
-        if (day === 6) {
-            return { time: '02:00', frequency: 'semanal' };
-        }
-        return { time: '02:00', frequency: 'diario' };
-    };
 
     const calendarDays = useMemo(() => {
         const year = currentDate.getFullYear();
@@ -120,19 +133,6 @@ const BackupList: React.FC = () => {
         
         return scheduled;
     }, [calendarDays, backups]);
-
-    const getSlotForDate = (date: Date, frequency: string): string => {
-        if (frequency === 'diario') {
-            const day = date.getDate();
-            return `diario_${((day - 1) % 3) + 1}`;
-        }
-        if (frequency === 'semanal') {
-            const week = Math.ceil(date.getDate() / 7);
-            return `semanal_${week}`;
-        }
-        const month = date.getMonth();
-        return `mensual_${(month % 3) + 1}`;
-    };
 
     const getStatusColor = (status: string, isPast: boolean) => {
         if (status === 'completed') return '#22c55e';

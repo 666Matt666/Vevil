@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { LoadingSpinner } from '../ui/LoadingSpinner';
 
 interface Backup {
@@ -15,6 +15,15 @@ interface Backup {
     completedAt?: string;
 }
 
+interface ScheduledBackup {
+    date: Date;
+    frequency: 'diario' | 'semanal' | 'mensual';
+    slot: string;
+    status: 'completed' | 'scheduled' | 'failed';
+    backup?: Backup;
+    time: string;
+}
+
 const BackupList: React.FC = () => {
     const [backups, setBackups] = useState<Backup[]>([]);
     const [loading, setLoading] = useState(true);
@@ -22,7 +31,7 @@ const BackupList: React.FC = () => {
     const [selectedBackup, setSelectedBackup] = useState<Backup | null>(null);
     const [preview, setPreview] = useState<string>('');
     const [previewLoading, setPreviewLoading] = useState(false);
-    const [filter, setFilter] = useState<string>('all');
+    const [currentDate, setCurrentDate] = useState(new Date());
 
     const loadBackups = async () => {
         try {
@@ -39,6 +48,112 @@ const BackupList: React.FC = () => {
     useEffect(() => {
         loadBackups();
     }, []);
+
+    const getBackupSchedule = (date: Date): { time: string; frequency: string } => {
+        const day = date.getDay();
+        const dayOfMonth = date.getDate();
+        
+        if (dayOfMonth === 1) {
+            return { time: '02:00', frequency: 'mensual' };
+        }
+        if (day === 6) {
+            return { time: '02:00', frequency: 'semanal' };
+        }
+        return { time: '02:00', frequency: 'diario' };
+    };
+
+    const calendarDays = useMemo(() => {
+        const year = currentDate.getFullYear();
+        const month = currentDate.getMonth();
+        const firstDay = new Date(year, month, 1);
+        const lastDay = new Date(year, month + 1, 0);
+        const daysInMonth = lastDay.getDate();
+        const startDayOfWeek = firstDay.getDay();
+        
+        const days: { date: Date; isCurrentMonth: boolean }[] = [];
+        
+        const prevMonthDays = startDayOfWeek;
+        for (let i = prevMonthDays - 1; i >= 0; i--) {
+            const d = new Date(year, month, -i);
+            days.push({ date: d, isCurrentMonth: false });
+        }
+        
+        for (let i = 1; i <= daysInMonth; i++) {
+            days.push({ date: new Date(year, month, i), isCurrentMonth: true });
+        }
+        
+        const remaining = 42 - days.length;
+        for (let i = 1; i <= remaining; i++) {
+            days.push({ date: new Date(year, month + 1, i), isCurrentMonth: false });
+        }
+        
+        return days;
+    }, [currentDate]);
+
+    const scheduledBackups = useMemo(() => {
+        const scheduled: ScheduledBackup[] = [];
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        
+        calendarDays.forEach(({ date, isCurrentMonth }) => {
+            if (!isCurrentMonth) return;
+            
+            const schedule = getBackupSchedule(date);
+            const dateStr = date.toISOString().split('T')[0];
+            
+            const backupForDate = backups.find(b => {
+                if (!b.createdAt) return false;
+                const backupDate = new Date(b.createdAt).toISOString().split('T')[0];
+                return backupDate === dateStr && b.frequency === schedule.frequency;
+            });
+            
+            scheduled.push({
+                date,
+                frequency: schedule.frequency as 'diario' | 'semanal' | 'mensual',
+                slot: getSlotForDate(date, schedule.frequency),
+                status: backupForDate?.status === 'completed' ? 'completed' : 
+                        date < today ? 'failed' : 'scheduled',
+                backup: backupForDate,
+                time: schedule.time
+            });
+        });
+        
+        return scheduled;
+    }, [calendarDays, backups]);
+
+    const getSlotForDate = (date: Date, frequency: string): string => {
+        if (frequency === 'diario') {
+            const day = date.getDate();
+            return `diario_${((day - 1) % 3) + 1}`;
+        }
+        if (frequency === 'semanal') {
+            const week = Math.ceil(date.getDate() / 7);
+            return `semanal_${week}`;
+        }
+        const month = date.getMonth();
+        return `mensual_${(month % 3) + 1}`;
+    };
+
+    const getStatusColor = (status: string, isPast: boolean) => {
+        if (status === 'completed') return '#22c55e';
+        if (status === 'running') return '#f59e0b';
+        if (status === 'failed') return '#dc2626';
+        if (isPast) return '#94a3b8';
+        return '#6366f1';
+    };
+
+    const getStatusIcon = (status: string) => {
+        if (status === 'completed') return '✓';
+        if (status === 'running') return '⏳';
+        if (status === 'failed') return '✗';
+        return '○';
+    };
+
+    const monthNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+    const dayNames = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+
+    const prevMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
+    const nextMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
 
     const triggerBackup = async () => {
         setTriggering(true);
@@ -86,12 +201,6 @@ const BackupList: React.FC = () => {
         await loadBackups();
     };
 
-    const deleteBackup = async (id: string) => {
-        if (!confirm('¿Eliminar este backup?')) return;
-        await fetch(`/api/backups/${id}`, { method: 'DELETE' });
-        await loadBackups();
-    };
-
     const formatSize = (bytes?: number) => {
         if (!bytes) return '—';
         if (bytes < 1024) return `${bytes} B`;
@@ -99,43 +208,19 @@ const BackupList: React.FC = () => {
         return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
     };
 
-    const formatDate = (dateStr: string) => {
-        return new Date(dateStr).toLocaleString('es-PY', {
-            dateStyle: 'medium',
-            timeStyle: 'short',
-        });
-    };
-
-    const getStatusColor = (status: string) => {
-        switch (status) {
-            case 'completed': return '#22c55e';
-            case 'running': return '#f59e0b';
-            case 'failed': return '#dc2626';
-            default: return '#64748b';
-        }
-    };
-
-    const getFrequencyLabel = (freq: string) => {
-        switch (freq) {
-            case 'diario': return 'Diario';
-            case 'semanal': return 'Semanal';
-            case 'mensual': return 'Mensual';
-            default: return freq;
-        }
-    };
-
-    const getSlotLabel = (slot: string) => {
-        const labels: Record<string, string> = {
-            'diario_1': 'Día 1', 'diario_2': 'Día 2', 'diario_3': 'Día 3',
-            'semanal_1': 'Sem 1', 'semanal_2': 'Sem 2', 'semanal_3': 'Sem 3', 'semanal_4': 'Sem 4',
-            'mensual_1': 'Mes 1', 'mensual_2': 'Mes 2', 'mensual_3': 'Mes 3',
-        };
-        return labels[slot] || slot;
-    };
-
-    const filteredBackups = filter === 'all' ? backups : backups.filter(b => b.frequency === filter);
-
     const downloadAlerts = backups.filter(b => b.needsDownload);
+
+    const getBackupForDay = (date: Date) => {
+        const dateStr = date.toISOString().split('T')[0];
+        return scheduledBackups.find(s => s.date.toISOString().split('T')[0] === dateStr);
+    };
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    if (loading) {
+        return <LoadingSpinner message="Cargando backups..." color="#6366f1" />;
+    }
 
     return (
         <div className="responsive-padding" style={{ padding: '32px' }}>
@@ -145,7 +230,7 @@ const BackupList: React.FC = () => {
                         💾 Backups
                     </h1>
                     <p style={{ color: '#64748b' }}>
-                        Sistema de respaldo automático con rotación de ranuras.
+                        Calendario de respaldos automáticos programados.
                     </p>
                 </div>
                 <button
@@ -184,138 +269,102 @@ const BackupList: React.FC = () => {
                                     cursor: 'pointer',
                                 }}
                             >
-                                📥 {getFrequencyLabel(b.frequency)} {getSlotLabel(b.slot)}
+                                📥 {b.frequency} - {b.slot}
                             </button>
                         ))}
                     </div>
                 </div>
             )}
 
-            <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
-                {['all', 'diario', 'semanal', 'mensual'].map(f => (
-                    <button
-                        key={f}
-                        onClick={() => setFilter(f)}
-                        style={{
-                            padding: '6px 14px',
-                            backgroundColor: filter === f ? '#22c55e' : '#f1f5f9',
-                            color: filter === f ? 'white' : '#475569',
-                            border: 'none',
-                            borderRadius: '6px',
-                            fontSize: '13px',
-                            cursor: 'pointer',
-                        }}
-                    >
-                        {f === 'all' ? 'Todos' : getFrequencyLabel(f)}
-                    </button>
-                ))}
+            <div style={{ backgroundColor: 'white', borderRadius: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.08)', overflow: 'hidden' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 24px', borderBottom: '1px solid #e2e8f0' }}>
+                    <button onClick={prevMonth} style={{ padding: '8px 16px', backgroundColor: '#f1f5f9', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '18px' }}>◀</button>
+                    <h2 style={{ margin: 0, fontSize: '20px', fontWeight: 600, color: '#1e293b' }}>
+                        {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
+                    </h2>
+                    <button onClick={nextMonth} style={{ padding: '8px 16px', backgroundColor: '#f1f5f9', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '18px' }}>▶</button>
+                </div>
+                
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', borderBottom: '1px solid #e2e8f0' }}>
+                    {dayNames.map(day => (
+                        <div key={day} style={{ padding: '12px', textAlign: 'center', fontWeight: 600, color: '#64748b', fontSize: '13px' }}>
+                            {day}
+                        </div>
+                    ))}
+                </div>
+                
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)' }}>
+                    {calendarDays.map(({ date, isCurrentMonth }, index) => {
+                        const backup = getBackupForDay(date);
+                        const isToday = date.toDateString() === new Date().toDateString();
+                        const isPast = date < today;
+                        
+                        return (
+                            <div
+                                key={index}
+                                style={{
+                                    minHeight: '100px',
+                                    padding: '8px',
+                                    borderRight: (index + 1) % 7 !== 0 ? '1px solid #f1f5f9' : 'none',
+                                    borderBottom: index < 35 ? '1px solid #f1f5f9' : 'none',
+                                    backgroundColor: isCurrentMonth ? (isToday ? '#f0fdf4' : 'white') : '#f8fafc',
+                                    opacity: isCurrentMonth ? 1 : 0.5
+                                }}
+                            >
+                                <div style={{ fontSize: '14px', fontWeight: isToday ? 600 : 400, color: isToday ? '#16a34a' : '#475569', marginBottom: '4px' }}>
+                                    {date.getDate()}
+                                </div>
+                                {backup && isCurrentMonth && (
+                                    <>
+                                        <div style={{
+                                            padding: '4px 6px',
+                                            borderRadius: '4px',
+                                            backgroundColor: getStatusColor(backup.status, isPast) + '20',
+                                            color: getStatusColor(backup.status, isPast),
+                                            fontSize: '11px',
+                                            fontWeight: 500,
+                                            marginBottom: '2px',
+                                            cursor: backup.backup ? 'pointer' : 'default'
+                                        }}
+                                        onClick={() => backup.backup && viewBackup(backup.backup)}
+                                        >
+                                            {backup.frequency === 'diario' ? '📆' : backup.frequency === 'semanal' ? '📅' : '🗓️'} {backup.time}
+                                        </div>
+                                        <div style={{ fontSize: '10px', color: getStatusColor(backup.status, isPast) }}>
+                                            {getStatusIcon(backup.status)} {backup.status === 'completed' ? 'Listo' : backup.status === 'failed' ? 'Sin ejecutar' : 'Programado'}
+                                        </div>
+                                    </>
+                                )}
+                            </div>
+                        );
+                    })}
+                </div>
             </div>
 
-            <div style={{ display: 'grid', gap: '12px' }}>
-                {loading ? (
-                    <LoadingSpinner message="Cargando backups..." color="#6366f1" />
-                ) : filteredBackups.length === 0 ? (
-                    <div style={{ padding: '48px', textAlign: 'center', color: '#64748b', backgroundColor: '#f8fafc', borderRadius: '12px' }}>
-                        No hay backups disponibles.
+            <div style={{ marginTop: '24px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
+                <div style={{ padding: '16px', backgroundColor: '#f0fdf4', borderRadius: '8px', border: '1px solid #bbf7d0' }}>
+                    <div style={{ fontSize: '12px', color: '#16a34a', fontWeight: 600, marginBottom: '4px' }}>Leyenda</div>
+                    <div style={{ fontSize: '11px', color: '#166534' }}>
+                        <div>✓ Listo - Ejecutado correctamente</div>
+                        <div>○ Programado - Pendiente de ejecución</div>
+                        <div>✗ Sin ejecutar - No se ejecutó</div>
                     </div>
-                ) : (
-                    filteredBackups.map((backup) => (
-                        <div
-                            key={backup.id}
-                            style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                padding: '12px 16px',
-                                backgroundColor: backup.needsDownload ? '#fef3c7' : 'white',
-                                borderRadius: '10px',
-                                boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
-                                gap: '12px',
-                            }}
-                        >
-                            <div style={{ flex: 1 }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '2px' }}>
-                                    <span style={{
-                                        padding: '3px 8px',
-                                        borderRadius: '4px',
-                                        fontSize: '11px',
-                                        fontWeight: 600,
-                                        backgroundColor: backup.frequency === 'diario' ? '#dbeafe' : 
-                                                        backup.frequency === 'semanal' ? '#dcfce7' : '#fef3c7',
-                                        color: backup.frequency === 'diario' ? '#1d4ed8' : 
-                                               backup.frequency === 'semanal' ? '#166534' : '#92400e',
-                                    }}>
-                                        {getFrequencyLabel(backup.frequency)}
-                                    </span>
-                                    <span style={{ fontSize: '12px', color: '#64748b' }}>
-                                        {getSlotLabel(backup.slot)}
-                                    </span>
-                                    <span style={{
-                                        width: '6px',
-                                        height: '6px',
-                                        borderRadius: '50%',
-                                        backgroundColor: getStatusColor(backup.status),
-                                    }} />
-                                    <span style={{ fontSize: '12px', color: '#64748b' }}>
-                                        {backup.status === 'completed' ? '✓' :
-                                         backup.status === 'running' ? '⏳' :
-                                         backup.status === 'failed' ? '✗' : '...'}
-                                    </span>
-                                </div>
-                                <div style={{ fontSize: '12px', color: '#94a3b8' }}>
-                                    {formatDate(backup.createdAt)}
-                                </div>
-                            </div>
-                            <div style={{ fontSize: '13px', color: '#64748b', minWidth: '70px', textAlign: 'right' }}>
-                                {formatSize(backup.fileSize)}
-                            </div>
-                            <div style={{ display: 'flex', gap: '6px' }}>
-                                <button
-                                    onClick={() => viewBackup(backup)}
-                                    style={{
-                                        padding: '6px 10px',
-                                        backgroundColor: '#f1f5f9',
-                                        color: '#475569',
-                                        border: 'none',
-                                        borderRadius: '4px',
-                                        fontSize: '12px',
-                                        cursor: 'pointer',
-                                    }}
-                                >
-                                    Ver
-                                </button>
-                                <button
-                                    onClick={() => downloadBackup(backup.id)}
-                                    disabled={backup.status !== 'completed'}
-                                    style={{
-                                        padding: '6px 10px',
-                                        backgroundColor: backup.status === 'completed' ? '#e0f2fe' : '#e2e8f0',
-                                        color: backup.status === 'completed' ? '#0369a1' : '#94a3b8',
-                                        border: 'none',
-                                        borderRadius: '4px',
-                                        fontSize: '12px',
-                                        cursor: backup.status === 'completed' ? 'pointer' : 'not-allowed',
-                                    }}
-                                >
-                                    ↓
-                                </button>
-                                <button
-                                    onClick={() => deleteBackup(backup.id)}
-                                    style={{
-                                        padding: '6px 10px',
-                                        backgroundColor: '#fee2e2',
-                                        color: '#dc2626',
-                                        border: 'none',
-                                        borderRadius: '4px',
-                                        fontSize: '12px',
-                                        cursor: 'pointer',
-                                    }}
-                                >
-                                    ✕
-                                </button>
-                            </div>
-                        </div>
-                    ))
-                )}
+                </div>
+                <div style={{ padding: '16px', backgroundColor: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                    <div style={{ fontSize: '12px', color: '#475569', fontWeight: 600, marginBottom: '4px' }}>Horarios</div>
+                    <div style={{ fontSize: '11px', color: '#64748b' }}>
+                        <div>📆 Diario - 02:00 AM (rotación 3 días)</div>
+                        <div>📅 Semanal - Sábados 02:00 AM</div>
+                        <div>🗓️ Mensual - 1° del mes 02:00 AM</div>
+                    </div>
+                </div>
+            </div>
+
+            <div style={{ marginTop: '32px' }}>
+                <h3 style={{ fontSize: '18px', fontWeight: 600, color: '#1e293b', marginBottom: '16px' }}>Ejecución Manual</h3>
+                <p style={{ color: '#64748b', marginBottom: '16px' }}>
+                    Además de los respaldos automáticos, podés ejecutar un backup manual en cualquier momento haciendo clic en "Crear Backup Ahora".
+                </p>
             </div>
 
             {selectedBackup && (
@@ -330,14 +379,14 @@ const BackupList: React.FC = () => {
                     }} onClick={e => e.stopPropagation()}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                             <h2 style={{ margin: 0, fontSize: '20px' }}>
-                                {getFrequencyLabel(selectedBackup.frequency)} - {getSlotLabel(selectedBackup.slot)}
+                                {selectedBackup.frequency} - {selectedBackup.slot}
                             </h2>
                             <button onClick={() => setSelectedBackup(null)} style={{
                                 background: 'none', border: 'none', fontSize: '24px', cursor: 'pointer',
                             }}>✕</button>
                         </div>
                         <div style={{ fontSize: '13px', color: '#64748b', marginBottom: '16px' }}>
-                            <p>Fecha: {formatDate(selectedBackup.createdAt)}</p>
+                            <p>Fecha: {new Date(selectedBackup.createdAt).toLocaleString('es-PY')}</p>
                             <p>Tamaño: {formatSize(selectedBackup.fileSize)}</p>
                             <p>Tipo: {selectedBackup.type === 'full' ? 'Completo' : 'Incremental'}</p>
                         </div>
@@ -363,36 +412,6 @@ const BackupList: React.FC = () => {
                     </div>
                 </div>
             )}
-
-            <div style={{ marginTop: '32px', padding: '20px', backgroundColor: '#f0fdf4', borderRadius: '12px', border: '1px solid #bbf7d0' }}>
-                <h3 style={{ margin: '0 0 12px 0', fontSize: '16px', color: '#14532d' }}>📅 Programación Automática</h3>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', fontSize: '14px', color: '#166534' }}>
-                    <div>
-                        <strong>Diarios (3 rotativos)</strong>
-                        <ul style={{ margin: '4px 0 0 0', paddingLeft: '16px' }}>
-                            <li>Ejecuta: Diario 2:00 AM</li>
-                            <li>Tipo: Incremental (últimas 24h)</li>
-                            <li>Slot: Día 1 → 2 → 3 → 1...</li>
-                        </ul>
-                    </div>
-                    <div>
-                        <strong>Semanales (4 rotativos)</strong>
-                        <ul style={{ margin: '4px 0 0 0', paddingLeft: '16px' }}>
-                            <li>Ejecuta: Sábados 2:00 AM</li>
-                            <li>Tipo: Completo (toda la BD)</li>
-                            <li>Slot: Sem 1 → 2 → 3 → 4...</li>
-                        </ul>
-                    </div>
-                    <div>
-                        <strong>Mensuales (3 rotativos)</strong>
-                        <ul style={{ margin: '4px 0 0 0', paddingLeft: '16px' }}>
-                            <li>Ejecuta: Último sábado del mes</li>
-                            <li>Tipo: Completo (toda la BD)</li>
-                            <li>Slot: Mes 1-2-3 (alerts tras 3 meses)</li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
         </div>
     );
 };

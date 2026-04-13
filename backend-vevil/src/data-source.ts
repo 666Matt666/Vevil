@@ -26,6 +26,7 @@ export default new DataSource({
     join(__dirname, 'invoices', 'invoice.entity.js'),
     join(__dirname, 'invoices', 'invoice-item.entity.js'),
     join(__dirname, 'invoices', 'payment.entity.js'),
+    join(__dirname, 'suppliers', 'supplier.entity.js'),
   ],
   migrations: [join(__dirname, 'migrations', '*.js')],
   ssl: dbHost.includes('supabase.co')

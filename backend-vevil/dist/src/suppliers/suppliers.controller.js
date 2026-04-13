@@ -74,7 +74,7 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], SuppliersController.prototype, "remove", null);
 exports.SuppliersController = SuppliersController = __decorate([
-    (0, common_1.Controller)('suppliers'),
+    (0, common_1.Controller)('api/suppliers'),
     (0, common_1.UseGuards)((0, passport_1.AuthGuard)('jwt')),
     __metadata("design:paramtypes", [suppliers_service_1.SuppliersService])
 ], SuppliersController);

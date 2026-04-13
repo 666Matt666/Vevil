@@ -5,7 +5,7 @@ import { Repository } from 'typeorm';
 import { Invoice } from '../invoices/invoice.entity';
 import * as bcrypt from 'bcrypt';
 
-@Controller('api/client')
+@Controller('client')
 export class ClientAuthController {
     constructor(
         private readonly clientUsersService: ClientUsersService,

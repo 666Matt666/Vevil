@@ -3,7 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Invoice } from '../invoices/invoice.entity';
 
-@Controller('api/public')
+@Controller('public')
 export class PublicController {
     constructor(
         @InjectRepository(Invoice)

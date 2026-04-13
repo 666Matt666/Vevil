@@ -139,7 +139,7 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], ClientAuthController.prototype, "getInvoices", null);
 exports.ClientAuthController = ClientAuthController = __decorate([
-    (0, common_1.Controller)('api/client'),
+    (0, common_1.Controller)('client'),
     __param(1, (0, typeorm_1.InjectRepository)(invoice_entity_1.Invoice)),
     __metadata("design:paramtypes", [client_users_service_1.ClientUsersService,
         typeorm_2.Repository])

@@ -71,6 +71,8 @@ const defaultMetrics: DashboardMetrics = {
     totalRevenue: 0,
     revenueLast7Days: 0,
     invoicesLast7Days: 0,
+    pendingInvoices: 0,
+    pendingInvoicesAmount: 0,
     revenueThisMonth: 0,
     invoicesThisMonth: 0,
     revenueLastMonth: 0,
@@ -540,6 +542,57 @@ const Dashboard: React.FC = () => {
                     ) : (
                         <p style={{ fontSize: '32px', fontWeight: 700, color: '#8b5cf6', margin: '8px 0 0 0' }}>
                             {formatMoney(metrics?.totalRevenue || 0, 'PYG')}
+                        </p>
+                    )}
+                </div>
+            </div>
+
+            {/* KPIs de alertas */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px', marginTop: '16px' }}>
+                <div style={{
+                    backgroundColor: (metrics?.pendingInvoices || 0) > 0 ? '#fef3c7' : 'white',
+                    padding: '20px',
+                    borderRadius: '12px',
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
+                    border: (metrics?.pendingInvoices || 0) > 0 ? '1px solid #f59e0b' : '1px solid #e2e8f0'
+                }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                        <span style={{ fontSize: '18px' }}>📋</span>
+                        <p style={{ fontSize: '14px', color: (metrics?.pendingInvoices || 0) > 0 ? '#92400e' : '#64748b', margin: 0 }}>
+                            Facturas Pendientes
+                        </p>
+                    </div>
+                    {loading ? (
+                        <div style={{ width: '60px', height: '28px', backgroundColor: '#e2e8f0', borderRadius: '4px' }} />
+                    ) : (
+                        <div>
+                            <p style={{ fontSize: '28px', fontWeight: 700, color: (metrics?.pendingInvoices || 0) > 0 ? '#d97706' : '#64748b', margin: '0 0 4px 0' }}>
+                                {metrics?.pendingInvoices || 0}
+                            </p>
+                            <p style={{ fontSize: '12px', color: '#64748b', margin: 0 }}>
+                                {formatMoney(metrics?.pendingInvoicesAmount || 0, 'PYG')}
+                            </p>
+                        </div>
+                    )}
+                </div>
+                <div style={{
+                    backgroundColor: (metrics?.lowStockProducts || 0) > 0 ? '#fef2f2' : 'white',
+                    padding: '20px',
+                    borderRadius: '12px',
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
+                    border: (metrics?.lowStockProducts || 0) > 0 ? '1px solid #fecaca' : '1px solid #e2e8f0'
+                }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                        <span style={{ fontSize: '18px' }}>⚠️</span>
+                        <p style={{ fontSize: '14px', color: (metrics?.lowStockProducts || 0) > 0 ? '#b91c1c' : '#64748b', margin: 0 }}>
+                            Stock Bajo
+                        </p>
+                    </div>
+                    {loading ? (
+                        <div style={{ width: '60px', height: '28px', backgroundColor: '#e2e8f0', borderRadius: '4px' }} />
+                    ) : (
+                        <p style={{ fontSize: '28px', fontWeight: 700, color: (metrics?.lowStockProducts || 0) > 0 ? '#dc2626' : '#64748b', margin: 0 }}>
+                            {metrics?.lowStockProducts || 0}
                         </p>
                     )}
                 </div>

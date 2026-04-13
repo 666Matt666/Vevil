@@ -13,6 +13,8 @@ export interface DashboardMetrics {
   totalRevenue: number;
   revenueLast7Days: number;
   invoicesLast7Days: number;
+  pendingInvoices: number;
+  pendingInvoicesAmount: number;
   revenueThisMonth: number;
   invoicesThisMonth: number;
   revenueLastMonth: number;
@@ -92,6 +94,13 @@ export class MetricsService {
       this.getTopProductsSold(90),
     ]);
 
+    const pendingInvoicesCount = await this.invoiceRepo.count({ where: { status: 'pending' } });
+    const pendingInvoicesAmount = await this.invoiceRepo
+      .createQueryBuilder('i')
+      .where('i.status = :status', { status: 'pending' })
+      .select('SUM(i.total)', 'total')
+      .getRawOne();
+
     const result: DashboardMetrics = {
       totalProducts,
       totalCustomers,
@@ -107,6 +116,8 @@ export class MetricsService {
       lowStockList,
       topProductsSold,
       generatedAt: now.toISOString(),
+      pendingInvoices: pendingInvoicesCount,
+      pendingInvoicesAmount: parseFloat(pendingInvoicesAmount?.total || '0'),
     };
 
     if (filters?.from && filters?.to) {

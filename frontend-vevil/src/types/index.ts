@@ -209,15 +209,23 @@ export interface DashboardMetrics {
   totalProducts: number;
   totalCustomers: number;
   totalInvoices: number;
+  totalRevenue: number;
+  revenueLast7Days: number;
+  invoicesLast7Days: number;
   pendingInvoices: number;
+  pendingInvoicesAmount: number;
   revenueThisMonth: number;
+  invoicesThisMonth: number;
   revenueLastMonth: number;
-  topProducts: {
-    id: string;
-    name: string;
-    totalSold: number;
-  }[];
-  recentInvoices: Invoice[];
+  invoicesLastMonth: number;
+  lowStockProducts: number;
+  lowStockList: { id: number; name: string; stock: number; minStock: number }[];
+  topProductsSold: { productId: number; productName: string; quantitySold: number }[];
+  periodFrom?: string;
+  periodTo?: string;
+  periodRevenue?: number;
+  periodInvoices?: number;
+  generatedAt: string;
 }
 
 // ============================================

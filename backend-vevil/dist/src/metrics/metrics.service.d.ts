@@ -10,6 +10,8 @@ export interface DashboardMetrics {
     totalRevenue: number;
     revenueLast7Days: number;
     invoicesLast7Days: number;
+    pendingInvoices: number;
+    pendingInvoicesAmount: number;
     revenueThisMonth: number;
     invoicesThisMonth: number;
     revenueLastMonth: number;

@@ -60,6 +60,12 @@ let MetricsService = class MetricsService {
             this.getLowStockProducts(),
             this.getTopProductsSold(90),
         ]);
+        const pendingInvoicesCount = await this.invoiceRepo.count({ where: { status: 'pending' } });
+        const pendingInvoicesAmount = await this.invoiceRepo
+            .createQueryBuilder('i')
+            .where('i.status = :status', { status: 'pending' })
+            .select('SUM(i.total)', 'total')
+            .getRawOne();
         const result = {
             totalProducts,
             totalCustomers,
@@ -75,6 +81,8 @@ let MetricsService = class MetricsService {
             lowStockList,
             topProductsSold,
             generatedAt: now.toISOString(),
+            pendingInvoices: pendingInvoicesCount,
+            pendingInvoicesAmount: parseFloat(pendingInvoicesAmount?.total || '0'),
         };
         if (filters?.from && filters?.to) {
             const from = new Date(filters.from);

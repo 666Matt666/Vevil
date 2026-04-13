@@ -109,8 +109,9 @@ import { User } from './users/user.entity';
           // para que TypeORM descubra automáticamente las entidades que se registran
           // en los módulos (como User en UsersModule).
           autoLoadEntities: true,
-          // No sincronizar cuando la BD es Supabase (nube), ni en producción. Solo sync con BD local en desarrollo.
-          synchronize: process.env.NODE_ENV !== 'production' && !dbHost.includes('supabase.co'),
+          // Enable synchronize for Supabase since migrations don't run automatically
+          // For local dev without Supabase, only enable in non-production
+          synchronize: !dbHost.includes('supabase.co') ? process.env.NODE_ENV !== 'production' : true,
           // Configuración SSL necesaria para Supabase
           ssl: dbHost.includes('supabase.co') ? {
             rejectUnauthorized: false // Necesario para conexiones SSL de Supabase

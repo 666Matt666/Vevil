@@ -12,7 +12,7 @@ const menuItems = [
     { label: 'Inicio', icon: '🏠', path: '/dashboard' },
     { label: 'Productos', icon: '📦', path: '/products' },
     { label: 'Mov. de stock', icon: '📥', path: '/stock-movements' },
-    { label: 'Clientes', icon: '👥', path: '/customers' },
+    { label: 'Clientes', icon: '🤝', path: '/customers' },
     { label: 'Facturas', icon: '📄', path: '/invoices' },
     { label: 'Cuentas Corrientes', icon: '💳', path: '/accounts' },
     { label: 'Reportes', icon: '📊', path: '/reports' },
@@ -106,7 +106,7 @@ const Layout: React.FC = () => {
     // Admin añade usuarios y auditoría, luego configuración al final
     const menuToRender = isAdmin ? [
         ...baseMenuItems,
-        { label: 'Usuarios', icon: '👥', path: '/admin/users', description: 'Gestión de usuarios' },
+        { label: 'Usuarios', icon: '🔐', path: '/admin/users', description: 'Gestión de usuarios' },
         { label: 'Auditoría', icon: '📋', path: '/audit' },
     ] : baseMenuItems;
 

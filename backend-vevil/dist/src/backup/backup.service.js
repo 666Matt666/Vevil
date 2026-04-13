@@ -53,7 +53,16 @@ let BackupService = BackupService_1 = class BackupService {
         this.logger = new common_1.Logger(BackupService_1.name);
         this.backupDir = process.env.BACKUP_DIR || '/tmp/vevil-backups';
         this.maxBackups = 50;
+        this.githubEnabled = process.env.GITHUB_BACKUP_ENABLED === 'true';
+        this.githubToken = process.env.GITHUB_BACKUP_TOKEN;
+        this.githubOwner = process.env.GITHUB_BACKUP_OWNER;
+        this.githubRepo = process.env.GITHUB_BACKUP_REPO;
+        this.githubPath = process.env.GITHUB_BACKUP_PATH || 'backups';
+        this.deleteAfterUpload = process.env.GITHUB_BACKUP_DELETE_LOCAL !== 'false';
         this.ensureBackupDir();
+        if (this.githubEnabled) {
+            this.logger.log(`GitHub backup enabled: ${this.githubOwner}/${this.githubRepo}/${this.githubPath}`);
+        }
     }
     ensureBackupDir() {
         if (!fs.existsSync(this.backupDir)) {
@@ -169,6 +178,19 @@ let BackupService = BackupService_1 = class BackupService {
                     await this.backupRepo.save(b);
                 }
             }
+            if (this.githubEnabled && backup.filePath && fs.existsSync(backup.filePath)) {
+                await this.uploadToGithub(backup, filePath);
+                if (this.deleteAfterUpload && fs.existsSync(backup.filePath)) {
+                    try {
+                        fs.unlinkSync(backup.filePath);
+                        backup.filePath = null;
+                        this.logger.log(`Archivo local eliminado después de subir a GitHub: ${filename}`);
+                    }
+                    catch (err) {
+                        this.logger.warn(`No se pudo eliminar archivo local: ${err}`);
+                    }
+                }
+            }
             this.logger.log(`Backup ${frequency} ${slot} completado: ${filename} (${stats.size} bytes)`);
         }
         catch (error) {
@@ -193,6 +215,61 @@ let BackupService = BackupService_1 = class BackupService {
             content += `-- Data modified since ${since}\n\n`;
         }
         fs.writeFileSync(filePath, content);
+    }
+    async uploadToGithub(backup, localFilePath) {
+        if (!this.githubToken || !this.githubOwner || !this.githubRepo) {
+            this.logger.warn('GitHub backup configurado pero sin credenciales');
+            return;
+        }
+        try {
+            const filename = path.basename(localFilePath);
+            const content = fs.readFileSync(localFilePath);
+            const contentBase64 = content.toString('base64');
+            const date = new Date();
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const dateStr = `${year}/${month}`;
+            const githubPath = `${this.githubPath}/${dateStr}/${filename}`;
+            const getUrl = `https://api.github.com/repos/${this.githubOwner}/${this.githubRepo}/contents/${githubPath}`;
+            const getResponse = await fetch(getUrl, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${this.githubToken}`,
+                    'Accept': 'application/vnd.github+json',
+                },
+            });
+            let method = 'PUT';
+            let sha = '';
+            if (getResponse.ok) {
+                const existing = await getResponse.json();
+                sha = existing.sha;
+                method = 'PUT';
+            }
+            const response = await fetch(getUrl, {
+                method,
+                headers: {
+                    'Authorization': `Bearer ${this.githubToken}`,
+                    'Accept': 'application/vnd.github+json',
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    message: `Backup ${backup.frequency} ${backup.slot} - ${new Date().toISOString()}`,
+                    content: contentBase64,
+                    sha: sha || undefined,
+                }),
+            });
+            if (response.ok) {
+                const result = await response.json();
+                this.logger.log(`Backup subido a GitHub: ${result.content.html_url}`);
+            }
+            else {
+                const errorText = await response.text();
+                this.logger.error(`Error subiendo a GitHub: ${response.status} - ${errorText}`);
+            }
+        }
+        catch (error) {
+            this.logger.error(`Error en uploadToGithub: ${error.message}`);
+        }
     }
     async getBackups(limit = 20) {
         return this.backupRepo.find({

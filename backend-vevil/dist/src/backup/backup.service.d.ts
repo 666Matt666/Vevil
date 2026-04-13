@@ -7,6 +7,12 @@ export declare class BackupService {
     private readonly logger;
     private readonly backupDir;
     private readonly maxBackups;
+    private readonly githubEnabled;
+    private readonly githubToken;
+    private readonly githubOwner;
+    private readonly githubRepo;
+    private readonly githubPath;
+    private readonly deleteAfterUpload;
     constructor(backupRepo: Repository<Backup>);
     private ensureBackupDir;
     getDbConfig(): {
@@ -25,6 +31,7 @@ export declare class BackupService {
     createBackup(type: BackupType, frequency: BackupFrequency, slot: BackupSlot): Promise<Backup>;
     private createFullBackup;
     private createIncrementalBackup;
+    private uploadToGithub;
     getBackups(limit?: number): Promise<Backup[]>;
     getBackupById(id: string): Promise<Backup | null>;
     getBackupFile(id: string): Promise<Buffer | null>;

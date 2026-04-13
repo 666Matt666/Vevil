@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { getInvoiceConfig, getAlertsConfig } from '../settings/Settings';
 import { productsApi, metricsApi } from '../../services/api';
 import { formatMoney } from '../settings/Settings';
-import { useToast } from './Toast';
+import { useToast } from '../../hooks/useToast';
 
 interface Alert {
     type: 'warning' | 'error' | 'info';

@@ -83,7 +83,6 @@ const AppContent: React.FC = () => {
                     <Route path="settings" element={<Settings />} />
                 </Route>
             </Routes>
-            <AlertsWidget />
         </>
     );
 };
@@ -91,11 +90,12 @@ const AppContent: React.FC = () => {
 ReactDOM.createRoot(document.getElementById('root')!).render(
     <React.StrictMode>
         <ToastProvider>
+            <AlertsWidget />
             <QueryProvider>
                 <BrowserRouter>
                     <AppContent />
-            </BrowserRouter>
-        </QueryProvider>
+                </BrowserRouter>
+            </QueryProvider>
         </ToastProvider>
     </React.StrictMode>,
 )

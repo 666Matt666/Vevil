@@ -59,6 +59,26 @@ const BackupList: React.FC = () => {
         return `mensual_${(month % 3) + 1}`;
     };
 
+    const getSlotLabel = (frequency: string, slot: string): string => {
+        const match = slot.match(/(\d+)$/);
+        const num = match ? match[1] : '?';
+        if (frequency === 'diario') return `D${num}`;
+        if (frequency === 'semanal') return `S${num}`;
+        return `M${num}`;
+    };
+
+    const getFrequencyColor = (frequency: string) => {
+        if (frequency === 'diario') return '#22c55e';
+        if (frequency === 'semanal') return '#3b82f6';
+        return '#8b5cf6';
+    };
+
+    const getFrequencyLabel = (frequency: string) => {
+        if (frequency === 'diario') return 'Diario';
+        if (frequency === 'semanal') return 'Semanal';
+        return 'Mensual';
+    };
+
     const loadBackups = async () => {
         try {
             const res = await fetch('/api/backups');
@@ -298,6 +318,7 @@ const BackupList: React.FC = () => {
                         const backup = getBackupForDay(date);
                         const isToday = date.toDateString() === new Date().toDateString();
                         const isPast = date < today;
+                        const freqColor = backup ? getFrequencyColor(backup.frequency) : '#94a3b8';
                         
                         return (
                             <div
@@ -319,19 +340,24 @@ const BackupList: React.FC = () => {
                                         <div style={{
                                             padding: '4px 6px',
                                             borderRadius: '4px',
-                                            backgroundColor: getStatusColor(backup.status, isPast) + '20',
-                                            color: getStatusColor(backup.status, isPast),
+                                            backgroundColor: freqColor + '15',
+                                            border: `1px solid ${freqColor}30`,
+                                            color: freqColor,
                                             fontSize: '11px',
-                                            fontWeight: 500,
+                                            fontWeight: 600,
                                             marginBottom: '2px',
+                                            display: 'flex',
+                                            justifyContent: 'space-between',
+                                            alignItems: 'center',
                                             cursor: backup.backup ? 'pointer' : 'default'
                                         }}
                                         onClick={() => backup.backup && viewBackup(backup.backup)}
                                         >
-                                            {backup.frequency === 'diario' ? '📆' : backup.frequency === 'semanal' ? '📅' : '🗓️'} {backup.time}
+                                            <span>{getSlotLabel(backup.frequency, backup.slot)}</span>
+                                            <span style={{ fontSize: '10px', opacity: 0.8 }}>{backup.time}</span>
                                         </div>
-                                        <div style={{ fontSize: '10px', color: getStatusColor(backup.status, isPast) }}>
-                                            {getStatusIcon(backup.status)} {backup.status === 'completed' ? 'Listo' : backup.status === 'failed' ? 'Sin ejecutar' : 'Programado'}
+                                        <div style={{ fontSize: '10px', color: getStatusColor(backup.status, isPast), display: 'flex', alignItems: 'center', gap: '3px' }}>
+                                            {getStatusIcon(backup.status)} {backup.status === 'completed' ? 'Listo' : backup.status === 'failed' ? 'Fallido' : ''}
                                         </div>
                                     </>
                                 )}
@@ -341,21 +367,79 @@ const BackupList: React.FC = () => {
                 </div>
             </div>
 
+            {/* Panel dePróximos Backups */}
+            <div style={{ marginTop: '24px', backgroundColor: 'white', borderRadius: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.08)', padding: '20px' }}>
+                <h3 style={{ margin: '0 0 16px 0', fontSize: '16px', fontWeight: 600, color: '#1e293b' }}>
+                    📅 Próximos Backups del Mes
+                </h3>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '12px' }}>
+                    {scheduledBackups
+                        .filter(s => s.date >= today && s.date.getMonth() === currentDate.getMonth())
+                        .sort((a, b) => a.date.getTime() - b.date.getTime())
+                        .slice(0, 10)
+                        .map((sb, i) => (
+                            <div key={i} style={{ 
+                                padding: '12px', 
+                                borderRadius: '8px', 
+                                backgroundColor: getFrequencyColor(sb.frequency) + '10',
+                                border: `1px solid ${getFrequencyColor(sb.frequency)}30`,
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'center'
+                            }}>
+                                <div>
+                                    <div style={{ fontSize: '13px', fontWeight: 600, color: getFrequencyColor(sb.frequency) }}>
+                                        {getSlotLabel(sb.frequency, sb.slot)} - {getFrequencyLabel(sb.frequency)}
+                                    </div>
+                                    <div style={{ fontSize: '12px', color: '#64748b' }}>
+                                        {sb.date.toLocaleDateString('es-PY', { weekday: 'short', day: 'numeric' })} a las {sb.time}
+                                    </div>
+                                </div>
+                                {sb.backup && (
+                                    <button 
+                                        onClick={() => viewBackup(sb.backup!)}
+                                        style={{
+                                            padding: '4px 8px',
+                                            fontSize: '11px',
+                                            backgroundColor: getFrequencyColor(sb.frequency),
+                                            color: 'white',
+                                            border: 'none',
+                                            borderRadius: '4px',
+                                            cursor: 'pointer'
+                                        }}
+                                    >
+                                        Ver
+                                    </button>
+                                )}
+                            </div>
+                        ))}
+                </div>
+            </div>
+
             <div style={{ marginTop: '24px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
                 <div style={{ padding: '16px', backgroundColor: '#f0fdf4', borderRadius: '8px', border: '1px solid #bbf7d0' }}>
-                    <div style={{ fontSize: '12px', color: '#16a34a', fontWeight: 600, marginBottom: '4px' }}>Leyenda</div>
+                    <div style={{ fontSize: '12px', color: '#16a34a', fontWeight: 600, marginBottom: '4px' }}>Tipos de Backup</div>
                     <div style={{ fontSize: '11px', color: '#166534' }}>
-                        <div>✓ Listo - Ejecutado correctamente</div>
-                        <div>○ Programado - Pendiente de ejecución</div>
-                        <div>✗ Sin ejecutar - No se ejecutó</div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
+                            <span style={{ display: 'inline-block', width: '12px', height: '12px', borderRadius: '3px', backgroundColor: '#22c55e' }}></span>
+                            <span>D1/D2/D3 - Diario (02:00)</span>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
+                            <span style={{ display: 'inline-block', width: '12px', height: '12px', borderRadius: '3px', backgroundColor: '#3b82f6' }}></span>
+                            <span>S1/S2/S3/S4 - Semanal (sábados)</span>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <span style={{ display: 'inline-block', width: '12px', height: '12px', borderRadius: '3px', backgroundColor: '#8b5cf6' }}></span>
+                            <span>M1/M2/M3 - Mensual (1° del mes)</span>
+                        </div>
                     </div>
                 </div>
                 <div style={{ padding: '16px', backgroundColor: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-                    <div style={{ fontSize: '12px', color: '#475569', fontWeight: 600, marginBottom: '4px' }}>Horarios</div>
+                    <div style={{ fontSize: '12px', color: '#475569', fontWeight: 600, marginBottom: '4px' }}>Estados</div>
                     <div style={{ fontSize: '11px', color: '#64748b' }}>
-                        <div>📆 Diario - 02:00 AM (rotación 3 días)</div>
-                        <div>📅 Semanal - Sábados 02:00 AM</div>
-                        <div>🗓️ Mensual - 1° del mes 02:00 AM</div>
+                        <div>✓ Listo - Ejecutado correctamente</div>
+                        <div>○ Pendiente - Sin ejecutar aún</div>
+                        <div>✗ Fallido - No se ejecutó</div>
                     </div>
                 </div>
             </div>

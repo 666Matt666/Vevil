@@ -147,4 +147,72 @@ export class MailService {
       `,
     });
   }
+
+  /**
+   * Envía la factura por email al cliente.
+   */
+  async sendInvoiceEmail(
+    to: string,
+    customerName: string,
+    invoiceNumber: string,
+    total: number,
+    currency: string,
+    items: { name: string; quantity: number; price: number; total: number }[],
+    invoicePdfBase64?: string,
+  ): Promise<void> {
+    if (!this.isConfigured()) {
+      if (this.configService.get<string>('NODE_ENV') === 'development') {
+        console.log('[Mail] Invoice email (RESEND not configured):', { to, invoiceNumber, total });
+      }
+      return;
+    }
+
+    const totalStr = `${currency} ${Number(total).toLocaleString('es-PY', { minimumFractionDigits: 0 })}`;
+    const itemsHtml = items.map(item => `
+      <tr>
+        <td style="padding: 8px; border-bottom: 1px solid #eee;">${item.name}</td>
+        <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: right;">${item.quantity}</td>
+        <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: right;">${currency} ${Number(item.price).toLocaleString('es-PY')}</td>
+        <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: right;">${currency} ${Number(item.total).toLocaleString('es-PY')}</td>
+      </tr>
+    `).join('');
+
+    const attachments = invoicePdfBase64
+      ? [{ filename: `factura_${invoiceNumber}.pdf`, content: invoicePdfBase64 }]
+      : undefined;
+
+    console.log('[Mail] Sending invoice to:', to);
+    await this.resend!.emails.send({
+      from: this.getFromAddress(),
+      to,
+      bcc: this.getBccAddress(),
+      subject: `Factura ${invoiceNumber} - Vevil`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #1e293b;">Factura ${invoiceNumber}</h2>
+          <p>Hola${customerName ? ` ${customerName}` : ''},</p>
+          <p>Adjuntamos tu factura por un total de <strong>${totalStr}</strong>.</p>
+          <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
+            <thead>
+              <tr style="background: #f8fafc;">
+                <th style="padding: 10px; text-align: left; border-bottom: 2px solid #e2e8f0;">Producto</th>
+                <th style="padding: 10px; text-align: right; border-bottom: 2px solid #e2e8f0;">Cant.</th>
+                <th style="padding: 10px; text-align: right; border-bottom: 2px solid #e2e8f0;">Precio</th>
+                <th style="padding: 10px; text-align: right; border-bottom: 2px solid #e2e8f0;">Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${itemsHtml}
+            </tbody>
+          </table>
+          <p style="text-align: right; font-size: 18px;"><strong>Total: ${totalStr}</strong></p>
+          <p style="color: #64748b; font-size: 12px; margin-top: 30px;">
+            Si tenés alguna consulta sobre esta factura, contactanos.<br/>
+            Saludos,<br/>El equipo de Vevil
+          </p>
+        </div>
+      `,
+      attachments,
+    });
+  }
 }

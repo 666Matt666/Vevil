@@ -30,6 +30,9 @@ const pending_registrations_module_1 = require("./pending-registrations/pending-
 const webauthn_module_1 = require("./webauthn/webauthn.module");
 const audit_module_1 = require("./audit/audit.module");
 const backup_module_1 = require("./backup/backup.module");
+const suppliers_module_1 = require("./suppliers/suppliers.module");
+const public_module_1 = require("./public/public.module");
+const client_users_module_1 = require("./client-users/client-users.module");
 const user_entity_1 = require("./users/user.entity");
 let AppModule = class AppModule {
 };
@@ -117,6 +120,9 @@ exports.AppModule = AppModule = __decorate([
             webauthn_module_1.WebAuthnModule,
             audit_module_1.AuditModule,
             backup_module_1.BackupModule,
+            suppliers_module_1.SuppliersModule,
+            public_module_1.PublicModule,
+            client_users_module_1.ClientUsersModule,
         ],
         controllers: [app_controller_1.AppController],
         providers: [

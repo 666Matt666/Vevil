@@ -576,49 +576,65 @@ export const productsApi = {
         if (!response.ok) throw new Error('Error al obtener productos');
         return response.json();
     },
-    getPage: async (
-        page: number,
-        limit: number,
-        filters?: { search?: string; type?: string; category?: string },
-    ): Promise<PaginatedResponse<Product>> => {
-        const params = new URLSearchParams({ page: String(page), limit: String(limit) });
-        if (filters?.search?.trim()) params.set('search', filters.search.trim());
-        if (filters?.type && filters.type !== 'all') params.set('type', filters.type);
-        if (filters?.category && filters.category !== 'all') params.set('category', filters.category);
-        const response = await fetchWithAuth(`/products?${params.toString()}`);
-        if (!response.ok) throw new Error('Error al obtener productos');
+};
+
+// ============ PROVEEDORES ============
+export interface Supplier {
+    id: number;
+    name: string;
+    email: string;
+    phones: { type: string; number: string }[];
+    contact_person: string | null;
+    address_street: string | null;
+    address_city: string | null;
+    address_province: string | null;
+    tax_id: string | null;
+    notes: string | null;
+    is_active: boolean;
+    created_at: string;
+    updated_at: string;
+}
+
+export const suppliersApi = {
+    getAll: async (): Promise<Supplier[]> => {
+        const response = await fetchWithAuth('/api/suppliers');
+        if (!response.ok) throw new Error('Error al obtener proveedores');
         return response.json();
     },
-
-    getById: async (id: number): Promise<Product> => {
-        const response = await fetchWithAuth(`/products/${id}`);
-        if (!response.ok) throw new Error('Error al obtener producto');
+    getById: async (id: number): Promise<Supplier> => {
+        const response = await fetchWithAuth(`/api/suppliers/${id}`);
+        if (!response.ok) throw new Error('Error al obtener proveedor');
         return response.json();
     },
-
-    create: async (product: Omit<Product, 'id'>): Promise<Product> => {
-        const response = await fetchWithAuth('/products', {
+    create: async (supplier: Omit<Supplier, 'id' | 'created_at' | 'updated_at'>): Promise<Supplier> => {
+        const response = await fetchWithAuth('/api/suppliers', {
             method: 'POST',
-            body: JSON.stringify(product),
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(supplier),
         });
-        if (!response.ok) throw new Error('Error al crear producto');
+        if (!response.ok) {
+            const err = await response.json().catch(() => ({}));
+            throw new Error(err.message || 'Error al crear proveedor');
+        }
         return response.json();
     },
-
-    update: async (id: number, product: Partial<Product>): Promise<Product> => {
-        const response = await fetchWithAuth(`/products/${id}`, {
-            method: 'PATCH',
-            body: JSON.stringify(product),
+    update: async (id: number, supplier: Partial<Supplier>): Promise<Supplier> => {
+        const response = await fetchWithAuth(`/api/suppliers/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(supplier),
         });
-        if (!response.ok) throw new Error('Error al actualizar producto');
+        if (!response.ok) {
+            const err = await response.json().catch(() => ({}));
+            throw new Error(err.message || 'Error al actualizar proveedor');
+        }
         return response.json();
     },
-
     delete: async (id: number): Promise<void> => {
-        const response = await fetchWithAuth(`/products/${id}`, {
+        const response = await fetchWithAuth(`/api/suppliers/${id}`, {
             method: 'DELETE',
         });
-        if (!response.ok) throw new Error('Error al eliminar producto');
+        if (!response.ok) throw new Error('Error al eliminar proveedor');
     },
 };
 
@@ -927,6 +943,19 @@ export const metricsApi = {
     getDailyRevenue: async (days: number = 30): Promise<{ date: string; revenue: number }[]> => {
         const response = await fetchWithAuth(`/metrics/daily-revenue?days=${days}`);
         if (!response.ok) throw new Error('Error al obtener ingresos diarios');
+        return response.json();
+    },
+    getProductProfits: async (days: number = 90): Promise<{
+        productId: number;
+        productName: string;
+        quantitySold: number;
+        revenue: number;
+        cost: number;
+        profit: number;
+        marginPercent: number;
+    }[]> => {
+        const response = await fetchWithAuth(`/metrics/product-profits?days=${days}`);
+        if (!response.ok) throw new Error('Error al obtener ganancias por producto');
         return response.json();
     },
 };

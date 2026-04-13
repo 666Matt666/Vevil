@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { invoicesApi, Invoice, productsApi, Product, customersApi, Customer } from '../../services/api';
+import { invoicesApi, Invoice, productsApi, Product, customersApi, Customer, metricsApi } from '../../services/api';
 import { formatMoney, getCompanyConfig } from '../settings/Settings';
 import { LoadingSpinner } from '../ui/LoadingSpinner';
 
@@ -49,7 +49,7 @@ const Reports: React.FC = () => {
     const [dateRange, setDateRange] = useState<DateRange>('month');
     const [customStartDate, setCustomStartDate] = useState('');
     const [customEndDate, setCustomEndDate] = useState('');
-    const [activeTab, setActiveTab] = useState<'overview' | 'products' | 'customers' | 'charts'>('overview');
+    const [activeTab, setActiveTab] = useState<'overview' | 'products' | 'customers' | 'charts' | 'profits'>('overview');
 
     const company = getCompanyConfig();
 
@@ -400,11 +400,12 @@ const Reports: React.FC = () => {
                     { id: 'overview', label: '📈 Resumen', icon: '📈' },
                     { id: 'charts', label: '📊 Gráficos', icon: '📊' },
                     { id: 'products', label: '📦 Productos', icon: '📦' },
-                    { id: 'customers', label: '👥 Clientes', icon: '👥' }
+                    { id: 'customers', label: '👥 Clientes', icon: '👥' },
+                    { id: 'profits', label: '💵 Ganancias', icon: '💵' }
                 ].map(tab => (
                     <button
                         key={tab.id}
-                        onClick={() => setActiveTab(tab.id as 'overview' | 'charts' | 'products' | 'customers')}
+                        onClick={() => setActiveTab(tab.id as 'overview' | 'charts' | 'products' | 'customers' | 'profits')}
                         style={{
                             padding: '12px 24px',
                             border: 'none',
@@ -831,6 +832,153 @@ const Reports: React.FC = () => {
                             </tbody>
                         </table>
                     )}
+                </div>
+            )}
+
+            {/* Tab: Ganancias */}
+            {activeTab === 'profits' && <ProfitsTab />}
+        </div>
+    );
+};
+
+const ProfitsTab: React.FC = () => {
+    const [profits, setProfits] = useState<{
+        productId: number;
+        productName: string;
+        quantitySold: number;
+        revenue: number;
+        cost: number;
+        profit: number;
+        marginPercent: number;
+    }[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [days, setDays] = useState(90);
+    const [error, setError] = useState<string | null>(null);
+
+    useEffect(() => {
+        loadProfits();
+    }, [days]);
+
+    const loadProfits = async () => {
+        try {
+            setLoading(true);
+            setError(null);
+            const data = await metricsApi.getProductProfits(days);
+            setProfits(data);
+        } catch (err: any) {
+            setError(err.message || 'Error al cargar ganancias');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const totalRevenue = profits.reduce((sum, p) => sum + p.revenue, 0);
+    const totalCost = profits.reduce((sum, p) => sum + p.cost, 0);
+    const totalProfit = profits.reduce((sum, p) => sum + p.profit, 0);
+    const avgMargin = totalRevenue > 0 ? (totalProfit / totalRevenue) * 100 : 0;
+
+    return (
+        <div>
+            <div style={{ display: 'flex', gap: '12px', marginBottom: '20px', flexWrap: 'wrap' }}>
+                <select
+                    value={days}
+                    onChange={(e) => setDays(Number(e.target.value))}
+                    style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid #d1d5db', fontSize: '14px' }}
+                >
+                    <option value={30}>Últimos 30 días</option>
+                    <option value={60}>Últimos 60 días</option>
+                    <option value={90}>Últimos 90 días</option>
+                    <option value={180}>Últimos 6 meses</option>
+                    <option value={365}>Último año</option>
+                </select>
+            </div>
+
+            {error && (
+                <div style={{ padding: '12px', backgroundColor: '#fee2e2', color: '#dc2626', borderRadius: '8px', marginBottom: '16px' }}>
+                    {error}
+                </div>
+            )}
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '16px', marginBottom: '24px' }}>
+                <div style={{ ...cardStyle, borderLeft: '4px solid #22c55e' }}>
+                    <p style={{ fontSize: '14px', color: '#64748b', margin: 0 }}>💰 Ingresos</p>
+                    <p style={{ fontSize: '24px', fontWeight: 700, color: '#22c55e', margin: '8px 0 0 0' }}>
+                        {formatMoney(totalRevenue, 'PYG')}
+                    </p>
+                </div>
+                <div style={{ ...cardStyle, borderLeft: '4px solid #ef4444' }}>
+                    <p style={{ fontSize: '14px', color: '#64748b', margin: 0 }}>📦 Costos</p>
+                    <p style={{ fontSize: '24px', fontWeight: 700, color: '#ef4444', margin: '8px 0 0 0' }}>
+                        {formatMoney(totalCost, 'PYG')}
+                    </p>
+                </div>
+                <div style={{ ...cardStyle, borderLeft: '4px solid #3b82f6' }}>
+                    <p style={{ fontSize: '14px', color: '#64748b', margin: 0 }}>💵 Ganancia Neta</p>
+                    <p style={{ fontSize: '24px', fontWeight: 700, color: '#3b82f6', margin: '8px 0 0 0' }}>
+                        {formatMoney(totalProfit, 'PYG')}
+                    </p>
+                </div>
+                <div style={{ ...cardStyle, borderLeft: '4px solid #8b5cf6' }}>
+                    <p style={{ fontSize: '14px', color: '#64748b', margin: 0 }}>📊 Margen Promedio</p>
+                    <p style={{ fontSize: '24px', fontWeight: 700, color: '#8b5cf6', margin: '8px 0 0 0' }}>
+                        {avgMargin.toFixed(1)}%
+                    </p>
+                </div>
+            </div>
+
+            {loading ? (
+                <LoadingSpinner />
+            ) : profits.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '40px', color: '#64748b' }}>
+                    No hay datos de ganancias para el período seleccionado
+                </div>
+            ) : (
+                <div style={{ overflowX: 'auto', backgroundColor: 'white', borderRadius: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '700px' }}>
+                        <thead>
+                            <tr style={{ backgroundColor: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
+                                <th style={{ padding: '14px 16px', textAlign: 'left', fontSize: '13px', fontWeight: 600, color: '#475569' }}>Producto</th>
+                                <th style={{ padding: '14px 16px', textAlign: 'right', fontSize: '13px', fontWeight: 600, color: '#475569' }}>Vendidos</th>
+                                <th style={{ padding: '14px 16px', textAlign: 'right', fontSize: '13px', fontWeight: 600, color: '#475569' }}>Ingresos</th>
+                                <th style={{ padding: '14px 16px', textAlign: 'right', fontSize: '13px', fontWeight: 600, color: '#475569' }}>Costo</th>
+                                <th style={{ padding: '14px 16px', textAlign: 'right', fontSize: '13px', fontWeight: 600, color: '#475569' }}>Ganancia</th>
+                                <th style={{ padding: '14px 16px', textAlign: 'center', fontSize: '13px', fontWeight: 600, color: '#475569' }}>Margen</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {profits.map((p) => (
+                                <tr key={p.productId} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                                    <td style={{ padding: '14px 16px', fontSize: '14px', color: '#1e293b', fontWeight: 500 }}>
+                                        {p.productName}
+                                    </td>
+                                    <td style={{ padding: '14px 16px', textAlign: 'right', fontSize: '14px', color: '#475569' }}>
+                                        {p.quantitySold.toLocaleString('es-PY')}
+                                    </td>
+                                    <td style={{ padding: '14px 16px', textAlign: 'right', fontSize: '14px', color: '#22c55e', fontWeight: 500 }}>
+                                        {formatMoney(p.revenue, 'PYG')}
+                                    </td>
+                                    <td style={{ padding: '14px 16px', textAlign: 'right', fontSize: '14px', color: '#ef4444' }}>
+                                        {formatMoney(p.cost, 'PYG')}
+                                    </td>
+                                    <td style={{ padding: '14px 16px', textAlign: 'right', fontSize: '14px', color: p.profit >= 0 ? '#3b82f6' : '#ef4444', fontWeight: 600 }}>
+                                        {formatMoney(p.profit, 'PYG')}
+                                    </td>
+                                    <td style={{ padding: '14px 16px', textAlign: 'center' }}>
+                                        <span style={{
+                                            padding: '4px 10px',
+                                            borderRadius: '12px',
+                                            fontSize: '13px',
+                                            fontWeight: 500,
+                                            backgroundColor: p.marginPercent >= 30 ? '#dcfce7' : p.marginPercent >= 10 ? '#fef3c7' : '#fee2e2',
+                                            color: p.marginPercent >= 30 ? '#166534' : p.marginPercent >= 10 ? '#92400e' : '#991b1b'
+                                        }}>
+                                            {p.marginPercent.toFixed(1)}%
+                                        </span>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
                 </div>
             )}
         </div>

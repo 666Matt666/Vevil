@@ -28,6 +28,10 @@ let MetricsController = class MetricsController {
         const daysNum = days ? parseInt(days, 10) : 30;
         return this.metricsService.getDailyRevenue(Math.min(daysNum, 365));
     }
+    async getProductProfits(days) {
+        const daysNum = days ? parseInt(days, 10) : 90;
+        return this.metricsService.getProductProfits(Math.min(daysNum, 365));
+    }
 };
 exports.MetricsController = MetricsController;
 __decorate([
@@ -53,6 +57,16 @@ __decorate([
     __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", Promise)
 ], MetricsController.prototype, "getDailyRevenue", null);
+__decorate([
+    (0, common_1.Get)('product-profits'),
+    (0, swagger_1.ApiOperation)({ summary: 'Obtener ganancias por producto' }),
+    (0, swagger_1.ApiQuery)({ name: 'days', required: false, description: 'Días hacia atrás (default 90)', type: Number }),
+    (0, swagger_1.ApiResponse)({ status: 200, description: 'Ganancias por producto.' }),
+    __param(0, (0, common_1.Query)('days')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", Promise)
+], MetricsController.prototype, "getProductProfits", null);
 exports.MetricsController = MetricsController = __decorate([
     (0, common_1.Controller)('metrics'),
     (0, swagger_1.ApiTags)('Métricas'),

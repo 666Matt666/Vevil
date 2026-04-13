@@ -34,4 +34,23 @@ export class MetricsController {
     const daysNum = days ? parseInt(days, 10) : 30;
     return this.metricsService.getDailyRevenue(Math.min(daysNum, 365));
   }
+
+  @Get('product-profits')
+  @ApiOperation({ summary: 'Obtener ganancias por producto' })
+  @ApiQuery({ name: 'days', required: false, description: 'Días hacia atrás (default 90)', type: Number })
+  @ApiResponse({ status: 200, description: 'Ganancias por producto.' })
+  async getProductProfits(
+    @Query('days') days?: string,
+  ): Promise<{
+    productId: number;
+    productName: string;
+    quantitySold: number;
+    revenue: number;
+    cost: number;
+    profit: number;
+    marginPercent: number;
+  }[]> {
+    const daysNum = days ? parseInt(days, 10) : 90;
+    return this.metricsService.getProductProfits(Math.min(daysNum, 365));
+  }
 }

@@ -69,4 +69,9 @@ __decorate([
     (0, class_validator_1.IsDateString)(),
     __metadata("design:type", String)
 ], CreateInvoiceDto.prototype, "dueDate", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsNumber)(),
+    __metadata("design:type", Number)
+], CreateInvoiceDto.prototype, "sendEmail", void 0);
 //# sourceMappingURL=create-invoice.dto.js.map

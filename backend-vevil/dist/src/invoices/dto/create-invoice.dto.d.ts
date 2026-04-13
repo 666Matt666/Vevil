@@ -11,4 +11,5 @@ export declare class CreateInvoiceDto {
     notes?: string;
     discountPercent?: number;
     dueDate?: string;
+    sendEmail?: number;
 }

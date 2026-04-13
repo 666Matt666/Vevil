@@ -60,4 +60,13 @@ export declare class MetricsService {
     private getTopProductsSold;
     private getTopProductsSoldBetween;
     private getLowStockProducts;
+    getProductProfits(days?: number): Promise<{
+        productId: number;
+        productName: string;
+        quantitySold: number;
+        revenue: number;
+        cost: number;
+        profit: number;
+        marginPercent: number;
+    }[]>;
 }

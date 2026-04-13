@@ -44,4 +44,8 @@ export class CreateInvoiceDto {
     @IsOptional()
     @IsDateString()
     dueDate?: string;
+
+    @IsOptional()
+    @IsNumber()
+    sendEmail?: number; // 0 or 1 - whether to send email to customer
 }

@@ -236,4 +236,56 @@ export class MetricsService {
       })
       .map((p) => ({ id: p.id, name: p.name, stock: p.stock, minStock: p.minStock ?? 0 }));
   }
+
+  async getProductProfits(days: number = 90): Promise<{
+    productId: number;
+    productName: string;
+    quantitySold: number;
+    revenue: number;
+    cost: number;
+    profit: number;
+    marginPercent: number;
+  }[]> {
+    const since = new Date();
+    since.setDate(since.getDate() - days);
+
+    const rows = await this.invoiceItemRepo
+      .createQueryBuilder('item')
+      .innerJoin('item.invoice', 'inv')
+      .innerJoin('item.product', 'p')
+      .select('item.productId', 'productId')
+      .addSelect('p.name', 'productName')
+      .addSelect('SUM(item.quantity)', 'quantity_sold')
+      .addSelect('SUM(item.quantity * item.priceAtSale)', 'revenue')
+      .addSelect('SUM(item.quantity * COALESCE(p.costPrice, 0))', 'cost')
+      .where('inv.date >= :since AND inv.status != :status', { since, status: 'cancelled' })
+      .groupBy('item.productId')
+      .addGroupBy('p.name')
+      .orderBy('revenue', 'DESC')
+      .getRawMany<{
+        productId: number;
+        productName: string;
+        quantity_sold: string;
+        revenue: string;
+        cost: string;
+      }>();
+
+    return rows
+      .map((r) => {
+        const revenue = parseFloat(r.revenue || '0');
+        const cost = parseFloat(r.cost || '0');
+        const profit = revenue - cost;
+        const marginPercent = revenue > 0 ? (profit / revenue) * 100 : 0;
+        return {
+          productId: r.productId,
+          productName: r.productName,
+          quantitySold: parseInt(r.quantity_sold || '0', 10),
+          revenue,
+          cost,
+          profit,
+          marginPercent: Math.round(marginPercent * 100) / 100,
+        };
+      })
+      .filter((p) => p.revenue > 0);
+  }
 }

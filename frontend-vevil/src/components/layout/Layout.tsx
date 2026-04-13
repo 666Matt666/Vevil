@@ -13,6 +13,7 @@ const menuItems = [
     { label: 'Productos', icon: '📦', path: '/products' },
     { label: 'Mov. de stock', icon: '📥', path: '/stock-movements' },
     { label: 'Clientes', icon: '🤝', path: '/customers' },
+    { label: 'Proveedores', icon: '🚚', path: '/suppliers' },
     { label: 'Facturas', icon: '📄', path: '/invoices' },
     { label: 'Cuentas Corrientes', icon: '💳', path: '/accounts' },
     { label: 'Reportes', icon: '📊', path: '/reports' },

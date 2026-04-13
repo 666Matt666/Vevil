@@ -24,6 +24,18 @@ export function exportInvoiceToPdf(invoice: Invoice): void {
     const lineH = 6;
     const margin = 20;
 
+    // Logo de empresa (si existe)
+    if (company.logoUrl) {
+        try {
+            const logoSize = 25;
+            doc.addImage(company.logoUrl, 'PNG', margin, 10, logoSize, logoSize);
+            y = 10 + logoSize + 6;
+        } catch (e) {
+            console.warn('Error loading logo:', e);
+            y = 20;
+        }
+    }
+
     // Izquierda: FACTURA + N°
     doc.setFontSize(22);
     doc.setFont('helvetica', 'bold');

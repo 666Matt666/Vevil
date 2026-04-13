@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryProvider } from './hooks/QueryProvider';
 import { ToastProvider } from './hooks/useToast';
+import AlertsWidget from './components/ui/AlertsWidget';
 import './assets/main.css'
 
 // Auth
@@ -28,6 +29,8 @@ import StockMovements from './components/stock-movements/StockMovements.tsx';
 import PendingRegistrations from './components/admin/PendingRegistrations.tsx';
 import UserManagement from './components/admin/UserManagement.tsx';
 import AuditLogView from './components/audit/AuditLogView.tsx';
+import SuppliersList from './components/suppliers/SuppliersList.tsx';
+import PublicPortal from './components/public/PublicPortal.tsx';
 
 // Componente que escucha cambios en localStorage para detectar cambio de usuario
 const AppContent: React.FC = () => {
@@ -50,33 +53,38 @@ const AppContent: React.FC = () => {
     }, []);
 
     return (
-        <Routes>
-            {/* Rutas públicas */}
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
-            <Route path="/forgot-password" element={<ForgotPassword />} />
-            <Route path="/reset-password" element={<ResetPassword />} />
-            <Route path="/confirm-registration" element={<ConfirmRegistration />} />
+        <>
+            <Routes>
+                {/* Rutas públicas */}
+                <Route path="/login" element={<Login />} />
+                <Route path="/register" element={<Register />} />
+                <Route path="/forgot-password" element={<ForgotPassword />} />
+                <Route path="/reset-password" element={<ResetPassword />} />
+                <Route path="/confirm-registration" element={<ConfirmRegistration />} />
+                <Route path="/portal" element={<PublicPortal />} />
 
-            {/* Rutas protegidas con Layout */}
-            {/* Key basada en userId para remarcar Layout cuando cambia el usuario */}
-            <Route path="/" element={<Layout key={userId} />}>
-                <Route index element={<Navigate to="/dashboard" replace />} />
-                <Route path="dashboard" element={<Dashboard />} />
-                <Route path="products" element={<ProductList />} />
-                <Route path="stock-movements" element={<StockMovements />} />
-                <Route path="customers" element={<CustomerList />} />
-                <Route path="invoices" element={<InvoiceList />} />
-                <Route path="invoices/:invoiceId" element={<InvoiceDetail />} />
-                <Route path="reports" element={<Reports />} />
-                <Route path="accounts" element={<AccountsReceivable />} />
-                <Route path="pending-registrations" element={<PendingRegistrations />} />
-                <Route path="audit" element={<AuditLogView />} />
-                <Route path="users" element={<UserManagement />} />
-                <Route path="admin/users" element={<UserManagement showAllUsers={true} />} />
-                <Route path="settings" element={<Settings />} />
-            </Route>
-        </Routes>
+                {/* Rutas protegidas con Layout */}
+                {/* Key basada en userId para remarcar Layout cuando cambia el usuario */}
+                <Route path="/" element={<Layout key={userId} />}>
+                    <Route index element={<Navigate to="/dashboard" replace />} />
+                    <Route path="dashboard" element={<Dashboard />} />
+                    <Route path="products" element={<ProductList />} />
+                    <Route path="stock-movements" element={<StockMovements />} />
+                    <Route path="customers" element={<CustomerList />} />
+                    <Route path="suppliers" element={<SuppliersList />} />
+                    <Route path="invoices" element={<InvoiceList />} />
+                    <Route path="invoices/:invoiceId" element={<InvoiceDetail />} />
+                    <Route path="reports" element={<Reports />} />
+                    <Route path="accounts" element={<AccountsReceivable />} />
+                    <Route path="pending-registrations" element={<PendingRegistrations />} />
+                    <Route path="audit" element={<AuditLogView />} />
+                    <Route path="users" element={<UserManagement />} />
+                    <Route path="admin/users" element={<UserManagement showAllUsers={true} />} />
+                    <Route path="settings" element={<Settings />} />
+                </Route>
+            </Routes>
+            <AlertsWidget />
+        </>
     );
 };
 

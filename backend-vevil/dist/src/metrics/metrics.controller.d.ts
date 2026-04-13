@@ -7,4 +7,13 @@ export declare class MetricsController {
         date: string;
         revenue: number;
     }[]>;
+    getProductProfits(days?: string): Promise<{
+        productId: number;
+        productName: string;
+        quantitySold: number;
+        revenue: number;
+        cost: number;
+        profit: number;
+        marginPercent: number;
+    }[]>;
 }

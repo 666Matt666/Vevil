@@ -21,6 +21,9 @@ import { PendingRegistrationsModule } from './pending-registrations/pending-regi
 import { WebAuthnModule } from './webauthn/webauthn.module';
 import { AuditModule } from './audit/audit.module';
 import { BackupModule } from './backup/backup.module';
+import { SuppliersModule } from './suppliers/suppliers.module';
+import { PublicModule } from './public/public.module';
+import { ClientUsersModule } from './client-users/client-users.module';
 import { User } from './users/user.entity';
 // import { ProfileModule } from './profile/profile.module';
 
@@ -143,6 +146,12 @@ import { User } from './users/user.entity';
     AuditModule,
 
     BackupModule,
+
+    SuppliersModule,
+
+    PublicModule,
+
+    ClientUsersModule,
 
     // ProfileModule,
   ],

@@ -23,6 +23,7 @@ export interface CompanyConfig {
     phone: string;
     email: string;
     website: string;
+    logoUrl: string;
 }
 
 export interface InvoiceConfig {
@@ -64,6 +65,7 @@ export interface AlertsConfig {
     lowStockEnabled: boolean;
     lowStockThreshold: number;
     timbradoExpiryWarningDays: number;
+    pendingInvoicesEnabled: boolean;
 }
 
 export interface AppearanceConfig {
@@ -87,7 +89,8 @@ const defaultCompany: CompanyConfig = {
     city: '',
     phone: '',
     email: '',
-    website: ''
+    website: '',
+    logoUrl: ''
 };
 
 const defaultInvoice: InvoiceConfig = {
@@ -138,7 +141,8 @@ const defaultPaymentMethods: PaymentMethod[] = [
 const defaultAlerts: AlertsConfig = {
     lowStockEnabled: true,
     lowStockThreshold: 100,
-    timbradoExpiryWarningDays: 30
+    timbradoExpiryWarningDays: 30,
+    pendingInvoicesEnabled: true
 };
 
 const defaultAppearance: AppearanceConfig = {
@@ -597,6 +601,19 @@ const Settings: React.FC = () => {
                         style={inputStyle}
                         placeholder="www.empresa.com.py"
                     />
+                </div>
+                <div style={{ gridColumn: 'span 2' }}>
+                    <label style={labelStyle}>URL del Logo</label>
+                    <input
+                        type="text"
+                        value={company.logoUrl}
+                        onChange={(e) => setCompany({ ...company, logoUrl: e.target.value })}
+                        style={inputStyle}
+                        placeholder="https://ejemplo.com/logo.png"
+                    />
+                    <p style={{ fontSize: '12px', color: '#64748b', margin: '4px 0 0 0' }}>
+                        Ingresa la URL de tu logo para que aparezca en los PDFs generados
+                    </p>
                 </div>
             </div>
         </div>
@@ -1104,6 +1121,29 @@ const Settings: React.FC = () => {
                             />
                         </div>
                     )}
+                </div>
+
+                {/* Alerta de Facturas Pendientes */}
+                <div style={{ 
+                    padding: '20px', 
+                    backgroundColor: '#f8fafc', 
+                    borderRadius: '12px',
+                    border: '1px solid #e2e8f0'
+                }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}>
+                        <input
+                            type="checkbox"
+                            checked={alerts.pendingInvoicesEnabled}
+                            onChange={(e) => setAlerts({ ...alerts, pendingInvoicesEnabled: e.target.checked })}
+                            style={{ width: '20px', height: '20px' }}
+                        />
+                        <div>
+                            <span style={{ fontWeight: 600, color: '#1e293b' }}>📋 Alerta de Facturas Pendientes</span>
+                            <p style={{ margin: '4px 0 0 0', fontSize: '14px', color: '#64748b' }}>
+                                Notificar cuando haya facturas pendientes de pago
+                            </p>
+                        </div>
+                    </label>
                 </div>
 
                 {/* Alerta de Timbrado */}

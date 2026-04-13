@@ -87,6 +87,15 @@ let InvoicesService = class InvoicesService {
             for (const itemDto of createInvoiceDto.items) {
                 await this.stockMovementsService.recordSale(itemDto.productId, itemDto.quantity, savedInvoice.id).catch(() => { });
             }
+            if (createInvoiceDto.sendEmail && customer?.email) {
+                const itemsForEmail = savedInvoice.items?.map((item) => ({
+                    name: item.product?.name || `Producto ${item.productId}`,
+                    quantity: item.quantity,
+                    price: parseFloat(item.priceAtSale),
+                    total: parseFloat(item.priceAtSale) * item.quantity,
+                })) || [];
+                this.mailService.sendInvoiceEmail(customer.email, customer.name, String(savedInvoice.id).padStart(7, '0'), Number(savedInvoice.total), savedInvoice.currency || 'PYG', itemsForEmail).catch((err) => console.error('Error sending invoice email:', err));
+            }
             return savedInvoice;
         }
         catch (err) {

@@ -103,6 +103,7 @@ const InvoiceList: React.FC = () => {
     const [invoiceNotes, setInvoiceNotes] = useState<string>('');
     const [invoiceDiscount, setInvoiceDiscount] = useState<number>(0);
     const [invoiceDueDate, setInvoiceDueDate] = useState<string>('');
+    const [sendEmailToCustomer, setSendEmailToCustomer] = useState<boolean>(true);
     
     // Validation errors state
     const [formErrors, setFormErrors] = useState<{
@@ -304,6 +305,7 @@ const InvoiceList: React.FC = () => {
         setInvoiceNotes('');
         setInvoiceDiscount(0);
         setInvoiceDueDate('');
+        setSendEmailToCustomer(true);
     };
 
     const addItem = () => {
@@ -410,7 +412,8 @@ const InvoiceList: React.FC = () => {
                 items: validItems,
                 notes: invoiceNotes || undefined,
                 discountPercent: invoiceDiscount || undefined,
-                dueDate: invoiceDueDate || undefined
+                dueDate: invoiceDueDate || undefined,
+                sendEmail: sendEmailToCustomer ? 1 : 0
             });
             closeModal();
             showToast('Factura creada exitosamente', 'success');
@@ -1075,6 +1078,20 @@ const InvoiceList: React.FC = () => {
                                         style={inputStyle}
                                     />
                                 </div>
+                            </div>
+
+                            {/* Send email checkbox */}
+                            <div style={{ marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <input
+                                    type="checkbox"
+                                    id="sendEmail"
+                                    checked={sendEmailToCustomer}
+                                    onChange={(e) => setSendEmailToCustomer(e.target.checked)}
+                                    style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+                                />
+                                <label htmlFor="sendEmail" style={{ fontSize: '14px', color: '#374151', cursor: 'pointer' }}>
+                                    📧 Enviar factura por email al cliente
+                                </label>
                             </div>
 
                             {/* Items */}

@@ -23,6 +23,9 @@ export class BackupService {
   private readonly githubRepo = process.env.GITHUB_BACKUP_REPO;
   private readonly githubPath = process.env.GITHUB_BACKUP_PATH || 'backups';
   private readonly deleteAfterUpload = process.env.GITHUB_BACKUP_DELETE_LOCAL !== 'false';
+  
+  // Runtime backup destination (can be changed via API)
+  private backupDestination: 'local' | 'github' = 'local';
 
   constructor(
     @InjectRepository(Backup)
@@ -160,8 +163,8 @@ export class BackupService {
         }
       }
 
-      // Upload to GitHub if enabled
-      if (this.githubEnabled && backup.filePath && fs.existsSync(backup.filePath)) {
+      // Upload to GitHub if enabled and selected as destination
+      if (this.backupDestination === 'github' && backup.filePath && fs.existsSync(backup.filePath)) {
         await this.uploadToGithub(backup, filePath);
         
         // Delete local file after upload if configured
@@ -277,6 +280,29 @@ export class BackupService {
       order: { createdAt: 'DESC' },
       take: limit,
     });
+  }
+
+  getBackupSettings() {
+    const canUseGithub = this.githubEnabled && this.githubToken && this.githubOwner && this.githubRepo;
+    return {
+      destination: this.backupDestination,
+      availableDestinations: canUseGithub 
+        ? ['local', 'github'] 
+        : ['local'],
+      githubConfigured: this.githubEnabled && !!this.githubToken,
+      githubRepo: this.githubEnabled ? `${this.githubOwner}/${this.githubRepo}` : null,
+    };
+  }
+
+  updateBackupSettings(destination: string): { success: boolean; destination: string } {
+    if (destination === 'github') {
+      if (!this.githubEnabled || !this.githubToken || !this.githubOwner || !this.githubRepo) {
+        return { success: false, destination: this.backupDestination };
+      }
+    }
+    this.backupDestination = destination as 'local' | 'github';
+    this.logger.log(`Backup destination changed to: ${this.backupDestination}`);
+    return { success: true, destination: this.backupDestination };
   }
 
   async getBackupById(id: string): Promise<Backup | null> {

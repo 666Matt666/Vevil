@@ -59,6 +59,7 @@ let BackupService = BackupService_1 = class BackupService {
         this.githubRepo = process.env.GITHUB_BACKUP_REPO;
         this.githubPath = process.env.GITHUB_BACKUP_PATH || 'backups';
         this.deleteAfterUpload = process.env.GITHUB_BACKUP_DELETE_LOCAL !== 'false';
+        this.backupDestination = 'local';
         this.ensureBackupDir();
         if (this.githubEnabled) {
             this.logger.log(`GitHub backup enabled: ${this.githubOwner}/${this.githubRepo}/${this.githubPath}`);
@@ -178,7 +179,7 @@ let BackupService = BackupService_1 = class BackupService {
                     await this.backupRepo.save(b);
                 }
             }
-            if (this.githubEnabled && backup.filePath && fs.existsSync(backup.filePath)) {
+            if (this.backupDestination === 'github' && backup.filePath && fs.existsSync(backup.filePath)) {
                 await this.uploadToGithub(backup, filePath);
                 if (this.deleteAfterUpload && fs.existsSync(backup.filePath)) {
                     try {
@@ -276,6 +277,27 @@ let BackupService = BackupService_1 = class BackupService {
             order: { createdAt: 'DESC' },
             take: limit,
         });
+    }
+    getBackupSettings() {
+        const canUseGithub = this.githubEnabled && this.githubToken && this.githubOwner && this.githubRepo;
+        return {
+            destination: this.backupDestination,
+            availableDestinations: canUseGithub
+                ? ['local', 'github']
+                : ['local'],
+            githubConfigured: this.githubEnabled && !!this.githubToken,
+            githubRepo: this.githubEnabled ? `${this.githubOwner}/${this.githubRepo}` : null,
+        };
+    }
+    updateBackupSettings(destination) {
+        if (destination === 'github') {
+            if (!this.githubEnabled || !this.githubToken || !this.githubOwner || !this.githubRepo) {
+                return { success: false, destination: this.backupDestination };
+            }
+        }
+        this.backupDestination = destination;
+        this.logger.log(`Backup destination changed to: ${this.backupDestination}`);
+        return { success: true, destination: this.backupDestination };
     }
     async getBackupById(id) {
         return this.backupRepo.findOne({ where: { id } });

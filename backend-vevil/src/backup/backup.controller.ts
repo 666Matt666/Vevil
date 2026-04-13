@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Delete, Param, Res, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Delete, Param, Res, Query, UseGuards, Body } from '@nestjs/common';
 import { BackupService } from './backup.service';
 import { BackupType, BackupFrequency, BackupSlot } from './backup.entity';
 import { Response } from 'express';
@@ -23,6 +23,16 @@ export class BackupController {
       data: filtered,
       total: filtered.length,
     };
+  }
+
+  @Get('settings')
+  async getSettings() {
+    return this.backupService.getBackupSettings();
+  }
+
+  @Post('settings')
+  async updateSettings(@Body() body: { destination: string }) {
+    return this.backupService.updateBackupSettings(body.destination);
   }
 
   @Get(':id')

@@ -13,6 +13,7 @@ export declare class BackupService {
     private readonly githubRepo;
     private readonly githubPath;
     private readonly deleteAfterUpload;
+    private backupDestination;
     constructor(backupRepo: Repository<Backup>);
     private ensureBackupDir;
     getDbConfig(): {
@@ -33,6 +34,16 @@ export declare class BackupService {
     private createIncrementalBackup;
     private uploadToGithub;
     getBackups(limit?: number): Promise<Backup[]>;
+    getBackupSettings(): {
+        destination: "local" | "github";
+        availableDestinations: string[];
+        githubConfigured: boolean;
+        githubRepo: string;
+    };
+    updateBackupSettings(destination: string): {
+        success: boolean;
+        destination: string;
+    };
     getBackupById(id: string): Promise<Backup | null>;
     getBackupFile(id: string): Promise<Buffer | null>;
     triggerManualBackup(): Promise<Backup>;

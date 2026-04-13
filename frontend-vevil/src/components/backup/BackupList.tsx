@@ -32,6 +32,39 @@ const BackupList: React.FC = () => {
     const [preview, setPreview] = useState<string>('');
     const [previewLoading, setPreviewLoading] = useState(false);
     const [currentDate, setCurrentDate] = useState(new Date());
+    const [backupDestination, setBackupDestination] = useState<'local' | 'github'>('local');
+
+    const loadBackupSettings = async () => {
+        try {
+            const res = await fetch('/api/backups/settings');
+            if (res.ok) {
+                const data = await res.json();
+                setBackupDestination(data.destination || 'local');
+            }
+        } catch (err) {
+            console.error('Error loading backup settings:', err);
+        }
+    };
+
+    const handleDestinationChange = async (dest: 'local' | 'github') => {
+        try {
+            const res = await fetch('/api/backups/settings', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ destination: dest }),
+            });
+            if (res.ok) {
+                setBackupDestination(dest);
+            }
+        } catch (err) {
+            console.error('Error saving backup settings:', err);
+        }
+    };
+
+    useEffect(() => {
+        loadBackups();
+        loadBackupSettings();
+    }, []);
 
     const getBackupSchedule = (date: Date): { time: string; frequency: string } | null => {
         const day = date.getDay();
@@ -262,21 +295,38 @@ const BackupList: React.FC = () => {
                         Calendario de respaldos automáticos programados.
                     </p>
                 </div>
-                <button
-                    onClick={triggerBackup}
-                    disabled={triggering}
-                    style={{
-                        padding: '10px 20px',
-                        backgroundColor: triggering ? '#94a3b8' : '#22c55e',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '8px',
-                        fontWeight: 500,
-                        cursor: triggering ? 'not-allowed' : 'pointer',
-                    }}
-                >
-                    {triggering ? 'Ejecutando...' : 'Crear Backup Ahora'}
-                </button>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <select
+                        value={backupDestination}
+                        onChange={(e) => handleDestinationChange(e.target.value as 'local' | 'github')}
+                        style={{
+                            padding: '8px 12px',
+                            borderRadius: '6px',
+                            border: '1px solid #e2e8f0',
+                            fontSize: '13px',
+                            backgroundColor: 'white',
+                            cursor: 'pointer',
+                        }}
+                    >
+                        <option value="local">💾 Servidor local</option>
+                        <option value="github">🐙 GitHub</option>
+                    </select>
+                    <button
+                        onClick={triggerBackup}
+                        disabled={triggering}
+                        style={{
+                            padding: '10px 20px',
+                            backgroundColor: triggering ? '#94a3b8' : '#22c55e',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '8px',
+                            fontWeight: 500,
+                            cursor: triggering ? 'not-allowed' : 'pointer',
+                        }}
+                    >
+                        {triggering ? 'Ejecutando...' : 'Crear Backup Ahora'}
+                    </button>
+                </div>
             </div>
 
             {downloadAlerts.length > 0 && (

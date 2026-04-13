@@ -7,6 +7,18 @@ export declare class BackupController {
         data: import("./backup.entity").Backup[];
         total: number;
     }>;
+    getSettings(): Promise<{
+        destination: "local" | "github";
+        availableDestinations: string[];
+        githubConfigured: boolean;
+        githubRepo: string;
+    }>;
+    updateSettings(body: {
+        destination: string;
+    }): Promise<{
+        success: boolean;
+        destination: string;
+    }>;
     getBackup(id: string): Promise<import("./backup.entity").Backup>;
     getBackupContent(id: string): Promise<{
         error: string;

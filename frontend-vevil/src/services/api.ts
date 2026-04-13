@@ -576,6 +576,19 @@ export const productsApi = {
         if (!response.ok) throw new Error('Error al obtener productos');
         return response.json();
     },
+    getPage: async (
+        page: number,
+        limit: number,
+        filters?: { search?: string; type?: string; category?: string },
+    ): Promise<PaginatedResponse<Product>> => {
+        const params = new URLSearchParams({ page: String(page), limit: String(limit) });
+        if (filters?.search?.trim()) params.set('search', filters.search.trim());
+        if (filters?.type?.trim()) params.set('type', filters.type.trim());
+        if (filters?.category?.trim()) params.set('category', filters.category.trim());
+        const response = await fetchWithAuth(`/products?${params.toString()}`);
+        if (!response.ok) throw new Error('Error al obtener productos');
+        return response.json();
+    },
 };
 
 // ============ PROVEEDORES ============

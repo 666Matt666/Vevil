@@ -589,6 +589,33 @@ export const productsApi = {
         if (!response.ok) throw new Error('Error al obtener productos');
         return response.json();
     },
+    getById: async (id: number): Promise<Product> => {
+        const response = await fetchWithAuth(`/products/${id}`);
+        if (!response.ok) throw new Error('Error al obtener producto');
+        return response.json();
+    },
+    create: async (product: Partial<Product>): Promise<Product> => {
+        const response = await fetchWithAuth('/products', {
+            method: 'POST',
+            body: JSON.stringify(product),
+        });
+        if (!response.ok) throw new Error('Error al crear producto');
+        return response.json();
+    },
+    update: async (id: number, product: Partial<Product>): Promise<Product> => {
+        const response = await fetchWithAuth(`/products/${id}`, {
+            method: 'PATCH',
+            body: JSON.stringify(product),
+        });
+        if (!response.ok) throw new Error('Error al actualizar producto');
+        return response.json();
+    },
+    delete: async (id: number): Promise<void> => {
+        const response = await fetchWithAuth(`/products/${id}`, {
+            method: 'DELETE',
+        });
+        if (!response.ok) throw new Error('Error al eliminar producto');
+    },
 };
 
 // ============ PROVEEDORES ============

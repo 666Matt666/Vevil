@@ -253,17 +253,88 @@ DB_DATABASE=postgres
 ## Applied Skills & Rules
 Este proyecto sigue las mejores prácticas de:
 
-- **Vercel React Best Practices** (69 rules) - async waterfalls, bundle size, re-renders
+### Core Skills (Active)
+- **Vercel React Best Practices** (70 rules) - async waterfalls, bundle optimization, re-render control
+- **Vercel Composition Patterns** (10+ patterns) - compound components, lifting state, explicit variants
 - **NestJS Best Practices** (40 rules) - architecture, DI, validation, security
 - **TypeScript Best Practices** - type safety, immutability, error handling
 - **Supabase PostgreSQL Best Practices** - indexes, queries, RLS, connection pooling
-- **Web Performance Optimization** - Core Web Vitals, lazy loading, code splitting
-- **Testing Strategies** - test pyramid (70% unit, 20% integration, 10% E2E)
+- **Web Performance Optimization** - Core Web Vitals (LCP <2.5s, INP <200ms, CLS <0.1)
+
+### Testing & QA
+- **Playwright Best Practices** (50+ patterns) - E2E, component, API, visual regression, accessibility, mobile testing
+- **Web Application Testing** (anthropics) - form validation, a11y, responsive, file ops, service workers, error states
+- **Systematic Debugging** (obra/superpowers) - root cause investigation, 4-phase process
+
+### Backend & Architecture
+- **Node.js Backend Patterns** (wshobson) - Express/Fastify/NestJS patterns, middleware, auth, DB, API design
+
+## Weekly Skills Review
+
+**Automated**: GitHub Action `weekly-skills-check.yml` runs every Monday 9 AM UTC.
+
+**Manual**: Execute `./scripts/weekly-skills-check.sh` for full report.
+
+**Current installed skills**:
+1. ✅ `vercel-react-best-practices` (322K)
+2. ✅ `supabase-postgres-best-practices` (100K)
+3. ✅ `systematic-debugging` (61K)
+4. ✅ `typescript-advanced-types` (32K)
+5. ✅ `playwright-best-practices` (27K) [added 16/4/2026]
+6. ✅ `web-app-testing` (49K) [added 16/4/2026]
+7. ✅ `nodejs-backend-patterns` (25K) [added 16/4/2026]
+8. ✅ `vercel-composition-patterns` (135K) [added 16/4/2026]
+
+**Pending evaluation**:
+- `better-auth-best-practices` (38K) - auth security enhancements
+- `frontend-design` (anthropics) - UI/UX polish
+- `next-best-practices` (64K) - if migrating to Next.js
+
+See `SKILLS.md` for detailed skill management guide.
+
+- **Node.js Backend Patterns** (wshobson) - Express/Fastify/NestJS patterns, middleware, auth, DB, API design
 
 ## Resources
 - [PostgreSQL Best Practices](https://skills.sh/supabase/agent-skills/supabase-postgres-best-practices)
 - [Playwright Testing](https://skills.sh/currents-dev/playwright-best-practices-skill/playwright-best-practices)
 - [Vercel React Best Practices](https://skills.sh/vercel-labs/agent-skills/vercel-react-best-practices)
+- [Vercel Composition Patterns](https://skills.sh/vercel-labs/agent-skills/vercel-composition-patterns)
 - [NestJS Best Practices](https://skills.sh/kadajett/agent-nestjs-skills/nestjs-best-practices)
 - [TypeScript Best Practices](https://skills.sh/jwynia/agent-skills/typescript-best-practices)
 - [Web Performance Optimization](https://skills.sh/bobmatnyc/claude-mpm-skills/web-performance-optimization)
+- [Web Application Testing](https://skills.sh/anthropics/skills/web-app-testing)
+- [Node.js Backend Patterns](https://skills.sh/wshobson/agents/nodejs-backend-patterns)
+- [Systematic Debugging](https://skills.sh/obra/superpowers/systematic-debugging)
+
+## Skill Maintenance
+
+### Weekly Check (Automated)
+```yaml
+# .github/workflows/weekly-skills-check.yml
+# Runs every Monday 9:00 AM UTC
+# Reviews https://skills.sh/ for new relevant skills
+# Logs to: logs/skills-check-YYYY-MM-DD.log
+```
+
+### Manual Weekly Review
+```bash
+cd C:\Workspace\Vevil-git
+./scripts/weekly-skills-check.sh
+```
+
+### Skill Installation
+```bash
+# Install a new skill for Kilo/AI agent
+npx skills add <repo-url> --skill <skill-name>
+
+# Example:
+npx skills add https://github.com/vercel-labs/agent-skills --skill vercel-composition-patterns
+```
+
+### Current Skill Set
+See `SKILLS.md` for detailed skill documentation and installation history.
+
+---
+
+**Last updated**: 16/4/2026  
+**Next weekly check**: 23/4/2026

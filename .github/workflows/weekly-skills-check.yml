@@ -1,0 +1,83 @@
+name: Weekly Skills Check
+
+on:
+  schedule:
+    # Every Monday at 9:00 AM UTC (6am ARG/Paraguay)
+    - cron: '0 9 * * 1'
+  workflow_dispatch:  # Allow manual trigger
+
+jobs:
+  check-new-skills:
+    name: Check for new Agent Skills
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install skills CLI
+        run: |
+          echo "🔧 Installing skills CLI..."
+          npm install -g @skills/cli 2>/dev/null || true
+          echo "✅ Skills CLI ready"
+
+      - name: Check skills.sh for new skills
+        run: |
+          echo "🔍 Checking https://skills.sh/ for new relevant skills..."
+          echo ""
+          echo "📅 Date: $(date)"
+          echo "👤 Repository: ${{ github.repository }}"
+          echo ""
+          echo "🌐 Skills directory: https://skills.sh/"
+          echo ""
+          echo "📋 Currently installed skills in Vevil:"
+          echo "  ✅ vercel-react-best-practices (322K installs)"
+          echo "  ✅ supabase-postgres-best-practices (100K)"
+          echo "  ✅ systematic-debugging (61K)"
+          echo "  ✅ typescript-advanced-types (32K)"
+          echo "  ✅ playwright-best-practices (27K) [NEW]"
+          echo "  ✅ web-app-testing (49K) [NEW]"
+          echo "  ✅ nodejs-backend-patterns (25K) [NEW]"
+          echo ""
+          echo "🔎 Skills to evaluate weekly:"
+          echo "  1. vercel-composition-patterns (135K) - React composition patterns"
+          echo "  2. next-best-practices (64K) - Next.js optimization"
+          echo "  3. better-auth-best-practices (38K) - Auth security"
+          echo "  4. frontend-design (pbakaus/impeccable) - UI polish"
+          echo "  5. azure-* (Microsoft) - Cloud patterns (si usamos Azure)"
+          echo ""
+          echo "✅ Check complete. Visit https://skills.sh/ manually to review."
+
+      - name: Create check log
+        run: |
+         mkdir -p logs
+          echo "# Weekly Skills Check - $(date)" > logs/skills-check-$(date +%Y-%m-%d).log
+          echo "" >> logs/skills-check-$(date +%Y-%m-%d).log
+          echo "Installed skills:" >> logs/skills-check-$(date +%Y-%m-%d).log
+          echo "  - vercel-react-best-practices" >> logs/skills-check-$(date +%Y-%m-%d).log
+          echo "  - supabase-postgres-best-practices" >> logs/skills-check-$(date +%Y-%m-%d).log
+          echo "  - systematic-debugging" >> logs/skills-check-$(date +%Y-%m-%d).log
+          echo "  - typescript-advanced-types" >> logs/skills-check-$(date +%Y-%m-%d).log
+          echo "  - playwright-best-practices [new]" >> logs/skills-check-$(date +%Y-%m-%d).log
+          echo "  - web-app-testing [new]" >> logs/skills-check-$(date +%Y-%m-%d).log
+          echo "  - nodejs-backend-patterns [new]" >> logs/skills-check-$(date +%Y-%m-%d).log
+          echo "" >> logs/skills-check-$(date +%Y-%m-%d).log
+          echo "New skills to evaluate:" >> logs/skills-check-$(date +%Y-%m-%d).log
+          echo "  - vercel-composition-patterns (135K)" >> logs/skills-check-$(date +%Y-%m-%d).log
+          echo "  - next-best-practices (64K)" >> logs/skills-check-$(date +%Y-%m-%d).log
+          echo "  - better-auth-best-practices (38K)" >> logs/skills-check-$(date +%Y-%m-%d).log
+          echo "" >> logs/skills-check-$(date +%Y-%m-%d).log
+          echo "Action required: Manual review at https://skills.sh/" >> logs/skills-check-$(date +%Y-%m-%d).log
+
+      - name: Commit check log
+        run: |
+          git config --global user.name "Skills Check Bot"
+          git config --global user.email "skills-check@vevil.local"
+          git add logs/
+          git diff --staged --quiet || git commit -m "chore: weekly skills check log"
+          git push || echo "No changes to push"

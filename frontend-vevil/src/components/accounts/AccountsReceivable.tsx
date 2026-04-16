@@ -176,6 +176,28 @@ const AccountsReceivable: React.FC = () => {
                 <p style={{ fontSize: '16px', color: '#64748b', margin: '4px 0 0 0' }}>
                     Gestión de clientes con crédito y cobranzas
                 </p>
+                <div style={{ marginTop: '16px', display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+                    <button
+                        onClick={() => window.location.hash = '/customers'}
+                        style={{
+                            ...buttonStyle,
+                            backgroundColor: '#6366f1',
+                            color: 'white'
+                        }}
+                    >
+                        👤 Ver Clientes
+                    </button>
+                    <button
+                        onClick={() => window.location.hash = '/invoices'}
+                        style={{
+                            ...buttonStyle,
+                            backgroundColor: '#f59e0b',
+                            color: 'white'
+                        }}
+                    >
+                        🧾 Nueva Factura
+                    </button>
+                </div>
             </div>
 
             {/* Resumen */}
@@ -220,9 +242,22 @@ const AccountsReceivable: React.FC = () => {
                 <div style={{ display: 'grid', gridTemplateColumns: selectedCustomerId ? '1fr 1fr' : '1fr', gap: '24px' }}>
                     {/* Lista de clientes */}
                     <div style={cardStyle}>
-                        <h3 style={{ margin: '0 0 16px 0', fontSize: '18px', fontWeight: 600, color: '#1e293b' }}>
-                            Clientes con Cuenta Corriente
-                        </h3>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                            <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 600, color: '#1e293b' }}>
+                                Clientes con Cuenta Corriente
+                            </h3>
+                            <button
+                                onClick={() => window.location.hash = '/customers'}
+                                style={{
+                                    ...buttonStyle,
+                                    backgroundColor: '#22c55e',
+                                    color: 'white',
+                                    fontSize: '13px'
+                                }}
+                            >
+                                ➕ Agregar Cliente
+                            </button>
+                        </div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                             {customerAccounts.map(account => (
                                 <div
@@ -293,25 +328,36 @@ const AccountsReceivable: React.FC = () => {
                                         </p>
                                     )}
                                 </div>
-                                <button
-                                    onClick={() => {
-                                        const firstId = selectedAccount.pendingInvoices[0]?.id;
-                                        setPaymentForm({
-                                            invoiceId: firstId ? String(firstId) : '',
-                                            amount: '',
-                                            method: 'cash'
-                                        });
-                                        setShowPaymentModal(true);
-                                    }}
-                                    style={{
-                                        ...buttonStyle,
-                                        backgroundColor: '#22c55e',
-                                        color: 'white',
-                                        padding: '10px 20px'
-                                    }}
-                                >
-                                    💵 Registrar Pago
-                                </button>
+                                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                                    <button
+                                        onClick={() => window.location.hash = `/customers?edit=${selectedAccount.customer.id}`}
+                                        style={{
+                                            ...buttonStyle,
+                                            backgroundColor: '#6366f1',
+                                            color: 'white'
+                                        }}
+                                    >
+                                        ✏️ Editar Cliente
+                                    </button>
+                                    <button
+                                        onClick={() => {
+                                            const firstId = selectedAccount.pendingInvoices[0]?.id;
+                                            setPaymentForm({
+                                                invoiceId: firstId ? String(firstId) : '',
+                                                amount: '',
+                                                method: 'cash'
+                                            });
+                                            setShowPaymentModal(true);
+                                        }}
+                                        style={{
+                                            ...buttonStyle,
+                                            backgroundColor: '#22c55e',
+                                            color: 'white'
+                                        }}
+                                    >
+                                        💵 Registrar Pago
+                                    </button>
+                                </div>
                             </div>
 
                             {/* Balance */}
@@ -653,15 +699,3 @@ const AccountsReceivable: React.FC = () => {
 };
 
 export default AccountsReceivable;
-
-
-
-
-
-
-
-
-
-
-
-

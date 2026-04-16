@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { invoicesApi, Invoice, customersApi, Customer, productsApi, Product, getErrorMessage } from '../../services/api';
@@ -34,6 +34,12 @@ const inputStyle: React.CSSProperties = {
     boxSizing: 'border-box'
 };
 
+const cardStyle: React.CSSProperties = {
+    backgroundColor: 'white',
+    borderRadius: '12px',
+    padding: '24px',
+};
+
 const labelStyle: React.CSSProperties = {
     display: 'block',
     fontSize: '14px',
@@ -42,9 +48,11 @@ const labelStyle: React.CSSProperties = {
     marginBottom: '6px'
 };
 
-interface InvoiceItem {
+// Line item for invoice form
+interface InvoiceFormItem {
     productId: number;
     quantity: number;
+    discountPercent?: number;
 }
 
 // Estados de pago
@@ -100,7 +108,7 @@ const InvoiceList: React.FC = () => {
     const [selectedCustomerId, setSelectedCustomerId] = useState<string>('');
     const [selectedCurrency, setSelectedCurrency] = useState<string>('PYG');
     const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>('cash');
-    const [items, setItems] = useState<InvoiceItem[]>([{ productId: 0, quantity: 1 }]);
+    const [items, setItems] = useState<InvoiceFormItem[]>([{ productId: 0, quantity: 1 }]);
     const [invoiceNotes, setInvoiceNotes] = useState<string>('');
     const [invoiceDiscount, setInvoiceDiscount] = useState<number>(0);
     const [invoiceDueDate, setInvoiceDueDate] = useState<string>('');
@@ -426,8 +434,7 @@ const InvoiceList: React.FC = () => {
                 items: validItems,
                 notes: invoiceNotes || undefined,
                 discountPercent: invoiceDiscount || undefined,
-                dueDate: invoiceDueDate || undefined,
-                sendEmail: sendEmailToCustomer ? 1 : 0
+                dueDate: invoiceDueDate || undefined
             });
             closeModal();
             showToast('Factura creada exitosamente', 'success');
@@ -638,7 +645,7 @@ const InvoiceList: React.FC = () => {
                         📄 PDF
                     </button>
                     <button 
-                        onClick={openCreateModal}
+                        onClick={() => openCreateModal()}
                         style={{
                             ...buttonStyle,
                             padding: '12px 24px',
@@ -797,7 +804,7 @@ const InvoiceList: React.FC = () => {
                     <p style={{ fontSize: '48px', margin: '0 0 16px 0' }}>📄</p>
                     <p style={{ color: '#1e293b', fontSize: '18px', fontWeight: 600, margin: '0 0 8px 0' }}>No hay facturas registradas</p>
                     <p style={{ color: '#64748b', margin: '0 0 24px 0' }}>Creá tu primera factura para empezar a cobrar.</p>
-                    <button onClick={openCreateModal} style={{ ...buttonStyle, backgroundColor: '#f97316', color: 'white' }}>
+                    <button onClick={() => openCreateModal()} style={{ ...buttonStyle, backgroundColor: '#f97316', color: 'white' }}>
                         Crear primera factura
                     </button>
                 </div>

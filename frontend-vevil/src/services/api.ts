@@ -193,6 +193,7 @@ export interface UserProfile {
     lastName?: string;
     role?: string;
     isActive?: boolean;
+    avatar?: string;
 }
 export interface LoginResponse {
     access_token: string;
@@ -944,6 +945,10 @@ export const statsApi = {
             totalRevenue: invoices.reduce((sum, inv) => sum + Number(inv.total), 0),
         };
     },
+    getBasicStats: async () => {
+        // Alias for getDashboardStats for compatibility
+        return statsApi.getDashboardStats();
+    },
 };
 
 // ============ MÉTRICAS (CONTROLES) ============
@@ -961,6 +966,8 @@ export interface DashboardMetrics {
     lowStockProducts: number;
     lowStockList: { id: number; name: string; stock: number; minStock: number }[];
     topProductsSold: { productId: number; productName: string; quantitySold: number }[];
+    pendingInvoices: number;
+    pendingInvoicesAmount: number;
     periodFrom?: string;
     periodTo?: string;
     periodRevenue?: number;
@@ -1046,6 +1053,7 @@ export interface SystemUser {
     isActive: boolean;
     createdAt: string;
     updatedAt: string;
+    avatar?: string;
 }
 
 // Tipos de respuesta para usersApi

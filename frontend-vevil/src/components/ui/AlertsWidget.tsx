@@ -26,7 +26,7 @@ export const AlertsWidget: React.FC<{ compact?: boolean }> = ({ compact = false 
         if (compact) return;
         const handleClickOutside = (event: MouseEvent) => {
             if (panelRef.current && !panelRef.current.contains(event.target as Node)) {
-                setIsOpen(false);
+                setPanelOpen(false);
             }
         };
         document.addEventListener('mousedown', handleClickOutside);

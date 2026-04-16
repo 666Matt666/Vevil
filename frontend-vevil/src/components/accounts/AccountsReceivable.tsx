@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { customersApi, Customer, invoicesApi, Invoice, Payment as ApiPayment, getErrorMessage } from '../../services/api';
+import { useToast } from '../../hooks/useToast';
 import { formatMoney } from '../settings/Settings';
 import { LoadingSpinner } from '../ui/LoadingSpinner';
 import { ErrorMessage } from '../ui/ErrorMessage';
@@ -41,6 +42,7 @@ interface CustomerAccount {
 
 const AccountsReceivable: React.FC = () => {
     const navigate = useNavigate();
+    const { showToast } = useToast();
     const [customers, setCustomers] = useState<Customer[]>([]);
     const [invoices, setInvoices] = useState<Invoice[]>([]);
     const [loading, setLoading] = useState(true);

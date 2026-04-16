@@ -188,7 +188,7 @@ const AccountsReceivable: React.FC = () => {
                         👤 Ver Clientes
                     </button>
                     <button
-                        onClick={() => window.location.hash = '/invoices'}
+                        onClick={() => window.location.href = '/invoices'}
                         style={{
                             ...buttonStyle,
                             backgroundColor: '#f59e0b',
@@ -247,7 +247,7 @@ const AccountsReceivable: React.FC = () => {
                                 Clientes con Cuenta Corriente
                             </h3>
                             <button
-                                onClick={() => window.location.hash = '/customers'}
+onClick={() => window.location.href = '/customers'}
                                 style={{
                                     ...buttonStyle,
                                     backgroundColor: '#22c55e',
@@ -330,7 +330,7 @@ const AccountsReceivable: React.FC = () => {
                                 </div>
                                 <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                                     <button
-                                        onClick={() => window.location.hash = `/customers?edit=${selectedAccount.customer.id}`}
+                                        onClick={() => window.location.href = `/customers?edit=${selectedAccount.customer.id}`}
                                         style={{
                                             ...buttonStyle,
                                             backgroundColor: '#6366f1',

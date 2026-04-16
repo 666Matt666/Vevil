@@ -115,7 +115,7 @@ const AccountsReceivable: React.FC = () => {
         e.preventDefault();
         const invoiceId = paymentForm.invoiceId ? parseInt(paymentForm.invoiceId, 10) : 0;
         if (!invoiceId || !paymentForm.amount) {
-            alert('Seleccioná una factura e ingresá el monto');
+            showToast('Seleccioná una factura e ingresá el monto', 'error');
             return;
         }
         try {
@@ -126,19 +126,21 @@ const AccountsReceivable: React.FC = () => {
             setShowPaymentModal(false);
             setPaymentForm({ invoiceId: '', amount: '', method: 'cash' });
             loadData();
+            showToast('Pago registrado exitosamente', 'success');
         } catch (err) {
-            alert(getErrorMessage(err, 'Error al registrar pago'));
+            showToast(getErrorMessage(err, 'Error al registrar pago'), 'error');
         }
-    }, [paymentForm, loadData]);
+    }, [paymentForm, loadData, showToast]);
 
     const markInvoiceAsPaid = useCallback(async (invoiceId: number) => {
         try {
             await invoicesApi.updateStatus(invoiceId, 'paid');
             loadData();
+            showToast('Factura marcada como pagada', 'success');
         } catch (err) {
-            alert(getErrorMessage(err, 'Error al actualizar'));
+            showToast(getErrorMessage(err, 'Error al actualizar'), 'error');
         }
-    }, [loadData]);
+    }, [loadData, showToast]);
 
     const handleDeletePayment = useCallback(async () => {
         if (!paymentToDelete) return;
@@ -147,12 +149,13 @@ const AccountsReceivable: React.FC = () => {
             await invoicesApi.deletePayment(paymentToDelete.invoiceId, paymentToDelete.paymentId);
             setPaymentToDelete(null);
             loadData();
+            showToast('Pago eliminado exitosamente', 'success');
         } catch (err) {
-            alert(getErrorMessage(err, 'Error al eliminar pago'));
+            showToast(getErrorMessage(err, 'Error al eliminar pago'), 'error');
         } finally {
             setDeletingPayment(false);
         }
-    }, [paymentToDelete, loadData]);
+    }, [paymentToDelete, loadData, showToast]);
 
     const formatDate = (dateString: string) => {
         return new Date(dateString).toLocaleDateString('es-PY', {
@@ -436,31 +439,31 @@ const AccountsReceivable: React.FC = () => {
                                                 <span style={{ fontWeight: 700, color: '#1e293b' }}>
                                                     {formatMoney(Number(inv.total), inv.currency ?? 'PYG')}
                                                 </span>
-                                                <button
-                                                    type="button"
-                                                    onClick={async () => {
-                                                        try {
-                                                            const result = await invoicesApi.sendReminder(inv.id);
-                                                            if (result.sent) {
-                                                                alert('Recordatorio enviado por email al cliente.');
-                                                            } else {
-                                                                alert(result.reason || 'No se pudo enviar.');
+                                                    <button
+                                                        type="button"
+                                                        onClick={async () => {
+                                                            try {
+                                                                const result = await invoicesApi.sendReminder(inv.id);
+                                                                if (result.sent) {
+                                                                    showToast('Recordatorio enviado por email al cliente.', 'success');
+                                                                } else {
+                                                                    showToast(result.reason || 'No se pudo enviar', 'warning');
+                                                                }
+                                                            } catch (e) {
+                                                                showToast(getErrorMessage(e, 'Error al enviar recordatorio'), 'error');
                                                             }
-                                                        } catch (e) {
-                                                            alert(getErrorMessage(e, 'Error al enviar recordatorio'));
-                                                        }
-                                                    }}
-                                                    style={{
-                                                        ...buttonStyle,
-                                                        backgroundColor: '#eff6ff',
-                                                        color: '#1d4ed8',
-                                                        fontSize: '12px',
-                                                        padding: '6px 12px'
-                                                    }}
-                                                    title="Enviar email de recordatorio al cliente"
-                                                >
-                                                    📧 Recordatorio
-                                                </button>
+                                                        }}
+                                                        style={{
+                                                            ...buttonStyle,
+                                                            backgroundColor: '#eff6ff',
+                                                            color: '#1d4ed8',
+                                                            fontSize: '12px',
+                                                            padding: '6px 12px'
+                                                        }}
+                                                        title="Enviar email de recordatorio al cliente"
+                                                    >
+                                                        📧 Recordatorio
+                                                    </button>
                                                 <button
                                                     onClick={() => markInvoiceAsPaid(inv.id)}
                                                     style={{

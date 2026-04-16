@@ -46,10 +46,10 @@ export class AuthController {
     private auditService: AuditService,
   ) { }
 
-  /**
-   * Configura las cookies HttpOnly con los tokens de autenticación.
-   */
-  private setTokenCookies(res: Response, accessToken: string, refreshToken: string): void {
+   /**
+    * Configura las cookies HttpOnly con los tokens de autenticación.
+    */
+   private setTokenCookies(res: Response, accessToken: string, refreshToken: string): void {
     const isProduction = process.env.NODE_ENV === 'production';
     console.log('[Auth] setTokenCookies: isProduction:', isProduction);
 

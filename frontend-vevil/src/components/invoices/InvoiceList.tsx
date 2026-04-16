@@ -138,8 +138,9 @@ const InvoiceList: React.FC = () => {
         try {
             await invoicesApi.updateStatus(invoiceId, status);
             setInvoices(prev => prev.map(inv => inv.id === invoiceId ? { ...inv, status } : inv));
+            showToast('Estado de factura actualizado', 'success');
         } catch (err) {
-            alert(getErrorMessage(err, 'Error al actualizar estado'));
+            showToast(getErrorMessage(err, 'Error al actualizar estado'), 'error');
         }
     };
 
@@ -158,8 +159,9 @@ const InvoiceList: React.FC = () => {
             await invoicesApi.updateStatus(invoiceToCancel.id, 'cancelled');
             setInvoices(prev => prev.map(inv => inv.id === invoiceToCancel.id ? { ...inv, status: 'cancelled' } : inv));
             setInvoiceToCancel(null);
+            showToast('Factura anulada exitosamente', 'success');
         } catch (err) {
-            alert(getErrorMessage(err, 'Error al anular factura'));
+            showToast(getErrorMessage(err, 'Error al anular factura'), 'error');
         } finally {
             setCancelling(false);
         }
@@ -197,7 +199,7 @@ const InvoiceList: React.FC = () => {
             setShowEditModal(false);
             loadData(invoicePage);
         } catch (err) {
-            alert(getErrorMessage(err, 'Error al actualizar factura'));
+            showToast(getErrorMessage(err, 'Error al actualizar factura'), 'error');
         } finally {
             setSaving(false);
         }
@@ -237,7 +239,7 @@ const InvoiceList: React.FC = () => {
             setShowDeleteModal(false);
             loadData(invoicePage);
         } catch (err) {
-            alert(getErrorMessage(err, 'Error al eliminar factura'));
+            showToast(getErrorMessage(err, 'Error al eliminar factura'), 'error');
         } finally {
             setDeleting(false);
         }
@@ -329,7 +331,7 @@ const InvoiceList: React.FC = () => {
         if (!templateName) return;
         const validItems = items.filter(i => i.productId > 0);
         if (validItems.length === 0) {
-            alert('Agregá al menos un producto antes de guardar la plantilla');
+            showToast('Agregá al menos un producto antes de guardar la plantilla', 'error');
             return;
         }
         const newTemplates = [...invoiceTemplates, {
@@ -340,7 +342,7 @@ const InvoiceList: React.FC = () => {
         }];
         setInvoiceTemplates(newTemplates);
         localStorage.setItem('invoice_templates', JSON.stringify(newTemplates));
-        alert('Plantilla guardada');
+        showToast('Plantilla guardada correctamente', 'success');
     };
 
     const loadTemplate = (template: typeof invoiceTemplates[0]) => {
@@ -369,7 +371,8 @@ const InvoiceList: React.FC = () => {
         setItems(newItems);
     };
 
-    const calculateTotal = () => {
+    // Memoized calculations to prevent unnecessary re-renders
+    const total = useMemo(() => {
         return items.reduce((sum, item) => {
             const product = products.find(p => p.id === item.productId);
             if (product) {
@@ -379,13 +382,12 @@ const InvoiceList: React.FC = () => {
             }
             return sum;
         }, 0);
-    };
+    }, [items, products]);
 
-    const calculateFinalTotal = () => {
-        const subtotal = calculateTotal();
-        const discount = subtotal * (invoiceDiscount / 100);
-        return subtotal - discount;
-    };
+    const finalTotal = useMemo(() => {
+        const discount = total * (invoiceDiscount / 100);
+        return total - discount;
+    }, [total, invoiceDiscount]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -1273,30 +1275,30 @@ const InvoiceList: React.FC = () => {
                                 borderRadius: '8px',
                                 marginBottom: '24px'
                             }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                                    <span style={{ fontSize: '14px', color: '#64748b' }}>Subtotal:</span>
-                                    <span style={{ fontSize: '16px', color: '#1e293b' }}>
-                                        {formatMoney(calculateTotal(), selectedCurrency)}
-                                    </span>
-                                </div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                                        <span style={{ fontSize: '14px', color: '#64748b' }}>Subtotal:</span>
+                                        <span style={{ fontSize: '16px', color: '#1e293b' }}>
+                                            {formatMoney(total, selectedCurrency)}
+                                        </span>
+                                    </div>
                                 {invoiceDiscount > 0 && (
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                                         <span style={{ fontSize: '14px', color: '#16a34a' }}>Descuento ({invoiceDiscount}%):</span>
                                         <span style={{ fontSize: '16px', color: '#16a34a' }}>
-                                            -{formatMoney(calculateTotal() * (invoiceDiscount / 100), selectedCurrency)}
+                                            -{formatMoney(total * (invoiceDiscount / 100), selectedCurrency)}
                                         </span>
                                     </div>
                                 )}
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                                     <span style={{ fontSize: '14px', color: '#64748b' }}>IVA (10%):</span>
                                     <span style={{ fontSize: '16px', color: '#1e293b' }}>
-                                        {formatMoney(calculateFinalTotal() * 0.10, selectedCurrency)}
+                                        {formatMoney(finalTotal * 0.10, selectedCurrency)}
                                     </span>
                                 </div>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '8px', borderTop: '1px solid #e2e8f0' }}>
                                     <span style={{ fontSize: '16px', fontWeight: 600, color: '#475569' }}>Total:</span>
                                     <span style={{ fontSize: '24px', fontWeight: 700, color: '#f97316' }}>
-                                        {formatMoney(calculateFinalTotal() * 1.10, selectedCurrency)}
+                                        {formatMoney(finalTotal * 1.10, selectedCurrency)}
                                     </span>
                                 </div>
                             </div>

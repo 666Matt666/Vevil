@@ -3,6 +3,7 @@ import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import cookieParser from 'cookie-parser';
+import helmet from 'helmet';
 import { AllExceptionsFilter } from './http-exception.filter';
 
 async function bootstrap() {
@@ -13,6 +14,20 @@ async function bootstrap() {
       console.log('🚀 Iniciando en PRODUCCIÓN...');
     }
     const app = await NestFactory.create(AppModule);
+
+    // Security: Helmet.js headers
+    app.use(helmet({
+      contentSecurityPolicy: {
+        directives: {
+          defaultSrc: ["'self'"],
+          scriptSrc: ["'self'", "'unsafe-inline'"], // Allow inline scripts for Vevil
+          styleSrc: ["'self'", "'unsafe-inline'"],
+          imgSrc: ["'self'", "data:", "https:"],
+          connectSrc: ["'self'", process.env.API_URL || 'http://localhost:3000'],
+        },
+      },
+      crossOriginEmbedderPolicy: false, // Needed for some cross-origin resources
+    }));
 
     // Middleware para parsear cookies (necesario para HttpOnly cookies)
     app.use(cookieParser());

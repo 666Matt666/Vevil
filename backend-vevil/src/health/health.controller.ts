@@ -1,5 +1,5 @@
 import { Controller, Get } from '@nestjs/common';
-import { HealthCheck, HealthCheckService, HealthCheckResult } from '@nestjs/terminus';
+import { HealthCheck, HealthCheckService, HealthCheckResult, HealthIndicatorResult } from '@nestjs/terminus';
 import { DataSource } from 'typeorm';
 import { InjectDataSource } from '@nestjs/typeorm';
 
@@ -15,13 +15,12 @@ export class HealthController {
   @HealthCheck()
   async check(): Promise<HealthCheckResult> {
     return this.health.check([
-      async () => {
+      async (): Promise<HealthIndicatorResult> => {
         try {
-          // Simple query to verify DB connection
           await this.dataSource.initialize();
-          return { status: 'up', timestamp: new Date().toISOString() };
+          return { database: { status: 'up' } };
         } catch (error) {
-          return { status: 'down', error: error.message, timestamp: new Date().toISOString() };
+          return { database: { status: 'down', error: error.message } };
         }
       },
     ]);

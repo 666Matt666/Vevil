@@ -25,6 +25,7 @@ import { SuppliersModule } from './suppliers/suppliers.module';
 import { PublicModule } from './public/public.module';
 import { ClientUsersModule } from './client-users/client-users.module';
 import { User } from './users/user.entity';
+import { HealthModule } from './health/health.module';
 // import { ProfileModule } from './profile/profile.module';
 
 @Module({

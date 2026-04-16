@@ -97,7 +97,7 @@ export function ToastContainer() {
         position: 'fixed',
         top: '80px',
         right: '24px',
-        zIndex: 9999,
+        zIndex: 2147483647,
         display: 'flex',
         flexDirection: 'column',
         gap: '12px',

@@ -5,6 +5,7 @@ import { InvoicesController } from './invoices.controller';
 import { Invoice } from './invoice.entity';
 import { InvoiceItem } from './invoice-item.entity';
 import { Payment } from './payment.entity';
+import { Customer } from '../customers/customer.entity';
 import { ProductsModule } from '../products/products.module';
 import { CustomersModule } from '../customers/customers.module';
 import { StockMovementsModule } from '../stock-movements/stock-movements.module';
@@ -13,7 +14,7 @@ import { InvoiceReminderService } from './invoice-reminder.service';
 
 @Module({
     imports: [
-        TypeOrmModule.forFeature([Invoice, InvoiceItem, Payment]),
+        TypeOrmModule.forFeature([Invoice, InvoiceItem, Payment, Customer]),
         ProductsModule,
         CustomersModule,
         StockMovementsModule,

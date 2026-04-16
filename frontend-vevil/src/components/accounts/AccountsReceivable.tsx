@@ -98,8 +98,7 @@ const AccountsReceivable: React.FC = () => {
                 payments,
                 totalPaid
             };
-        }).filter(acc => acc.totalDebt > 0 || acc.payments.length > 0)
-          .sort((a, b) => b.totalDebt - a.totalDebt);
+        }).sort((a, b) => b.totalDebt - a.totalDebt);
     }, [customers, invoices]);
 
     const totalPending = useMemo(() => 
@@ -238,12 +237,12 @@ const AccountsReceivable: React.FC = () => {
             {/* Lista de clientes con deuda */}
             {customerAccounts.length === 0 ? (
                 <div style={{ ...cardStyle, textAlign: 'center', padding: '48px' }}>
-                    <p style={{ fontSize: '48px', margin: '0 0 16px 0' }}>✅</p>
+                    <p style={{ fontSize: '48px', margin: '0 0 16px 0' }}>👥</p>
                     <p style={{ color: '#64748b', margin: 0 }}>
-                        No hay cuentas pendientes de cobro
+                        No hay clientes registrados
                     </p>
                     <p style={{ color: '#94a3b8', fontSize: '14px', margin: '8px 0 0 0' }}>
-                        Los clientes con facturas "Pendientes" aparecerán aquí
+                        Hacé clic en "Agregar Cliente" para crear uno y gestionar su cuenta corriente
                     </p>
                 </div>
             ) : (

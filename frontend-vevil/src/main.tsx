@@ -3,7 +3,6 @@ import ReactDOM from 'react-dom/client'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryProvider } from './hooks/QueryProvider';
 import { ToastProvider } from './hooks/useToast';
-import AlertsWidget from './components/ui/AlertsWidget';
 import './assets/main.css'
 
 // Auth
@@ -90,7 +89,6 @@ const AppContent: React.FC = () => {
 ReactDOM.createRoot(document.getElementById('root')!).render(
     <React.StrictMode>
         <ToastProvider>
-            <AlertsWidget />
             <QueryProvider>
                 <BrowserRouter>
                     <AppContent />

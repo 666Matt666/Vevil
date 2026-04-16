@@ -7,6 +7,7 @@ import { recordDashboardUsage } from '../../utils/dashboardUsage';
 import CurrencyRatesBar from './CurrencyRatesBar';
 import HelpPanel from '../help/HelpPanel';
 import { ToastContainer } from '../../hooks/useToast';
+import AlertsWidget from '../ui/AlertsWidget';
 
 const menuItems = [
     { label: 'Inicio', icon: '🏠', path: '/dashboard' },
@@ -509,6 +510,11 @@ const Layout: React.FC = () => {
                 )}
 
                 {showCurrencyBar && <CurrencyRatesBar />}
+
+                {/* Alertas sopra del contenido (arriba de los botones de acción) */}
+                <div style={{ padding: '0 24px', marginTop: '16px' }}>
+                    <AlertsWidget compact />
+                </div>
 
                 <Outlet />
             </main>

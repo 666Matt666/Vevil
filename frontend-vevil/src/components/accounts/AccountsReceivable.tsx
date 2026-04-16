@@ -38,6 +38,7 @@ interface CustomerAccount {
     totalDebt: number;
     payments: (ApiPayment & { invoiceId: number })[];
     totalPaid: number;
+    creditBalance: number;
 }
 
 const AccountsReceivable: React.FC = () => {
@@ -98,7 +99,8 @@ const AccountsReceivable: React.FC = () => {
                 pendingInvoices,
                 totalDebt,
                 payments,
-                totalPaid
+                totalPaid,
+                creditBalance: customer.creditBalance || 0,
             };
         }).sort((a, b) => b.totalDebt - a.totalDebt);
     }, [customers, invoices]);
@@ -413,6 +415,14 @@ const AccountsReceivable: React.FC = () => {
                                         {formatMoney(selectedAccount.totalDebt, 'PYG')}
                                     </p>
                                 </div>
+                                {selectedAccount.creditBalance > 0 && (
+                                    <div>
+                                        <p style={{ margin: 0, fontSize: '12px', color: '#64748b' }}>Saldo a Favor</p>
+                                        <p style={{ margin: '4px 0 0 0', fontSize: '20px', fontWeight: 700, color: '#22c55e' }}>
+                                            {formatMoney(selectedAccount.creditBalance, 'PYG')}
+                                        </p>
+                                    </div>
+                                )}
                             </div>
 
                             {/* Facturas pendientes */}
@@ -586,6 +596,30 @@ const AccountsReceivable: React.FC = () => {
                                         </option>
                                     ))}
                                 </select>
+
+                                {selectedAccount.creditBalance > 0 && paymentForm.invoiceId && (() => {
+                                    const inv = selectedAccount.pendingInvoices.find(i => i.id === Number(paymentForm.invoiceId));
+                                    if (inv) {
+                                        const apply = Math.min(selectedAccount.creditBalance, Number(inv.total));
+                                        return (
+                                            <div style={{
+                                                marginTop: '12px',
+                                                padding: '12px',
+                                                backgroundColor: '#f0fdf4',
+                                                borderRadius: '8px',
+                                                fontSize: '14px',
+                                                color: '#166534'
+                                            }}>
+                                                💰 Cliente tiene saldo a favor de {formatMoney(selectedAccount.creditBalance, 'PYG')}.<br />
+                                                Se aplicarán automáticamente <strong>{formatMoney(apply, 'PYG')}</strong> a esta factura.<br />
+                                                <span style={{ fontSize: '12px', color: '#374151' }}>
+                                                    El monto ingresado se cubrirá primero con saldo a favor y el resto con el método de pago seleccionado.
+                                                </span>
+                                            </div>
+                                        );
+                                    }
+                                    return null;
+                                })()}
                             </div>
                             <div style={{ marginBottom: '20px' }}>
                                 <label style={{ display: 'block', fontSize: '14px', fontWeight: 500, color: '#374151', marginBottom: '6px' }}>

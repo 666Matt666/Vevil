@@ -35,4 +35,7 @@ export class Customer {
 
     @Column({ nullable: true })
     tax_id: string; // CUIT/CUIL or similar
+
+    @Column({ type: 'decimal', precision: 12, scale: 2, nullable: false, default: 0 })
+    creditBalance: number;
 }

@@ -725,6 +725,7 @@ export interface Customer {
     address_zip?: string;
     google_maps_link?: string;
     tax_id?: string;
+    creditBalance?: number;
 }
 
 export const customersApi = {

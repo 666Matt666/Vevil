@@ -16,6 +16,8 @@
     "preview": "vite preview",
     "lint": "eslint .",
     "format": "prettier --write src/",
+    "typecheck": "tsc --noEmit",
+    "prepare": "husky",
     "e2e": "playwright test",
     "e2e:ui": "playwright test --ui",
     "e2e:wait-api": "node -e \"require('wait-on')({resources:['http://localhost:3001/api'],timeout:60000}).then(()=>require('child_process').execSync('npx playwright test --workers=1',{stdio:'inherit'})).catch(e=>{console.error(e);process.exit(1)})\"",
@@ -46,12 +48,20 @@
     "concurrently": "^9.2.1",
     "cross-env": "^10.1.0",
     "eslint": "^8.57.0",
+    "husky": "^9.1.6",
     "jsdom": "^25.0.1",
     "kill-port": "^2.0.1",
+    "lint-staged": "^15.2.0",
     "prettier": "^3.3.0",
     "start-server-and-test": "^2.1.5",
     "typescript": "~5.4.5",
     "vite": "^5.2.12",
     "vitest": "^2.1.8"
+  },
+  "lint-staged": {
+    "*.{ts,tsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ]
   }
 }

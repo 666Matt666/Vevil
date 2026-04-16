@@ -1,0 +1,11 @@
+#!/bin/sh
+. "$(dirname "$0")/../husky.sh"
+
+# Frontend pre-commit hook
+# Ejecuta: typecheck + lint-staged (eslint + prettier en archivos staged)
+
+echo "🔍 Running typecheck..."
+npm run typecheck
+
+echo "📝 Running lint-staged..."
+npx lint-staged

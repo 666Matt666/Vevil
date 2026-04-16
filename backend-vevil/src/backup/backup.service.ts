@@ -16,8 +16,9 @@ export class BackupService {
   private readonly backupDir = process.env.BACKUP_DIR || '/tmp/vevil-backups';
   private readonly maxBackups = 50;
 
-  // GitHub configuration
+// GitHub configuration
   private readonly githubEnabled = process.env.GITHUB_BACKUP_ENABLED === 'true';
+  private backupEnabled = process.env.BACKUP_ENABLED !== 'false';
   private readonly githubToken = process.env.GITHUB_BACKUP_TOKEN;
   private readonly githubOwner = process.env.GITHUB_BACKUP_OWNER;
   private readonly githubRepo = process.env.GITHUB_BACKUP_REPO;
@@ -285,6 +286,7 @@ export class BackupService {
   getBackupSettings() {
     const canUseGithub = this.githubEnabled && this.githubToken && this.githubOwner && this.githubRepo;
     return {
+      enabled: this.backupEnabled,
       destination: this.backupDestination,
       availableDestinations: canUseGithub 
         ? ['local', 'github'] 
@@ -292,6 +294,12 @@ export class BackupService {
       githubConfigured: this.githubEnabled && !!this.githubToken,
       githubRepo: this.githubEnabled ? `${this.githubOwner}/${this.githubRepo}` : null,
     };
+  }
+
+  setBackupEnabled(enabled: boolean): { success: boolean; enabled: boolean } {
+    this.backupEnabled = enabled;
+    this.logger.log(`Backup ${enabled ? 'habilitado' : 'deshabilitado'} desde API`);
+    return { success: true, enabled: this.backupEnabled };
   }
 
   updateBackupSettings(destination: string): { success: boolean; destination: string } {
@@ -318,6 +326,9 @@ export class BackupService {
   }
 
   async triggerManualBackup(): Promise<Backup> {
+    if (!this.backupEnabled) {
+      throw new Error('Backups están deshabilitados. Habilita BACKUP_ENABLED=true para usar esta función.');
+    }
     const slot = this.getDailySlot();
     return this.createBackup(BackupType.FULL, BackupFrequency.DIARIO, slot);
   }

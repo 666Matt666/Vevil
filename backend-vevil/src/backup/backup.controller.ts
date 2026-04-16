@@ -35,6 +35,11 @@ export class BackupController {
     return this.backupService.updateBackupSettings(body.destination);
   }
 
+  @Post('enabled')
+  async setEnabled(@Body() body: { enabled: boolean }) {
+    return this.backupService.setBackupEnabled(body.enabled);
+  }
+
   @Get(':id')
   async getBackup(@Param('id') id: string) {
     return this.backupService.getBackupById(id);

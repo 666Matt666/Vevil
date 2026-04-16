@@ -17,25 +17,28 @@ async function bootstrap() {
     // Middleware para parsear cookies (necesario para HttpOnly cookies)
     app.use(cookieParser());
 
-    // Configuración de CORS - siempre permitir Vercel y localhost; opcionalmente orígenes extra desde env
-    const defaultOrigins: (string | RegExp)[] = [
-      /^http:\/\/localhost(:\d+)?$/,
-      'http://localhost:3000',
-      /^https:\/\/[^.]+\.vercel\.app$/,  // https://vevil.vercel.app, etc.
-      /\.vercel\.dev$/,
-    ];
-    const envOrigins = process.env.CORS_ORIGINS
-      ? process.env.CORS_ORIGINS.split(',').map((o) => o.trim()).filter(Boolean)
-      : [];
-    const corsOrigins = [...envOrigins, ...defaultOrigins];
+     // Configuración de CORS - whitelist estricta según Security Best Practices
+     const defaultOrigins: (string | RegExp)[] = [
+       /^http:\/\/localhost(:\d+)?$/,
+       'http://localhost:3000',
+       /^https:\/\/[^.]+\.vercel\.app$/,  // https://vevil.vercel.app, etc.
+       /\.vercel\.dev$/,
+       /^https:\/\/vevil\.fly\.dev$/,     // Production backend
+       /^https:\/\/vevil-qa\.fly\.dev$/,  // QA environment
+       /^https:\/\/vevil-dev\.fly\.dev$/, // Dev environment
+     ];
+     const envOrigins = process.env.CORS_ORIGINS
+       ? process.env.CORS_ORIGINS.split(',').map((o) => o.trim()).filter(Boolean)
+       : [];
+     const corsOrigins = [...envOrigins, ...defaultOrigins];
 
-    app.enableCors({
-      origin: true, // Allow all origins in production for cookies to work
-      credentials: true,
-      methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-      allowedHeaders: ['Content-Type', 'Authorization', 'Cookie'],
-      exposedHeaders: ['Set-Cookie'],
-    });
+     app.enableCors({
+       origin: corsOrigins,
+       credentials: true,
+       methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+       allowedHeaders: ['Content-Type', 'Authorization', 'Cookie'],
+       exposedHeaders: ['Set-Cookie'],
+     });
 
     // Log de peticiones
     app.use((req: any, _res, next) => {

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { customersApi, Customer, invoicesApi, Invoice, Payment as ApiPayment, getErrorMessage } from '../../services/api';
 import { formatMoney } from '../settings/Settings';
@@ -75,7 +75,7 @@ const AccountsReceivable: React.FC = () => {
         }
     };
 
-    const getCustomerAccounts = (): CustomerAccount[] => {
+    const customerAccounts = useMemo((): CustomerAccount[] => {
         return customers.map(customer => {
             const pendingInvoices = invoices.filter(inv =>
                 inv.customerId === customer.id && inv.status === 'pending'
@@ -100,13 +100,19 @@ const AccountsReceivable: React.FC = () => {
             };
         }).filter(acc => acc.totalDebt > 0 || acc.payments.length > 0)
           .sort((a, b) => b.totalDebt - a.totalDebt);
-    };
+    }, [customers, invoices]);
 
-    const customerAccounts = getCustomerAccounts();
-    const totalPending = customerAccounts.reduce((sum, acc) => sum + acc.totalDebt, 0);
-    const selectedAccount = customerAccounts.find(acc => acc.customer.id === selectedCustomerId);
+    const totalPending = useMemo(() => 
+        customerAccounts.reduce((sum, acc) => sum + acc.totalDebt, 0),
+        [customerAccounts]
+    );
 
-    const handlePayment = async (e: React.FormEvent) => {
+    const selectedAccount = useMemo(() =>
+        customerAccounts.find(acc => acc.customer.id === selectedCustomerId),
+        [customerAccounts, selectedCustomerId]
+    );
+
+    const handlePayment = useCallback(async (e: React.FormEvent) => {
         e.preventDefault();
         const invoiceId = paymentForm.invoiceId ? parseInt(paymentForm.invoiceId, 10) : 0;
         if (!invoiceId || !paymentForm.amount) {
@@ -124,18 +130,18 @@ const AccountsReceivable: React.FC = () => {
         } catch (err) {
             alert(getErrorMessage(err, 'Error al registrar pago'));
         }
-    };
+    }, [paymentForm, loadData]);
 
-    const markInvoiceAsPaid = async (invoiceId: number) => {
+    const markInvoiceAsPaid = useCallback(async (invoiceId: number) => {
         try {
             await invoicesApi.updateStatus(invoiceId, 'paid');
             loadData();
         } catch (err) {
             alert(getErrorMessage(err, 'Error al actualizar'));
         }
-    };
+    }, [loadData]);
 
-    const handleDeletePayment = async () => {
+    const handleDeletePayment = useCallback(async () => {
         if (!paymentToDelete) return;
         try {
             setDeletingPayment(true);
@@ -147,7 +153,7 @@ const AccountsReceivable: React.FC = () => {
         } finally {
             setDeletingPayment(false);
         }
-    };
+    }, [paymentToDelete, loadData]);
 
     const formatDate = (dateString: string) => {
         return new Date(dateString).toLocaleDateString('es-PY', {

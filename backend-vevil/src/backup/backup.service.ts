@@ -16,7 +16,7 @@ export class BackupService {
   private readonly backupDir = process.env.BACKUP_DIR || '/tmp/vevil-backups';
   private readonly maxBackups = 50;
 
-// GitHub configuration
+  // GitHub configuration
   private readonly githubEnabled = process.env.GITHUB_BACKUP_ENABLED === 'true';
   private backupEnabled = process.env.BACKUP_ENABLED !== 'false';
   private readonly githubToken = process.env.GITHUB_BACKUP_TOKEN;
@@ -24,7 +24,7 @@ export class BackupService {
   private readonly githubRepo = process.env.GITHUB_BACKUP_REPO;
   private readonly githubPath = process.env.GITHUB_BACKUP_PATH || 'backups';
   private readonly deleteAfterUpload = process.env.GITHUB_BACKUP_DELETE_LOCAL !== 'false';
-  
+
   // Runtime backup destination (can be changed via API)
   private backupDestination: 'local' | 'github' = 'local';
 
@@ -76,6 +76,10 @@ export class BackupService {
 
   @Cron(CronExpression.EVERY_DAY_AT_2AM)
   async scheduledDailyBackup() {
+    if (!this.backupEnabled) {
+      this.logger.log('Backup deshabilitado, saltando backup diario');
+      return;
+    }
     const slot = this.getDailySlot();
     this.logger.log(`Iniciando backup diario slot: ${slot}...`);
     await this.createBackup(BackupType.INCREMENTAL, BackupFrequency.DIARIO, slot);
@@ -83,6 +87,10 @@ export class BackupService {
 
   @Cron('0 2 * * 6')
   async scheduledWeeklyBackup() {
+    if (!this.backupEnabled) {
+      this.logger.log('Backup deshabilitado, saltando backup semanal');
+      return;
+    }
     const slot = this.getWeeklySlot();
     this.logger.log(`Iniciando backup semanal slot: ${slot}...`);
     await this.createBackup(BackupType.FULL, BackupFrequency.SEMANAL, slot);
@@ -90,6 +98,10 @@ export class BackupService {
 
   @Cron('0 2 28-31 * *')
   async scheduledMonthlyBackup() {
+    if (!this.backupEnabled) {
+      this.logger.log('Backup deshabilitado, saltando backup mensual');
+      return;
+    }
     const today = new Date();
     const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
     if (today.getDate() >= lastDay - 3) {
@@ -167,7 +179,7 @@ export class BackupService {
       // Upload to GitHub if enabled and selected as destination
       if (this.backupDestination === 'github' && backup.filePath && fs.existsSync(backup.filePath)) {
         await this.uploadToGithub(backup, filePath);
-        
+
         // Delete local file after upload if configured
         if (this.deleteAfterUpload && fs.existsSync(backup.filePath)) {
           try {
@@ -201,9 +213,9 @@ export class BackupService {
     const since = yesterday.toISOString().split('T')[0];
 
     const tables = ['products', 'customers', 'invoices', 'invoice_items', 'stock_movement'];
-    
+
     let content = `-- Incremental backup since ${since}\n-- Generated at ${new Date().toISOString()}\n\n`;
-    
+
     for (const table of tables) {
       content += `-- Table: ${table}\n`;
       content += `-- Data modified since ${since}\n\n`;
@@ -222,18 +234,18 @@ export class BackupService {
       const filename = path.basename(localFilePath);
       const content = fs.readFileSync(localFilePath);
       const contentBase64 = content.toString('base64');
-      
+
       const date = new Date();
       const year = date.getFullYear();
       const month = String(date.getMonth() + 1).padStart(2, '0');
       const dateStr = `${year}/${month}`;
-      
+
       // Path format: backups/2026/04/vevil-diario-diario_1-2026-04-12.sql
       const githubPath = `${this.githubPath}/${dateStr}/${filename}`;
-      
+
       // Check if file exists to update or create
       const getUrl = `https://api.github.com/repos/${this.githubOwner}/${this.githubRepo}/contents/${githubPath}`;
-      
+
       const getResponse = await fetch(getUrl, {
         method: 'GET',
         headers: {
@@ -288,8 +300,8 @@ export class BackupService {
     return {
       enabled: this.backupEnabled,
       destination: this.backupDestination,
-      availableDestinations: canUseGithub 
-        ? ['local', 'github'] 
+      availableDestinations: canUseGithub
+        ? ['local', 'github']
         : ['local'],
       githubConfigured: this.githubEnabled && !!this.githubToken,
       githubRepo: this.githubEnabled ? `${this.githubOwner}/${this.githubRepo}` : null,

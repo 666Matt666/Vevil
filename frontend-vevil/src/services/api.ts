@@ -897,7 +897,14 @@ export const invoicesApi = {
             method: 'POST',
             body: JSON.stringify(body),
         });
-        if (!response.ok) throw new Error('Error al registrar pago');
+        if (!response.ok) {
+            let errorMsg = 'Error al registrar pago';
+            try {
+                const errBody = await response.json();
+                errorMsg = errBody.message || errBody.error || errorMsg;
+            } catch { }
+            throw new Error(errorMsg);
+        }
         return response.json();
     },
 

@@ -853,10 +853,10 @@ export const invoicesApi = {
         return response.json();
     },
 
-    create: async (invoice: { 
-        customerId: number; 
-        currency?: string; 
-        status?: string; 
+    create: async (invoice: {
+        customerId: number;
+        currency?: string;
+        status?: string;
         items: { productId: number; quantity: number; discountPercent?: number }[];
         notes?: string;
         discountPercent?: number;
@@ -866,7 +866,14 @@ export const invoicesApi = {
             method: 'POST',
             body: JSON.stringify(invoice),
         });
-        if (!response.ok) throw new Error('Error al crear factura');
+        if (!response.ok) {
+            let errorMsg = 'Error al crear factura';
+            try {
+                const errBody = await response.json();
+                errorMsg = errBody.message || errBody.error || errorMsg;
+            } catch { }
+            throw new Error(errorMsg);
+        }
         return response.json();
     },
 

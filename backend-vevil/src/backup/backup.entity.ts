@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, Index } from 'typeorm';
 
 export enum BackupType {
   FULL = 'full',
@@ -35,6 +35,9 @@ export enum BackupSlot {
 }
 
 @Entity()
+@Index(['slot', 'status'], { where: "status = 'completed'" }) // Query #1: find latest backup per slot
+@Index(['frequency', 'createdAt'], { where: "status = 'completed'" }) // Query #2,3: list/count by frequency
+@Index(['createdAt']) // General ordering for admin lists
 export class Backup {
   @PrimaryGeneratedColumn('uuid')
   id: string;

@@ -144,11 +144,13 @@ import { User } from './users/user.entity';
 
     PendingRegistrationsModule,
     WebAuthnModule,
-    AuditModule,
+     AuditModule,
 
-    BackupModule,
+     BackupModule,
 
-    SuppliersModule,
+     HealthModule,  // Health checks
+
+     SuppliersModule,
 
     PublicModule,
 

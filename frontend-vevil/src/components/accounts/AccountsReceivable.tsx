@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { customersApi, Customer, invoicesApi, Invoice, Payment as ApiPayment, getErrorMessage } from '../../services/api';
 import { formatMoney } from '../settings/Settings';
 import { LoadingSpinner } from '../ui/LoadingSpinner';
@@ -39,6 +40,7 @@ interface CustomerAccount {
 }
 
 const AccountsReceivable: React.FC = () => {
+    const navigate = useNavigate();
     const [customers, setCustomers] = useState<Customer[]>([]);
     const [invoices, setInvoices] = useState<Invoice[]>([]);
     const [loading, setLoading] = useState(true);
@@ -176,9 +178,9 @@ const AccountsReceivable: React.FC = () => {
                 <p style={{ fontSize: '16px', color: '#64748b', margin: '4px 0 0 0' }}>
                     Gestión de clientes con crédito y cobranzas
                 </p>
-                <div style={{ marginTop: '16px', display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+<div style={{ marginTop: '16px', display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
                     <button
-                        onClick={() => window.location.hash = '/customers'}
+                        onClick={() => navigate('/customers')}
                         style={{
                             ...buttonStyle,
                             backgroundColor: '#6366f1',
@@ -188,7 +190,7 @@ const AccountsReceivable: React.FC = () => {
                         👤 Ver Clientes
                     </button>
                     <button
-                        onClick={() => window.location.href = '/invoices'}
+                        onClick={() => navigate('/invoices')}
                         style={{
                             ...buttonStyle,
                             backgroundColor: '#f59e0b',
@@ -246,8 +248,8 @@ const AccountsReceivable: React.FC = () => {
                             <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 600, color: '#1e293b' }}>
                                 Clientes con Cuenta Corriente
                             </h3>
-                            <button
-onClick={() => window.location.href = '/customers'}
+<button
+                                onClick={() => navigate('/customers')}
                                 style={{
                                     ...buttonStyle,
                                     backgroundColor: '#22c55e',
@@ -328,9 +330,9 @@ onClick={() => window.location.href = '/customers'}
                                         </p>
                                     )}
                                 </div>
-                                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+<div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                                     <button
-                                        onClick={() => window.location.href = `/customers?edit=${selectedAccount.customer.id}`}
+                                        onClick={() => navigate(`/customers?edit=${selectedAccount.customer.id}`)}
                                         style={{
                                             ...buttonStyle,
                                             backgroundColor: '#6366f1',
@@ -355,7 +357,17 @@ onClick={() => window.location.href = '/customers'}
                                             color: 'white'
                                         }}
                                     >
-                                        💵 Registrar Pago
+                                        💰 Acreditar Pago
+                                    </button>
+                                    <button
+                                        onClick={() => navigate(`/invoices?createForCustomer=${selectedAccount.customer.id}`)}
+                                        style={{
+                                            ...buttonStyle,
+                                            backgroundColor: '#f97316',
+                                            color: 'white'
+                                        }}
+                                    >
+                                        🧾 Crear Factura
                                     </button>
                                 </div>
                             </div>

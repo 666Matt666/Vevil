@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { invoicesApi, Invoice, customersApi, Customer, productsApi, Product, getErrorMessage } from '../../services/api';
 import { getEnabledCurrencies, formatMoney, getInvoiceConfig, getCompanyConfig, formatInvoiceNumber } from '../settings/Settings';
 import { TableSkeleton } from '../ui/TableSkeleton';
@@ -64,6 +64,7 @@ const statusColors: Record<PaymentStatus, { bg: string; text: string }> = {
 
 const InvoiceList: React.FC = () => {
     const navigate = useNavigate();
+    const location = useLocation();
     const { showToast } = useToast();
     const [invoices, setInvoices] = useState<Invoice[]>([]);
     const [totalInvoices, setTotalInvoices] = useState(0);
@@ -289,13 +290,24 @@ const InvoiceList: React.FC = () => {
         });
     };
 
-    const openCreateModal = () => {
-        setSelectedCustomerId('');
+    const openCreateModal = (customerId?: string) => {
+        setSelectedCustomerId(customerId ?? '');
         setSelectedCurrency('PYG');
         setSelectedPaymentMethod('cash');
         setItems([{ productId: 0, quantity: 1 }]);
         setShowModal(true);
     };
+
+    // Handle URL query param to open create invoice modal with customer preselected
+    useEffect(() => {
+        const params = new URLSearchParams(location.search);
+        const createFor = params.get('createForCustomer');
+        if (createFor) {
+            openCreateModal(createFor);
+            // Clean the URL to avoid re-opening modal on refresh
+            navigate(location.pathname, { replace: true });
+        }
+    }, [location.search, navigate, openCreateModal]);
 
     const closeModal = () => {
         setShowModal(false);

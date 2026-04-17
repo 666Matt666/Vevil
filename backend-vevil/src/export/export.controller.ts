@@ -2,11 +2,11 @@ import { Controller, Get, UseGuards, Res, Inject, Query } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Response } from 'express';
+import { AuthGuard } from '@nestjs/passport';
 import { Product } from '../products/product.entity';
 import { Customer } from '../customers/customer.entity';
 import { Invoice } from '../invoices/invoice.entity';
 import { AuditLog } from '../audit/audit-log.entity';
-import { DevJwtAuthGuard } from '../auth/guards/dev-jwt-auth.guard';
 import { ExcelExportService } from './excel-export.service';
 
 interface ExportData {
@@ -22,7 +22,7 @@ interface ExportJsonResponse extends ExportData {
 }
 
 @Controller('export')
-@UseGuards(DevJwtAuthGuard)
+@UseGuards(AuthGuard('jwt'))
 export class ExportController {
   constructor(
     @InjectRepository(Product)

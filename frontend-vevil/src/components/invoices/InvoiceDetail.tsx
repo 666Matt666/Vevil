@@ -109,47 +109,69 @@ const InvoiceDetail: React.FC = () => {
                 boxShadow: '0 4px 6px rgba(0,0,0,0.05)',
                 overflow: 'hidden'
             }}>
-                {/* Header centrado con logo */}
+                {/* Header: logo izq + datos empresa debajo, FACTURA der */}
                 <div style={{
                     backgroundColor: '#1e293b',
                     color: 'white',
                     padding: '32px',
-                    textAlign: 'center'
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'flex-start'
                 }}>
-                    <img
-                        src="/logoVevil.jpg"
-                        alt="Logo Vevil"
-                        style={{
-                            height: '40px',
-                            width: 'auto',
-                            objectFit: 'contain',
-                            marginBottom: '12px'
-                        }}
-                        onError={(e) => {
-                            e.currentTarget.style.display = 'none';
-                        }}
-                    />
-                    <h1 style={{ margin: 0, fontSize: '32px', fontWeight: 700, letterSpacing: '2px' }}>FACTURA</h1>
-                    <p style={{ margin: '8px 0 0 0', color: '#94a3b8', fontSize: '16px', fontFamily: 'monospace' }}>
-                        N° {String(invoice.id).padStart(7, '0')}
-                    </p>
-                </div>
+                    {/* Izquierda: logo + sistema de gestión + datos */}
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+                        <img
+                            src="/logoVevil.jpg"
+                            alt="Logo Vevil"
+                            style={{
+                                height: '40px',
+                                width: 'auto',
+                                objectFit: 'contain',
+                                marginBottom: '8px'
+                            }}
+                            onError={(e) => {
+                                e.currentTarget.style.display = 'none';
+                            }}
+                        />
+                        <div>
+                            <p style={{ margin: 0, fontSize: '13px', fontWeight: 600, color: '#94a3b8' }}>
+                                Sistema de Gestión
+                            </p>
+                            {company?.ruc && (
+                                <p style={{ margin: '2px 0 0 0', fontSize: '11px', color: '#94a3b8' }}>
+                                    RUC: {company.ruc}
+                                </p>
+                            )}
+                            {company?.address && (
+                                <p style={{ margin: '2px 0 0 0', fontSize: '11px', color: '#94a3b8' }}>
+                                    {company.address}
+                                </p>
+                            )}
+                            {company?.city && (
+                                <p style={{ margin: '2px 0 0 0', fontSize: '11px', color: '#94a3b8' }}>
+                                    {company.city}
+                                </p>
+                            )}
+                            {company?.phone && (
+                                <p style={{ margin: '2px 0 0 0', fontSize: '11px', color: '#94a3b8' }}>
+                                    Tel: {company.phone}
+                                </p>
+                            )}
+                            {company?.email && (
+                                <p style={{ margin: '2px 0 0 0', fontSize: '11px', color: '#94a3b8' }}>
+                                    {company.email}
+                                </p>
+                            )}
+                        </div>
+                    </div>
 
-                {/* Datos de empresa centrados */}
-                <div style={{
-                    padding: '24px 32px',
-                    backgroundColor: '#f8fafc',
-                    borderBottom: '1px solid #e2e8f0',
-                    textAlign: 'center'
-                }}>
-                    <p style={{ margin: 0, fontWeight: 600, color: '#1e293b', fontSize: '14px' }}>
-                        {company?.name || 'Vevil - Sistema de Gestión'}
-                    </p>
-                    {company?.ruc && <p style={{ margin: '4px 0 0 0', color: '#64748b', fontSize: '12px' }}>RUC: {company.ruc}</p>}
-                    {company?.address && <p style={{ margin: '4px 0 0 0', color: '#64748b', fontSize: '12px' }}>{company.address}</p>}
-                    {company?.city && <p style={{ margin: '4px 0 0 0', color: '#64748b', fontSize: '12px' }}>{company.city}</p>}
-                    {company?.phone && <p style={{ margin: '4px 0 0 0', color: '#64748b', fontSize: '12px' }}>Tel: {company.phone}</p>}
-                    {company?.email && <p style={{ margin: '4px 0 0 0', color: '#64748b', fontSize: '12px' }}>{company.email}</p>}
+                    {/* Derecha: FACTURA + número */}
+                    <div style={{ textAlign: 'right', marginTop: '4px' }}>
+                        <h1 style={{ margin: 0, fontSize: '32px', fontWeight: 700, letterSpacing: '2px' }}>FACTURA</h1>
+                        <p style={{ margin: '8px 0 0 0', color: '#94a3b8', fontSize: '15px', fontFamily: 'monospace' }}>
+                            N° {String(invoice.id).padStart(7, '0')}
+                        </p>
+                    </div>
                 </div>
 
                 {/* Info principal */}

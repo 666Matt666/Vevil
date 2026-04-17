@@ -25,19 +25,51 @@ export function exportInvoiceToPdf(invoice: Invoice, download: boolean = true): 
     const lineH = 6;
     const margin = 20;
 
-    // === Header: logo a la izquierda, título factura a la derecha ===
+    // === Header: logo izq + datos empresa debajo (left-align), FACTURA der ===
     // Logo (intenta ambos orígenes)
     const logoTry = [company.logoUrl, '/logoVevil.jpg'];
     let logoPlaced = false;
+    let logoHeight = 0;
     for (let i = 0; i < logoTry.length && !logoPlaced; i++) {
         const logoUrl = logoTry[i];
         if (!logoUrl) continue;
         try {
-            const logoSize = 30;
-            doc.addImage(logoUrl, 'JPEG', margin, 10, logoSize, logoSize);
+            logoHeight = 30;
+            doc.addImage(logoUrl, 'JPEG', margin, 10, logoHeight, logoHeight);
             logoPlaced = true;
         } catch (e) {
             console.warn('Error loading logo from', logoUrl, e);
+        }
+    }
+
+    // Datos de empresa a la izquierda, justo debajo del logo
+    if (logoPlaced) {
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(10);
+        const companyName = company.name || 'Sistema de Gestión';
+        const textX = margin;
+        let textY = 10 + logoHeight + 4;
+        doc.text(companyName, textX, textY);
+        textY += 5;
+        doc.setFontSize(9);
+        if (company.ruc) {
+            doc.text(`RUC: ${company.ruc}`, textX, textY);
+            textY += 5;
+        }
+        if (company.address) {
+            doc.text(company.address, textX, textY);
+            textY += 5;
+        }
+        if (company.city) {
+            doc.text(company.city, textX, textY);
+            textY += 5;
+        }
+        if (company.phone) {
+            doc.text(`Tel: ${company.phone}`, textX, textY);
+            textY += 5;
+        }
+        if (company.email) {
+            doc.text(company.email, textX, textY);
         }
     }
 
@@ -49,36 +81,9 @@ export function exportInvoiceToPdf(invoice: Invoice, download: boolean = true): 
     doc.setFontSize(10);
     doc.text(`N° ${String(invoice.id).padStart(7, '0')}`, pageW - margin, 32, { align: 'right' });
 
-    y = 45; // Después del header
-
-    // === Datos de empresa (línea debajo del logo) ===
-    if (logoPlaced) {
-        doc.setFont('helvetica', 'normal');
-        doc.setFontSize(10);
-        const companyName = company.name || 'Sistema de Gestión';
-        doc.text(companyName, margin + 35, 25);
-        doc.setFontSize(9);
-        let infoY = 30;
-        if (company.ruc) {
-            doc.text(`RUC: ${company.ruc}`, margin + 35, infoY);
-            infoY += 5;
-        }
-        if (company.address) {
-            doc.text(company.address, margin + 35, infoY);
-            infoY += 5;
-        }
-        if (company.city) {
-            doc.text(company.city, margin + 35, infoY);
-            infoY += 5;
-        }
-        if (company.phone) {
-            doc.text(`Tel: ${company.phone}`, margin + 35, infoY);
-            infoY += 5;
-        }
-        if (company.email) {
-            doc.text(company.email, margin + 35, infoY);
-        }
-    }
+    // Ajustar y para el contenido siguiente
+    y = logoPlaced ? (10 + logoHeight + 4 + (company.ruc ? 5 : 0) + (company.address ? 5 : 0) + (company.city ? 5 : 0) + (company.phone ? 5 : 0) + (company.email ? 5 : 0) + 10) : 45;
+    if (y < 45) y = 45;
 
     // === Cliente ===
     doc.setFont('helvetica', 'bold');

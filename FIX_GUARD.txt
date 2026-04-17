@@ -1,1 +1,0 @@
-fix: export endpoints use AuthGuard('jwt') instead of DevJwtAuthGuard para permitir acceso en producción

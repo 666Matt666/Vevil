@@ -213,8 +213,8 @@ const Reports: React.FC = () => {
                  startDate = new Date(0);
          }
  
-         const fromStr = startDate.toISOString().split('T')[0];
-         const toStr = endDate.toISOString().split('T')[0];
+         const fromStr = startDate.toISOString();
+         const toStr = endDate.toISOString();
  
          await invoicesApi.exportExcel({ from: fromStr, to: toStr });
      };

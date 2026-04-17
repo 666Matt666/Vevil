@@ -336,5 +336,5 @@ See `SKILLS.md` for detailed skill documentation and installation history.
 
 ---
 
-**Last updated**: 16/4/2026  
-**Next weekly check**: 23/4/2026
+**Last updated**: 17/4/2026  
+**Next weekly check**: 24/4/2026

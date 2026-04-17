@@ -1,6 +1,30 @@
 # Deploy automatizado a PROD
 
-Este doc describe cómo está armado el deploy a producción y cómo maximizar la automatización.
+## 🔄 Flujo CI/CD completo
+
+```mermaid
+graph LR
+    A[Dev en local] --> B[Commit a feature branch]
+    B --> C[Push: PR a main]
+    C --> D[GitHub Actions CI]
+    D --> E{Tests pasan?}
+    E -->|Sí| F[Merge a main]
+    E -->|No| G[Corregir y re-intentar]
+    F --> H[Push a main]
+    H --> I[Render: Backend Deploy]
+    H --> J[Vercel: Frontend Deploy]
+    I --> K[Pre-deploy: Migrations]
+    K --> L[Start: npm run start:prod]
+    J --> M[Build: npm run build]
+    M --> N[Deploy a producción]
+    
+    style A fill:#e1f5e1
+    style D fill:#fff3cd
+    style F fill:#d1ecf1
+    style H fill:#f8d7da
+    style I fill:#d4edda
+    style J fill:#d4edda
+```
 
 ## Stack
 
@@ -155,11 +179,69 @@ A partir de ahí, para mergear a `main` (o mergear un PR a `main`) los checks de
 
 ---
 
-## Verificación local antes del deploy
+## 🚨 Rollback (volver a versión anterior)
 
-Antes de hacer push a `main` (sobre todo la primera vez que subís auditoría), conviene probar todo en local. Ver **[PRE_DEPLOY_LOCAL_CHECK.md](./PRE_DEPLOY_LOCAL_CHECK.md)** para el script `npm run pre-deploy:local` y el checklist en el navegador.
+### En Render (backend)
+
+1. Ir a **Render Dashboard** → tu servicio backend.
+2. Sección **Deploys** → ver lista de deploys.
+3. En el deploy que querés volver (ej: el anterior al actual), clic en **"Rollback"** (o "Promote" si tenés múltiples servicios).
+4. Render hace un nuevo deploy usando el commit anterior (no elimina migraciones ya aplicadas en DB).
+
+### En Vercel (frontend)
+
+1. Ir a **Vercel Dashboard** → tu proyecto.
+2. Sección **Deployments**.
+3. En el deployment estable actual, clic en **"Promote"** o **"Rollback"** (depende de si querés volver a producción o a una versión anterior).
+4. Confirmar; Vercel despliega esa versión.
+
+### En Supabase (DB) – solo si necesitás revertir migraciones
+
+TypeORM no soporta `migration:revert` automático en producción. Para revertir migraciones:
+
+1. Revisá las migraciones en `backend-vevil/src/migrations/`.
+2. Ejecutá manualmente el SQL inverso en **Supabase SQL Editor** (o creá una nueva migración que haga el rollback).
+3. **Importante**: Solo hacelo si el cambio de schema rompió algo crítico; en general es mejor arreglar con una nueva migración forward.
 
 ---
+
+## 📊 Monitoreo post-deploy
+
+Después de cada deploy, verificar:
+
+| Chequeo | URL | Esperado |
+|---------|-----|----------|
+| Backend health | `https://vevil-dtt7ta.fly.dev/api/health` | `{"status":"ok"}` |
+| Swagger docs | `https://vevil-dtt7ta.fly.dev/api/docs` | UI de Swagger cargada |
+| Frontend home | `https://vevil.fly.dev` | Página de login visible |
+| DB connections | Render logs → "Connected to Supabase" | Sin errores de conexión |
+
+### Logs importantes
+
+- **Render (backend)**: Dashboard → Service → Logs
+  - Buscar `ERROR` o `Failed to apply migrations`
+  - Verificar `Listening on port` para confirmar que corrió
+
+- **Vercel (frontend)**: Dashboard → Project → Deployments → View Build Logs
+  - Errores de build (`npm run build` falla)
+  - Runtime errors en producción
+
+- **Supabase**: Dashboard → Database → Logs
+  - Slow queries (>200ms)
+  - Connection limits
+
+### 🆘 Emergencias
+
+| Problema | Acción inmediata |
+|----------|-----------------|
+| Backend no responde (5xx) | Rollback a deploy anterior en Render |
+| Frontend caído (404) | Verificar Vercel deployment; si falló, re-deploy manual |
+| DB connection error | Verificar variables `DB_*` en Render; Supabase puede tener límite de conexiones |
+| Migración fallida | NO forzar rollback de DB; corregir migración y desplegar fix |
+
+---
+
+## Verificación local antes del deploy
 
 ## Resumen
 
@@ -172,4 +254,4 @@ Para el checklist concreto de “activar auditoría en PROD” (primera vez), se
 
 ---
 
-**Última actualización:** 2025
+**Última actualización:** 17 de abril de 2026

@@ -126,6 +126,49 @@ frontend-vevil/src/
 └── utils/                # Utilidades
 ```
 
+## 📊 Entornos
+
+| Entorno | Frontend URL | Backend URL | Base de datos |
+|---------|--------------|-------------|---------------|
+| Local (desarrollo) | http://localhost:5173 | http://localhost:3000 | PostgreSQL (Docker) |
+| QA (homologación) | https://vevil-qa.fly.dev | https://vevil-qa.fly.dev | Supabase QA |
+| Producción | https://vevil.fly.dev | https://vevil-dtt7ta.fly.dev | Supabase (postgres.ozxwmdksnfzzoepspnfo) |
+
+### Variables de entorno por entorno
+
+**Backend (.env local):**
+```env
+# Desarrollo local
+DB_HOST=localhost
+DB_PORT=5432
+DB_USERNAME=postgres
+DB_PASSWORD=admin
+DB_DATABASE=vevil_db
+JWT_SECRET=desarrollo_secreto_local_cambiar_en_produccion
+JWT_REFRESH_SECRET=desarrollo_refresh_secreto
+CORS_ORIGINS=http://localhost:5173
+PORT=3000
+FRONTEND_URL=http://localhost:5173
+
+# Producción (Supabase/Render)
+NODE_ENV=production
+DB_HOST=aws-1-us-east-2.pooler.supabase.com
+DB_PORT=5432
+DB_USERNAME=postgres.ozxwmdksnfzzoepspnfo
+DB_PASSWORD=<secret>
+DB_DATABASE=postgres
+CORS_ORIGINS=https://vevil.fly.dev,https://vevil-qa.fly.dev
+FRONTEND_URL=https://vevil.fly.dev
+```
+
+**Frontend (.env.local):**
+```env
+VITE_API_URL=http://localhost:3000/api  # Desarrollo
+# En producción Vercel: https://vevil-dtt7ta.fly.dev/api
+```
+
+---
+
 ## 🧪 Testing
 
 ### Backend (unit tests)
@@ -429,15 +472,68 @@ export class CreateProductDto {
 
 ---
 
-**¡Feliz desarrollo! 🚀**
+## 🐛 Troubleshooting (problemas comunes y soluciones)
 
+### Backend no inicia
 
+| Síntoma | Causa probable | Solución |
+|---------|----------------|----------|
+| `Error: connect ECONNREFUSED 127.0.0.1:5432` | PostgreSQL no está corriendo | `npm run dev:up` (Docker) o `docker-compose up -d` |
+| `Missing environment variables` | `.env` inexistente o mal configurado | Copiar `.env.example` → `.env` y ajustar valores |
+| `PGPASSWORD no se reconoce` (Windows) | Variable de entorno no seteada en CMD | Usar PowerShell o definir en `.env` (no en línea de comandos) |
+| `Error: address already in use :::3000` | Puerto ocupado por otro proceso | `npx kill-port 3000` o cambiar `PORT` en `.env` |
+| `Cannot find module 'dist/src/main.js'` | Build no ejecutado | `npm run build` en `backend-vevil` |
 
+### Frontend no conecta al backend
 
+| Síntoma | Causa probable | Solución |
+|---------|----------------|----------|
+| `CORS error` en consola | Origen no en `CORS_ORIGINS` | Agregar `http://localhost:5173` a `CORS_ORIGINS` en backend `.env` |
+| `Network Error` (axios) | Backend caído o URL incorrecta | Verificar `VITE_API_URL` y que backend esté en `http://localhost:3000` |
+| `404 Not Found` en `/api/...` | Prefijo de API mal configurado | Backend usa `app.setGlobalPrefix('api')`; URL debe ser `/api/...` |
 
+### Tests fallan
 
+| Síntoma | Causa probable | Solución |
+|---------|----------------|----------|
+| `Jest: Cannot find module` | Dependencias no instaladas | `npm ci` en `backend-vevil` |
+| `Vitest: parserOptions.project not found` | `tsconfig.json` no encontrado | Ejecutar desde `frontend-vevil/` (no raíz) |
+| Test de E2E falla en login | Usuario E2E no existe | Backend con `SEED_E2E_ADMIN=true` crea `admin@vevil.com / admin123` |
 
+### Base de datos
 
+| Síntoma | Causa probable | Solución |
+|---------|----------------|----------|
+| `relation "users" does not exist` | Migraciones no aplicadas | `npm run db:migrate` (backend) |
+| `password authentication failed` | Credenciales incorrectas | Verificar `DB_USERNAME`/`DB_PASSWORD` en `.env` |
+| `SSL error` (Supabase) | Conexión sin SSL | Agregar `ssl: { rejectUnauthorized: false }` en `data-source.ts` |
 
+### GUI (React)
+
+| Síntoma | Causa probable | Solución |
+|---------|----------------|----------|
+| Componente no renderiza | Props incorrectas o undefined | Revisar consola (F12) y tipos en `interface Props` |
+| `Maximum update depth exceeded` | `setState` en `useEffect` sin dependencias | Mover lógica a `useMemo` o añadir dependencias vacías `[]` |
+| Estado no se actualiza | Inmutabilidad violada | No mutar arrays/objetos directamente; usar spread |
+
+---
+
+## 📚 Recursos adicionales
+
+- [Stack Overflow – NestJS](https://stackoverflow.com/questions/tagged/nestjs)
+- [React Docs – Hooks](https://react.dev/reference/react)
+- [TypeORM – Transactions](https://typeorm.io/transactions)
+- [Supabase – SSL Connection](https://supabase.com/docs/guides/database/connecting-to-postgres)
+
+---
+
+**¿No encuentras tu problema?** Revisá los logs:
+- Backend: `console` de terminal donde corre `npm run start:dev`
+- Frontend: DevTools (F12) → pestaña "Console"
+- Base de datos: `docker logs <postgres_container_id>`
+
+---
+
+**Última actualización:** 17 de abril de 2026
 
 

@@ -2,19 +2,29 @@
 
 Documentación técnica del sistema Vevil.
 
-## Flujo de trabajo
+## 📚 Índice completo
 
-Siempre desarrollamos **en local** (Postgres local, backend y frontend en localhost). La nube (Render, Vercel, Supabase) se usa **solo al hacer push** a la rama de producción.
-
-## Índice
-
+### Guías principales
 - **[ARCHITECTURE.md](./ARCHITECTURE.md)** – Arquitectura, patrones, modelo de datos, seguridad.
-- **[DEVELOPMENT.md](./DEVELOPMENT.md)** – Configuración local, variables de entorno, cómo correr backend y frontend.
-- **[LOCAL_AND_PROD.md](./LOCAL_AND_PROD.md)** – Todo en PC con Postgres local (Docker), E2E local, y subir el branch a PROD.
-- **[E2E.md](./E2E.md)** – Tests E2E: cómo correrlos en local (sin nube).
-- **[DEPLOY.md](./DEPLOY.md)** – Deploy automatizado (push → Render + Vercel), migraciones en pre-deploy, SQL de respaldo, CI con GitHub Actions, protección de `main`.
-- **[PRE_DEPLOY_LOCAL_CHECK.md](./PRE_DEPLOY_LOCAL_CHECK.md)** – Verificación local antes del deploy (script + checklist en el navegador).
-- **[RELEASE_AUDIT_TO_PROD.md](./RELEASE_AUDIT_TO_PROD.md)** – Checklist para cuando quieras llevar la auditoría a PROD (migración, verificación).
+- **[DEVELOPMENT.md](./DEVELOPMENT.md)** – Configuración local, variables de entorno, tests, debugging, troubleshooting.
+- **[DEPLOY.md](./DEPLOY.md)** – Despliegue automatizado (Render, Vercel, Supabase), CI/CD con GitHub Actions, migraciones.
+- **[PRE_DEPLOY_LOCAL_CHECK.md](./PRE_DEPLOY_LOCAL_CHECK.md)** – Checklist local antes del deploy (script + verificación en navegador).
+- **[E2E.md](./E2E.md)** – Tests E2E con Playwright: flujos cubiertos, troubleshooting, screenshots.
+- **[LOCAL_AND_PROD.md](./LOCAL_AND_PROD.md)** – Desarrollo local con Postgres Docker; despliegue a producción.
+- **[RELEASE_AUDIT_TO_PROD.md](./RELEASE_AUDIT_TO_PROD.md)** – Checklist para llevar auditoría a PROD (migración, verificación).
+
+### Guías de contribución y mejores prácticas
+- **[CONTRIBUTING.md](./CONTRIBUTING.md)** – Cómo contribuir: flujo Git, convenciones de commits, PR template, code review.
+- **[AGENTS.md](./AGENTS.md)** – Mejores prácticas aplicadas: React/NestJS/PostgreSQL/Testing (skills activas).
+- **[SKILLS.md](./SKILLS.md)** – Skills instaladas, cómo agregar nuevas, revisión semanal automática.
+
+### Recursos externos
+- [NestJS Best Practices](https://skills.sh/kadajett/agent-nestjs-skills/nestjs-best-practices)
+- [Vercel React Best Practices](https://skills.sh/vercel-labs/agent-skills/vercel-react-best-practices)
+- [Supabase PostgreSQL Best Practices](https://skills.sh/supabase/agent-skills/supabase-postgres-best-practices)
+- [Playwright Testing](https://skills.sh/currents-dev/playwright-best-practices-skill/playwright-best-practices)
+
+---
 
 ## Guía de uso (funcionalidades para el usuario)
 

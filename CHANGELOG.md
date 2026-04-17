@@ -5,7 +5,7 @@ Todos los cambios notables en Vevil System serán documentados en este archivo.
 El formato se basa en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [En Desarrollo] - 2025-04-17
+## [En Desarrollo] - 2026-04-17
 
 ### 🔥 Crítico
 - **Seguridad**: Implementado `AllExceptionsFilter` completo (archivo estaba vacío)
@@ -29,8 +29,16 @@ y este proyecto adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.0.h
 - **Calidad**: Agregados scripts `lint`, `lint:backend`, `lint:frontend` en package.json raíz
 - **Arquitectura**: Creado `PaginatedResponseDto` genérico en `common/dto/`
 
+### 📚 Documentación
+- **README.md**: Actualizado con badges de CI, tabla de entornos, comandos principales y enlaces a docs
+- **docs/DEVELOPMENT.md**: Agregada sección "Troubleshooting" (tablas de problemas comunes + soluciones) y tabla comparativa de entornos
+- **docs/E2E.md**: Enriquecido con descripción de flujos cubiertos, screenshots esperados y troubleshooting
+- **docs/DEPLOY.md**: Agregado diagrama CI/CD (Mermaid) y pasos detallados de rollback
+- **CONTRIBUTING.md**: Guía nueva de contribución con PR template, convenciones de commits y code review
+
 ### 🐛 Correcciones
 - **TypeScript**: Eliminado uso de `any` en middleware de request logging
+- **Testing**: Corregidos tests de componentes UI (EmptyState, Pagination) con API actualizada
 - **Testing**: Corregidos tests de componentes UI (EmptyState, Pagination) con API actualizada
 
 ### ⚠ Breaking Changes

@@ -173,5 +173,5 @@ cat .kilo/agent/skills/playwright-best-practices.md
 
 ---
 
-**Última revisión**: 16/4/2026  
-**Próxima revisión**: 23/4/2026 (automática si se configura GitHub Action)
+**Última revisión**: 17/4/2026  
+**Próxima revisión**: 24/4/2026 (automática si se configura GitHub Action)

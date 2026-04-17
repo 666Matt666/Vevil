@@ -21,78 +21,79 @@ export function exportInvoiceToPdf(invoice: Invoice, download: boolean = true): 
     const company = getCompanyConfig();
     const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
     const pageW = doc.internal.pageSize.getWidth();
-    let y = 20;
+    let y = 15;
     const lineH = 6;
     const margin = 20;
 
-    // Logo de empresa (si existe en config, sino usar por defecto)
-    const logoTry = [
-        company.logoUrl,
-        '/logoVevil.jpg'
-    ];
+    // === HEADER CENTRADO ===
+    const centerX = pageW / 2;
 
+    // Logo (centrado, intenta ambos orígenes)
+    const logoTry = [company.logoUrl, '/logoVevil.jpg'];
     let logoPlaced = false;
     for (let i = 0; i < logoTry.length && !logoPlaced; i++) {
         const logoUrl = logoTry[i];
         if (!logoUrl) continue;
         try {
-            const logoSize = 25;
-            doc.addImage(logoUrl, 'JPEG', margin, 10, logoSize, logoSize);
-            y = 10 + logoSize + 6;
+            const logoSize = 30;
+            doc.addImage(logoUrl, 'JPEG', centerX - logoSize / 2, y, logoSize, logoSize);
+            y += logoSize + 8;
             logoPlaced = true;
         } catch (e) {
             console.warn('Error loading logo from', logoUrl, e);
         }
     }
 
-    // Izquierda: FACTURA + N°
-    doc.setFontSize(22);
+    // Nombre de empresa (centrado)
     doc.setFont('helvetica', 'bold');
-    doc.text('FACTURA', margin, y);
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'normal');
-    doc.text(`N° ${String(invoice.id).padStart(7, '0')}`, margin, y + lineH + 2);
+    doc.setFontSize(14);
+    doc.text(company.name || 'Vevil - Sistema de Gestión', centerX, y, { align: 'center' });
+    y += lineH;
 
-    // Derecha: Datos de empresa desde Configuración
-    const rightX = pageW - margin;
-    let yRight = y;
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(11);
-    doc.text(company.name || 'Vevil - Sistema de Gestión', rightX, yRight, { align: 'right' });
-    yRight += lineH;
+    // Datos de empresa (centrados, pequeños)
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(9);
-    if (company.ruc) {
-        doc.text(`RUC: ${company.ruc}`, rightX, yRight, { align: 'right' });
-        yRight += lineH;
-    }
-    if (company.address) {
-        doc.text(company.address, rightX, yRight, { align: 'right' });
-        yRight += lineH;
-    }
-    if (company.city) {
-        doc.text(company.city, rightX, yRight, { align: 'right' });
-        yRight += lineH;
-    }
-    if (company.phone) {
-        doc.text(company.phone, rightX, yRight, { align: 'right' });
-        yRight += lineH;
-    }
-    if (company.email) {
-        doc.text(company.email, rightX, yRight, { align: 'right' });
-        yRight += lineH;
-    }
-    if (company.website) {
-        doc.text(company.website, rightX, yRight, { align: 'right' });
-    }
-    y = Math.max(y + lineH + 4, yRight) + 8;
+    const companyInfo: string[] = [];
+    if (company.ruc) companyInfo.push(`RUC: ${company.ruc}`);
+    if (company.address) companyInfo.push(company.address);
+    if (company.city) companyInfo.push(company.city);
+    if (company.phone) companyInfo.push(`Tel: ${company.phone}`);
+    if (company.email) companyInfo.push(`Email: ${company.email}`);
+    if (company.website) companyInfo.push(company.website);
 
-    // Cliente
+    companyInfo.forEach((line) => {
+        doc.text(line, centerX, y, { align: 'center' });
+        y += lineH;
+    });
+
+    y += 6;
+
+    // === TÍTULO FACTURA + NÚMERO (derecha) ===
     doc.setFont('helvetica', 'bold');
-    doc.text('Cliente', margin, y);
+    doc.setFontSize(24);
+    doc.text('FACTURA', pageW - margin, y, { align: 'right' });
+
     doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+    doc.text(`N° ${String(invoice.id).padStart(7, '0')}`, pageW - margin, y + 6, { align: 'right' });
+    y += 18;
+
+    // === DATOS FACTURA (fecha + estado) ===
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Fecha de emisión: ${formatDate(invoice.date)}`, margin, y);
+    const statusText = invoice.status === 'paid' ? 'Pagada' : invoice.status === 'pending' ? 'Pendiente' : 'Anulada';
+    doc.text(`Estado: ${statusText}`, pageW - margin, y, { align: 'right' });
+    y += lineH + 8;
+
+    // === CLIENTE ===
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(11);
+    doc.text('Cliente', margin, y);
     y += lineH;
-    doc.text(invoice.customer?.name ?? '—', margin, y);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+    doc.text(invoice.customer?.name || '—', margin, y);
     y += lineH;
     if (invoice.customer?.email) {
         doc.text(invoice.customer.email, margin, y);
@@ -104,12 +105,7 @@ export function exportInvoiceToPdf(invoice: Invoice, download: boolean = true): 
     }
     y += 4;
 
-    // Fecha y estado
-    doc.text(`Fecha de emisión: ${formatDate(invoice.date)}`, margin, y);
-    doc.text(`Estado: ${invoice.status === 'paid' ? 'Pagada' : invoice.status === 'pending' ? 'Pendiente' : 'Anulada'}`, pageW - margin, y, { align: 'right' });
-    y += lineH + 8;
-
-    // Tabla de ítems
+    // === TABLA DE ÍTEMS ===
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(11);
     doc.text('Detalle', margin, y);
@@ -138,18 +134,21 @@ export function exportInvoiceToPdf(invoice: Invoice, download: boolean = true): 
     });
     y += 6;
 
-    // Totales (IVA 10% Paraguay)
+    // === TOTALES (alineados a la derecha) ===
     const total = Number(invoice.total);
-    const subtotal = total / 1.1;
-    const iva = total - subtotal;
+    const subtotalVal = total / 1.1;
+    const iva = total - subtotalVal;
+
     doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
     doc.text(`Subtotal:`, pageW - margin - 50, y);
-    doc.text(formatMoney(subtotal, currency), pageW - margin, y, { align: 'right' });
+    doc.text(formatMoney(subtotalVal, currency), pageW - margin, y, { align: 'right' });
     y += lineH;
     doc.text('IVA (10%):', pageW - margin - 50, y);
     doc.text(formatMoney(iva, currency), pageW - margin, y, { align: 'right' });
     y += lineH;
     doc.setFont('helvetica', 'bold');
+    doc.setFontSize(12);
     doc.text('Total:', pageW - margin - 50, y);
     doc.text(formatMoney(total, currency), pageW - margin, y, { align: 'right' });
 

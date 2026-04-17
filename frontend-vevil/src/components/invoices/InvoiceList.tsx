@@ -898,7 +898,14 @@ const InvoiceList: React.FC = () => {
                                                     👁️
                                                 </button>
                                                 <button
-                                                    onClick={() => exportInvoiceToPdf(invoice, false)}
+                                                    onClick={(e) => {
+                                                        e.preventDefault();
+                                                        try {
+                                                            exportInvoiceToPdf(invoice, false);
+                                                        } catch (err) {
+                                                            showToast(getErrorMessage(err, 'No se pudo abrir el PDF'), 'error');
+                                                        }
+                                                    }}
                                                     style={{
                                                         ...buttonStyle,
                                                         backgroundColor: '#7c3aed',
@@ -910,7 +917,14 @@ const InvoiceList: React.FC = () => {
                                                     📄 Ver
                                                 </button>
                                                 <button
-                                                    onClick={() => exportInvoiceToPdf(invoice, true)}
+                                                    onClick={(e) => {
+                                                        e.preventDefault();
+                                                        try {
+                                                            exportInvoiceToPdf(invoice, true);
+                                                        } catch (err) {
+                                                            showToast(getErrorMessage(err, 'No se pudo descargar el PDF'), 'error');
+                                                        }
+                                                    }}
                                                     style={{
                                                         ...buttonStyle,
                                                         backgroundColor: '#3b82f6',

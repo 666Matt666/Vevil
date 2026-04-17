@@ -21,14 +21,12 @@ export function exportInvoiceToPdf(invoice: Invoice, download: boolean = true): 
     const company = getCompanyConfig();
     const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
     const pageW = doc.internal.pageSize.getWidth();
-    let y = 15;
+    let y = 20;
     const lineH = 6;
     const margin = 20;
 
-    // === HEADER CENTRADO ===
-    const centerX = pageW / 2;
-
-    // Logo (centrado, intenta ambos orígenes)
+    // === Header: logo a la izquierda, título factura a la derecha ===
+    // Logo (intenta ambos orígenes)
     const logoTry = [company.logoUrl, '/logoVevil.jpg'];
     let logoPlaced = false;
     for (let i = 0; i < logoTry.length && !logoPlaced; i++) {
@@ -36,54 +34,75 @@ export function exportInvoiceToPdf(invoice: Invoice, download: boolean = true): 
         if (!logoUrl) continue;
         try {
             const logoSize = 30;
-            doc.addImage(logoUrl, 'JPEG', centerX - logoSize / 2, y, logoSize, logoSize);
-            y += logoSize + 8;
+            doc.addImage(logoUrl, 'JPEG', margin, 10, logoSize, logoSize);
             logoPlaced = true;
         } catch (e) {
             console.warn('Error loading logo from', logoUrl, e);
         }
     }
 
-    // Nombre de empresa (centrado)
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(14);
-    doc.text(company.name || 'Vevil - Sistema de Gestión', centerX, y, { align: 'center' });
-    y += lineH;
-
-    // Datos de empresa (centrados, pequeños)
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(9);
-    const companyInfo: string[] = [];
-    if (company.ruc) companyInfo.push(`RUC: ${company.ruc}`);
-    if (company.address) companyInfo.push(company.address);
-    if (company.city) companyInfo.push(company.city);
-    if (company.phone) companyInfo.push(`Tel: ${company.phone}`);
-    if (company.email) companyInfo.push(`Email: ${company.email}`);
-    if (company.website) companyInfo.push(company.website);
-
-    companyInfo.forEach((line) => {
-        doc.text(line, centerX, y, { align: 'center' });
-        y += lineH;
-    });
-
-    y += 6;
-
-    // === TÍTULO FACTURA + NÚMERO (derecha) ===
+    // Título FACTURA + N° a la derecha
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(24);
-    doc.text('FACTURA', pageW - margin, y, { align: 'right' });
-
+    doc.text('FACTURA', pageW - margin, 25, { align: 'right' });
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(10);
-    doc.text(`N° ${String(invoice.id).padStart(7, '0')}`, pageW - margin, y + 6, { align: 'right' });
-    y += 18;
+    doc.text(`N° ${String(invoice.id).padStart(7, '0')}`, pageW - margin, 32, { align: 'right' });
 
-    // === DATOS FACTURA (fecha + estado) ===
-    doc.setFontSize(10);
+    y = 45; // Después del header
+
+    // === Datos de empresa (línea debajo del logo) ===
+    if (logoPlaced) {
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(10);
+        const companyName = company.name || 'Sistema de Gestión';
+        doc.text(companyName, margin + 35, 25);
+        doc.setFontSize(9);
+        let infoY = 30;
+        if (company.ruc) {
+            doc.text(`RUC: ${company.ruc}`, margin + 35, infoY);
+            infoY += 5;
+        }
+        if (company.address) {
+            doc.text(company.address, margin + 35, infoY);
+            infoY += 5;
+        }
+        if (company.city) {
+            doc.text(company.city, margin + 35, infoY);
+            infoY += 5;
+        }
+        if (company.phone) {
+            doc.text(`Tel: ${company.phone}`, margin + 35, infoY);
+            infoY += 5;
+        }
+        if (company.email) {
+            doc.text(company.email, margin + 35, infoY);
+        }
+    }
+
+    // === Cliente ===
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(11);
+    doc.text('Cliente', margin, y);
+    y += lineH + 2;
     doc.setFont('helvetica', 'normal');
-    doc.text(`Fecha de emisión: ${formatDate(invoice.date)}`, margin, y);
+    doc.setFontSize(10);
+    doc.text(invoice.customer?.name || '—', margin, y);
+    y += lineH;
+    if (invoice.customer?.email) {
+        doc.text(invoice.customer.email, margin, y);
+        y += lineH;
+    }
+    if (invoice.customer?.tax_id) {
+        doc.text(`RUC: ${invoice.customer.tax_id}`, margin, y);
+        y += lineH;
+    }
+    y += 6;
+
+    // === Fecha y estado (derecha) ===
+    doc.text(`Fecha de emisión: ${formatDate(invoice.date)}`, pageW - margin, y, { align: 'right' });
     const statusText = invoice.status === 'paid' ? 'Pagada' : invoice.status === 'pending' ? 'Pendiente' : 'Anulada';
-    doc.text(`Estado: ${statusText}`, pageW - margin, y, { align: 'right' });
+    doc.text(`Estado: ${statusText}`, pageW - margin, y + lineH + 2, { align: 'right' });
     y += lineH + 8;
 
     // === CLIENTE ===

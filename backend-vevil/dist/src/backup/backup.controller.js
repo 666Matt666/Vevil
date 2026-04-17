@@ -37,6 +37,9 @@ let BackupController = class BackupController {
     async updateSettings(body) {
         return this.backupService.updateBackupSettings(body.destination);
     }
+    async setEnabled(body) {
+        return this.backupService.setBackupEnabled(body.enabled);
+    }
     async getBackup(id) {
         return this.backupService.getBackupById(id);
     }
@@ -101,6 +104,13 @@ __decorate([
     __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", Promise)
 ], BackupController.prototype, "updateSettings", null);
+__decorate([
+    (0, common_1.Post)('enabled'),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", Promise)
+], BackupController.prototype, "setEnabled", null);
 __decorate([
     (0, common_1.Get)(':id'),
     __param(0, (0, common_1.Param)('id')),

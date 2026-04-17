@@ -169,6 +169,40 @@ VITE_API_URL=http://localhost:3000/api  # Desarrollo
 
 ---
 
+## 🔌 API Endpoints (resumen)
+
+### Autenticación
+- `POST /api/auth/login` – Login email/password
+- `POST /api/auth/register` – Registro de usuario
+- `POST /api/auth/refresh` – Refresh token
+- `POST /api/auth/logout` – Logout
+
+### Recursos principales
+- `GET /api/products` – Listar productos (paginado)
+- `POST /api/products` – Crear producto (admin)
+- `PUT /api/products/:id` – Actualizar producto
+- `DELETE /api/products/:id` – Eliminar producto
+
+- `GET /api/customers` – Listar clientes
+- `POST /api/customers` – Crear cliente
+- `PUT /api/customers/:id` – Actualizar cliente
+- `DELETE /api/customers/:id` – Eliminar cliente
+
+- `GET /api/invoices` – Listar facturas
+- `POST /api/invoices` – Crear factura (con items)
+- `PUT /api/invoices/:id` – Actualizar factura
+- `DELETE /api/invoices/:id` – Eliminar factura
+
+### Auditoría y Exportación
+- `GET /api/audit` – Listar logs de auditoría (filtrable)
+- `GET /api/export/json` – Exportar datos completos en JSON
+- **`GET /api/export/excel`** – **Exportar reporte Excel multi-hoja** (Products, Customers, Invoices, Audit Log) con estilos profesionales
+
+### Salud
+- `GET /api/health` – Health check del backend
+
+---
+
 ## 🧪 Testing
 
 ### Backend (unit tests)

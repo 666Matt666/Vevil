@@ -23,10 +23,12 @@ const products_service_1 = require("../products/products.service");
 const customers_service_1 = require("../customers/customers.service");
 const stock_movements_service_1 = require("../stock-movements/stock-movements.service");
 const mail_service_1 = require("../mail/mail.service");
+const customer_entity_1 = require("../customers/customer.entity");
 let InvoicesService = class InvoicesService {
-    constructor(invoicesRepository, paymentsRepository, productsService, customersService, stockMovementsService, dataSource, mailService) {
+    constructor(invoicesRepository, paymentsRepository, customersRepository, productsService, customersService, stockMovementsService, dataSource, mailService) {
         this.invoicesRepository = invoicesRepository;
         this.paymentsRepository = paymentsRepository;
+        this.customersRepository = customersRepository;
         this.productsService = productsService;
         this.customersService = customersService;
         this.stockMovementsService = stockMovementsService;
@@ -164,12 +166,49 @@ let InvoicesService = class InvoicesService {
     }
     async addPayment(invoiceId, dto) {
         const invoice = await this.findOne(invoiceId);
-        const payment = this.paymentsRepository.create({
-            invoiceId,
-            amount: dto.amount,
-            method: dto.method,
-        });
-        return this.paymentsRepository.save(payment);
+        const customer = invoice.customer;
+        const existingPayments = invoice.payments || [];
+        const totalPaid = existingPayments.reduce((sum, p) => sum + Number(p.amount), 0);
+        const pending = Number(invoice.total) - totalPaid;
+        if (pending <= 0) {
+            throw new common_1.BadRequestException('La factura ya está pagada completamente');
+        }
+        const requestedAmount = Number(dto.amount);
+        if (requestedAmount <= 0) {
+            throw new common_1.BadRequestException('El monto debe ser mayor a 0');
+        }
+        if (requestedAmount > pending) {
+            throw new common_1.BadRequestException(`El monto no puede superar el pendiente (${pending})`);
+        }
+        const creditAvailable = Number(customer.creditBalance) || 0;
+        const creditToApply = Math.min(creditAvailable, requestedAmount);
+        const cashAmount = requestedAmount - creditToApply;
+        if (creditToApply > 0) {
+            customer.creditBalance = creditAvailable - creditToApply;
+            await this.customersRepository.save(customer);
+        }
+        let cashPayment = null;
+        if (cashAmount > 0) {
+            cashPayment = this.paymentsRepository.create({
+                invoiceId,
+                amount: cashAmount,
+                method: dto.method,
+            });
+            await this.paymentsRepository.save(cashPayment);
+        }
+        let creditPayment = null;
+        if (creditToApply > 0) {
+            creditPayment = this.paymentsRepository.create({
+                invoiceId,
+                amount: creditToApply,
+                method: 'credit',
+            });
+            await this.paymentsRepository.save(creditPayment);
+        }
+        const newTotalPaid = totalPaid + creditToApply + cashAmount;
+        invoice.status = newTotalPaid >= Number(invoice.total) ? 'paid' : 'pending';
+        await this.invoicesRepository.save(invoice);
+        return cashPayment || creditPayment;
     }
     async deletePayment(paymentId, invoiceId) {
         const payment = await this.paymentsRepository.findOne({
@@ -178,7 +217,18 @@ let InvoicesService = class InvoicesService {
         if (!payment) {
             throw new common_1.NotFoundException('Pago no encontrado');
         }
+        if (payment.method === 'credit') {
+            const invoice = await this.findOne(invoiceId);
+            const customer = invoice.customer;
+            customer.creditBalance = Number(customer.creditBalance) + Number(payment.amount);
+            await this.customersRepository.save(customer);
+        }
         await this.paymentsRepository.remove(payment);
+        const invoice = await this.findOne(invoiceId);
+        const payments = await this.paymentsRepository.find({ where: { invoiceId } });
+        const totalPaid = payments.reduce((sum, p) => sum + Number(p.amount), 0);
+        invoice.status = totalPaid >= Number(invoice.total) ? 'paid' : 'pending';
+        await this.invoicesRepository.save(invoice);
         return payment;
     }
     async sendReminder(invoiceId) {
@@ -257,7 +307,9 @@ exports.InvoicesService = InvoicesService = __decorate([
     (0, common_1.Injectable)(),
     __param(0, (0, typeorm_1.InjectRepository)(invoice_entity_1.Invoice)),
     __param(1, (0, typeorm_1.InjectRepository)(payment_entity_1.Payment)),
+    __param(2, (0, typeorm_1.InjectRepository)(customer_entity_1.Customer)),
     __metadata("design:paramtypes", [typeorm_2.Repository,
+        typeorm_2.Repository,
         typeorm_2.Repository,
         products_service_1.ProductsService,
         customers_service_1.CustomersService,

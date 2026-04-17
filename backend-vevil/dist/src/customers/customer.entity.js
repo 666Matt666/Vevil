@@ -54,6 +54,10 @@ __decorate([
     (0, typeorm_1.Column)({ nullable: true }),
     __metadata("design:type", String)
 ], Customer.prototype, "tax_id", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'decimal', precision: 12, scale: 2, nullable: false, default: 0 }),
+    __metadata("design:type", Number)
+], Customer.prototype, "creditBalance", void 0);
 exports.Customer = Customer = __decorate([
     (0, typeorm_1.Entity)(),
     (0, typeorm_1.Index)(['email'], { unique: true }),

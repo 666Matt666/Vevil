@@ -15,12 +15,15 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.InvoicesController = void 0;
 const common_1 = require("@nestjs/common");
 const passport_1 = require("@nestjs/passport");
-const invoices_service_1 = require("./invoices.service");
+const swagger_1 = require("@nestjs/swagger");
+const audit_service_1 = require("../audit/audit.service");
 const create_invoice_dto_1 = require("./dto/create-invoice.dto");
+const create_payment_dto_1 = require("./dto/create-payment.dto");
 const update_invoice_status_dto_1 = require("./dto/update-invoice-status.dto");
 const update_invoice_dto_1 = require("./dto/update-invoice.dto");
-const create_payment_dto_1 = require("./dto/create-payment.dto");
-const audit_service_1 = require("../audit/audit.service");
+const invoice_entity_1 = require("./invoice.entity");
+const invoices_service_1 = require("./invoices.service");
+const payment_entity_1 = require("./payment.entity");
 let InvoicesController = class InvoicesController {
     constructor(invoicesService, auditService) {
         this.invoicesService = invoicesService;
@@ -144,6 +147,9 @@ let InvoicesController = class InvoicesController {
 exports.InvoicesController = InvoicesController;
 __decorate([
     (0, common_1.Post)(),
+    (0, swagger_1.ApiOperation)({ summary: 'Crear una nueva factura (con transacción y stock)' }),
+    (0, swagger_1.ApiResponse)({ status: 201, description: 'Factura creada exitosamente', type: invoice_entity_1.Invoice }),
+    (0, swagger_1.ApiBearerAuth)(),
     __param(0, (0, common_1.Body)()),
     __param(1, (0, common_1.Request)()),
     __metadata("design:type", Function),
@@ -152,6 +158,9 @@ __decorate([
 ], InvoicesController.prototype, "create", null);
 __decorate([
     (0, common_1.Get)(),
+    (0, swagger_1.ApiOperation)({ summary: 'Obtener lista de facturas (con paginación y filtros)' }),
+    (0, swagger_1.ApiResponse)({ status: 200, description: 'Lista de facturas obtenida exitosamente', type: [invoice_entity_1.Invoice] }),
+    (0, swagger_1.ApiBearerAuth)(),
     __param(0, (0, common_1.Query)('page')),
     __param(1, (0, common_1.Query)('limit')),
     __param(2, (0, common_1.Query)('search')),
@@ -165,6 +174,9 @@ __decorate([
 ], InvoicesController.prototype, "findAll", null);
 __decorate([
     (0, common_1.Patch)(':id/status'),
+    (0, swagger_1.ApiOperation)({ summary: 'Actualizar el estado de una factura' }),
+    (0, swagger_1.ApiResponse)({ status: 200, description: 'Estado actualizado', type: invoice_entity_1.Invoice }),
+    (0, swagger_1.ApiBearerAuth)(),
     __param(0, (0, common_1.Param)('id')),
     __param(1, (0, common_1.Body)()),
     __param(2, (0, common_1.Request)()),
@@ -174,6 +186,9 @@ __decorate([
 ], InvoicesController.prototype, "updateStatus", null);
 __decorate([
     (0, common_1.Get)(':id/payments'),
+    (0, swagger_1.ApiOperation)({ summary: 'Obtener pagos de una factura' }),
+    (0, swagger_1.ApiResponse)({ status: 200, description: 'Lista de pagos', type: [payment_entity_1.Payment] }),
+    (0, swagger_1.ApiBearerAuth)(),
     __param(0, (0, common_1.Param)('id')),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String]),
@@ -181,6 +196,9 @@ __decorate([
 ], InvoicesController.prototype, "getPayments", null);
 __decorate([
     (0, common_1.Post)(':id/payments'),
+    (0, swagger_1.ApiOperation)({ summary: 'Agregar un pago a una factura' }),
+    (0, swagger_1.ApiResponse)({ status: 201, description: 'Pago creado', type: payment_entity_1.Payment }),
+    (0, swagger_1.ApiBearerAuth)(),
     __param(0, (0, common_1.Param)('id')),
     __param(1, (0, common_1.Body)()),
     __param(2, (0, common_1.Request)()),
@@ -190,6 +208,9 @@ __decorate([
 ], InvoicesController.prototype, "addPayment", null);
 __decorate([
     (0, common_1.Delete)(':invoiceId/payments/:paymentId'),
+    (0, swagger_1.ApiOperation)({ summary: 'Eliminar un pago de una factura' }),
+    (0, swagger_1.ApiResponse)({ status: 200, description: 'Pago eliminado' }),
+    (0, swagger_1.ApiBearerAuth)(),
     __param(0, (0, common_1.Param)('invoiceId')),
     __param(1, (0, common_1.Param)('paymentId')),
     __param(2, (0, common_1.Request)()),
@@ -199,6 +220,10 @@ __decorate([
 ], InvoicesController.prototype, "deletePayment", null);
 __decorate([
     (0, common_1.Get)(':id'),
+    (0, swagger_1.ApiOperation)({ summary: 'Obtener una factura por ID' }),
+    (0, swagger_1.ApiResponse)({ status: 200, description: 'Factura encontrada', type: invoice_entity_1.Invoice }),
+    (0, swagger_1.ApiResponse)({ status: 404, description: 'Factura no encontrada' }),
+    (0, swagger_1.ApiBearerAuth)(),
     __param(0, (0, common_1.Param)('id')),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String]),
@@ -206,6 +231,9 @@ __decorate([
 ], InvoicesController.prototype, "findOne", null);
 __decorate([
     (0, common_1.Post)(':id/send-reminder'),
+    (0, swagger_1.ApiOperation)({ summary: 'Enviar recordatorio de pago por email' }),
+    (0, swagger_1.ApiResponse)({ status: 200, description: 'Resultado del envío' }),
+    (0, swagger_1.ApiBearerAuth)(),
     __param(0, (0, common_1.Param)('id')),
     __param(1, (0, common_1.Request)()),
     __metadata("design:type", Function),
@@ -214,6 +242,10 @@ __decorate([
 ], InvoicesController.prototype, "sendReminder", null);
 __decorate([
     (0, common_1.Put)(':id'),
+    (0, swagger_1.ApiOperation)({ summary: 'Actualizar una factura (solo pendiente/cancelada)' }),
+    (0, swagger_1.ApiResponse)({ status: 200, description: 'Factura actualizada', type: invoice_entity_1.Invoice }),
+    (0, swagger_1.ApiResponse)({ status: 400, description: 'No se puede editar factura pagada' }),
+    (0, swagger_1.ApiBearerAuth)(),
     __param(0, (0, common_1.Param)('id')),
     __param(1, (0, common_1.Body)()),
     __param(2, (0, common_1.Request)()),
@@ -223,6 +255,11 @@ __decorate([
 ], InvoicesController.prototype, "update", null);
 __decorate([
     (0, common_1.Delete)(':id'),
+    (0, common_1.HttpCode)(204),
+    (0, swagger_1.ApiOperation)({ summary: 'Eliminar una factura (solo pendiente/cancelada)' }),
+    (0, swagger_1.ApiResponse)({ status: 204, description: 'Factura eliminada' }),
+    (0, swagger_1.ApiResponse)({ status: 400, description: 'No se puede eliminar factura pagada o con pagos' }),
+    (0, swagger_1.ApiBearerAuth)(),
     __param(0, (0, common_1.Param)('id')),
     __param(1, (0, common_1.Request)()),
     __metadata("design:type", Function),
@@ -230,6 +267,7 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], InvoicesController.prototype, "remove", null);
 exports.InvoicesController = InvoicesController = __decorate([
+    (0, swagger_1.ApiTags)('Invoices'),
     (0, common_1.Controller)('invoices'),
     (0, common_1.UseGuards)((0, passport_1.AuthGuard)('jwt')),
     __metadata("design:paramtypes", [invoices_service_1.InvoicesService,

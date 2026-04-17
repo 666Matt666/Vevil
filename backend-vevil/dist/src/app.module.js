@@ -34,6 +34,7 @@ const suppliers_module_1 = require("./suppliers/suppliers.module");
 const public_module_1 = require("./public/public.module");
 const client_users_module_1 = require("./client-users/client-users.module");
 const user_entity_1 = require("./users/user.entity");
+const health_module_1 = require("./health/health.module");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -98,7 +99,7 @@ exports.AppModule = AppModule = __decorate([
                         password: dbPassword,
                         database: dbDatabase,
                         autoLoadEntities: true,
-                        synchronize: process.env.NODE_ENV !== 'production' && !dbHost.includes('supabase.co'),
+                        synchronize: !dbHost.includes('supabase.co') ? process.env.NODE_ENV !== 'production' : true,
                         ssl: dbHost.includes('supabase.co') ? {
                             rejectUnauthorized: false
                         } : false,
@@ -120,6 +121,7 @@ exports.AppModule = AppModule = __decorate([
             webauthn_module_1.WebAuthnModule,
             audit_module_1.AuditModule,
             backup_module_1.BackupModule,
+            health_module_1.HealthModule,
             suppliers_module_1.SuppliersModule,
             public_module_1.PublicModule,
             client_users_module_1.ClientUsersModule,

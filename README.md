@@ -48,11 +48,21 @@ npm run e2e:local
 
 ## 📊 Entornos
 
-| Entorno | Frontend | Backend | Base de datos |
-|---------|----------|---------|---------------|
+| Entorno | Frontend URL | Backend URL | Base de datos |
+|---------|--------------|-------------|---------------|
 | **Desarrollo (local)** | http://localhost:5173 | http://localhost:3000 | PostgreSQL (Docker) |
-| **QA** | https://vevil-qa.fly.dev | https://vevil-qa.fly.dev | Supabase QA |
+| **QA (homologación)** | https://vevil-qa.fly.dev | https://vevil-qa.fly.dev | Supabase QA |
 | **Producción** | https://vevil.fly.dev | https://vevil-dtt7ta.fly.dev | Supabase (postgres.ozxwmdksnfzzoepspnfo) |
+
+## 🔌 API rápida
+
+- **Auth**: `POST /api/auth/login`, `/register`, `/refresh`, `/logout`
+- **Products/Customers/Invoices**: CRUD completo con paginación
+- **Audit**: `GET /api/audit` (filtrable por usuario, entidad, fecha)
+- **Export**: 
+  - `GET /api/export/json` – datos crudos
+  - **`GET /api/export/excel`** – reporte Excel multi-hoja con formato profesional
+- **Health**: `GET /api/health`
 
 ## Subir a PROD (nube)
 

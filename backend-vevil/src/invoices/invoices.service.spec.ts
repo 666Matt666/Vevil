@@ -82,6 +82,12 @@ describe('InvoicesService', () => {
           },
         },
         {
+          provide: getRepositoryToken(Customer),
+          useValue: {
+            findOne: jest.fn(),
+          },
+        },
+        {
           provide: ProductsService,
           useValue: {
             findOne: jest.fn(),
@@ -103,6 +109,7 @@ describe('InvoicesService', () => {
         {
           provide: MailService,
           useValue: {
+            isConfigured: jest.fn().mockReturnValue(true),
             sendPaymentReminderEmail: jest.fn().mockResolvedValue(undefined),
           },
         },

@@ -8,6 +8,7 @@ export declare class BackupService {
     private readonly backupDir;
     private readonly maxBackups;
     private readonly githubEnabled;
+    private backupEnabled;
     private readonly githubToken;
     private readonly githubOwner;
     private readonly githubRepo;
@@ -35,10 +36,15 @@ export declare class BackupService {
     private uploadToGithub;
     getBackups(limit?: number): Promise<Backup[]>;
     getBackupSettings(): {
+        enabled: boolean;
         destination: "local" | "github";
         availableDestinations: string[];
         githubConfigured: boolean;
         githubRepo: string;
+    };
+    setBackupEnabled(enabled: boolean): {
+        success: boolean;
+        enabled: boolean;
     };
     updateBackupSettings(destination: string): {
         success: boolean;

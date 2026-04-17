@@ -19,18 +19,26 @@ const typeorm_2 = require("typeorm");
 const product_entity_1 = require("../products/product.entity");
 const customer_entity_1 = require("../customers/customer.entity");
 const invoice_entity_1 = require("../invoices/invoice.entity");
+const audit_log_entity_1 = require("../audit/audit-log.entity");
 const dev_jwt_auth_guard_1 = require("../auth/guards/dev-jwt-auth.guard");
+const excel_export_service_1 = require("./excel-export.service");
 let ExportController = class ExportController {
-    constructor(productsRepo, customersRepo, invoicesRepo) {
+    constructor(productsRepo, customersRepo, invoicesRepo, auditRepo, excelExportService) {
         this.productsRepo = productsRepo;
         this.customersRepo = customersRepo;
         this.invoicesRepo = invoicesRepo;
+        this.auditRepo = auditRepo;
+        this.excelExportService = excelExportService;
     }
     async exportJson() {
-        const [products, customers, invoices] = await Promise.all([
+        const [products, customers, invoices, auditLogs] = await Promise.all([
             this.productsRepo.find({ relations: ['invoiceItems'] }),
             this.customersRepo.find(),
             this.invoicesRepo.find({ relations: ['items', 'customer', 'payments'] }),
+            this.auditRepo.find({
+                order: { createdAt: 'DESC' },
+                take: 10000,
+            }),
         ]);
         return {
             exportedAt: new Date().toISOString(),
@@ -38,7 +46,36 @@ let ExportController = class ExportController {
             products,
             customers,
             invoices,
+            auditLogs,
         };
+    }
+    async exportExcel(res) {
+        try {
+            const [products, customers, invoices, auditLogs] = await Promise.all([
+                this.productsRepo.find({ relations: ['invoiceItems'] }),
+                this.customersRepo.find(),
+                this.invoicesRepo.find({ relations: ['items', 'customer', 'payments'] }),
+                this.auditRepo.find({
+                    order: { createdAt: 'DESC' },
+                    take: 10000,
+                }),
+            ]);
+            const data = {
+                products,
+                customers,
+                invoices,
+                auditLogs,
+            };
+            const buffer = await this.excelExportService.generateExcelBuffer(data);
+            res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+            const filename = `vevil-export-${new Date().toISOString().split('T')[0]}.xlsx`;
+            res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+            res.send(buffer);
+        }
+        catch (error) {
+            console.error('Error generating Excel:', error);
+            res.status(500).json({ error: 'Error al generar archivo Excel' });
+        }
     }
 };
 exports.ExportController = ExportController;
@@ -48,14 +85,25 @@ __decorate([
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", Promise)
 ], ExportController.prototype, "exportJson", null);
+__decorate([
+    (0, common_1.Get)('excel'),
+    __param(0, (0, common_1.Res)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", Promise)
+], ExportController.prototype, "exportExcel", null);
 exports.ExportController = ExportController = __decorate([
     (0, common_1.Controller)('export'),
     (0, common_1.UseGuards)(dev_jwt_auth_guard_1.DevJwtAuthGuard),
     __param(0, (0, typeorm_1.InjectRepository)(product_entity_1.Product)),
     __param(1, (0, typeorm_1.InjectRepository)(customer_entity_1.Customer)),
     __param(2, (0, typeorm_1.InjectRepository)(invoice_entity_1.Invoice)),
+    __param(3, (0, typeorm_1.InjectRepository)(audit_log_entity_1.AuditLog)),
+    __param(4, (0, common_1.Inject)(excel_export_service_1.ExcelExportService)),
     __metadata("design:paramtypes", [typeorm_2.Repository,
         typeorm_2.Repository,
-        typeorm_2.Repository])
+        typeorm_2.Repository,
+        typeorm_2.Repository,
+        excel_export_service_1.ExcelExportService])
 ], ExportController);
 //# sourceMappingURL=export.controller.js.map

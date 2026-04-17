@@ -90,6 +90,9 @@ __decorate([
     __metadata("design:type", Date)
 ], Backup.prototype, "completedAt", void 0);
 exports.Backup = Backup = __decorate([
-    (0, typeorm_1.Entity)()
+    (0, typeorm_1.Entity)(),
+    (0, typeorm_1.Index)(['slot', 'status'], { where: "status = 'completed'" }),
+    (0, typeorm_1.Index)(['frequency', 'createdAt'], { where: "status = 'completed'" }),
+    (0, typeorm_1.Index)(['createdAt'])
 ], Backup);
 //# sourceMappingURL=backup.entity.js.map

@@ -8,6 +8,7 @@ export declare class BackupController {
         total: number;
     }>;
     getSettings(): Promise<{
+        enabled: boolean;
         destination: "local" | "github";
         availableDestinations: string[];
         githubConfigured: boolean;
@@ -18,6 +19,12 @@ export declare class BackupController {
     }): Promise<{
         success: boolean;
         destination: string;
+    }>;
+    setEnabled(body: {
+        enabled: boolean;
+    }): Promise<{
+        success: boolean;
+        enabled: boolean;
     }>;
     getBackup(id: string): Promise<import("./backup.entity").Backup>;
     getBackupContent(id: string): Promise<{

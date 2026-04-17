@@ -1056,6 +1056,19 @@ export const auditApi = {
         if (!response.ok) throw new Error('Error al cargar auditoría');
         return response.json();
     },
+    exportExcel: async (): Promise<void> => {
+        const response = await fetchWithAuth('/export/excel');
+        if (!response.ok) throw new Error('Error al exportar Excel');
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `vevil-export-${new Date().toISOString().split('T')[0]}.xlsx`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(url);
+    },
 };
 
 // ============ USUARIOS (Admin) ============

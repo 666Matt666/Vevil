@@ -24,6 +24,7 @@ exports.default = new typeorm_1.DataSource({
         (0, path_1.join)(__dirname, 'invoices', 'invoice.entity.js'),
         (0, path_1.join)(__dirname, 'invoices', 'invoice-item.entity.js'),
         (0, path_1.join)(__dirname, 'invoices', 'payment.entity.js'),
+        (0, path_1.join)(__dirname, 'suppliers', 'supplier.entity.js'),
     ],
     migrations: [(0, path_1.join)(__dirname, 'migrations', '*.js')],
     ssl: dbHost.includes('supabase.co')

@@ -54,6 +54,7 @@ let BackupService = BackupService_1 = class BackupService {
         this.backupDir = process.env.BACKUP_DIR || '/tmp/vevil-backups';
         this.maxBackups = 50;
         this.githubEnabled = process.env.GITHUB_BACKUP_ENABLED === 'true';
+        this.backupEnabled = process.env.BACKUP_ENABLED !== 'false';
         this.githubToken = process.env.GITHUB_BACKUP_TOKEN;
         this.githubOwner = process.env.GITHUB_BACKUP_OWNER;
         this.githubRepo = process.env.GITHUB_BACKUP_REPO;
@@ -99,16 +100,28 @@ let BackupService = BackupService_1 = class BackupService {
         return `mensual_${(month % 3) + 1}`;
     }
     async scheduledDailyBackup() {
+        if (!this.backupEnabled) {
+            this.logger.log('Backup deshabilitado, saltando backup diario');
+            return;
+        }
         const slot = this.getDailySlot();
         this.logger.log(`Iniciando backup diario slot: ${slot}...`);
         await this.createBackup(backup_entity_1.BackupType.INCREMENTAL, backup_entity_1.BackupFrequency.DIARIO, slot);
     }
     async scheduledWeeklyBackup() {
+        if (!this.backupEnabled) {
+            this.logger.log('Backup deshabilitado, saltando backup semanal');
+            return;
+        }
         const slot = this.getWeeklySlot();
         this.logger.log(`Iniciando backup semanal slot: ${slot}...`);
         await this.createBackup(backup_entity_1.BackupType.FULL, backup_entity_1.BackupFrequency.SEMANAL, slot);
     }
     async scheduledMonthlyBackup() {
+        if (!this.backupEnabled) {
+            this.logger.log('Backup deshabilitado, saltando backup mensual');
+            return;
+        }
         const today = new Date();
         const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
         if (today.getDate() >= lastDay - 3) {
@@ -281,6 +294,7 @@ let BackupService = BackupService_1 = class BackupService {
     getBackupSettings() {
         const canUseGithub = this.githubEnabled && this.githubToken && this.githubOwner && this.githubRepo;
         return {
+            enabled: this.backupEnabled,
             destination: this.backupDestination,
             availableDestinations: canUseGithub
                 ? ['local', 'github']
@@ -288,6 +302,11 @@ let BackupService = BackupService_1 = class BackupService {
             githubConfigured: this.githubEnabled && !!this.githubToken,
             githubRepo: this.githubEnabled ? `${this.githubOwner}/${this.githubRepo}` : null,
         };
+    }
+    setBackupEnabled(enabled) {
+        this.backupEnabled = enabled;
+        this.logger.log(`Backup ${enabled ? 'habilitado' : 'deshabilitado'} desde API`);
+        return { success: true, enabled: this.backupEnabled };
     }
     updateBackupSettings(destination) {
         if (destination === 'github') {
@@ -310,6 +329,9 @@ let BackupService = BackupService_1 = class BackupService {
         return fs.readFileSync(backup.filePath);
     }
     async triggerManualBackup() {
+        if (!this.backupEnabled) {
+            throw new Error('Backups están deshabilitados. Habilita BACKUP_ENABLED=true para usar esta función.');
+        }
         const slot = this.getDailySlot();
         return this.createBackup(backup_entity_1.BackupType.FULL, backup_entity_1.BackupFrequency.DIARIO, slot);
     }

@@ -33,8 +33,18 @@ y este proyecto adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.0.h
 - **README.md**: Actualizado con badges de CI, tabla de entornos, comandos principales y enlaces a docs
 - **docs/DEVELOPMENT.md**: Agregada sección "Troubleshooting" (tablas de problemas comunes + soluciones) y tabla comparativa de entornos
 - **docs/E2E.md**: Enriquecido con descripción de flujos cubiertos, screenshots esperados y troubleshooting
-- **docs/DEPLOY.md**: Agregado diagrama CI/CD (Mermaid) y pasos detallados de rollback
+- **docs/DEPLOY.md**: Agregado diagrama CI/CD (Mermaid) y sección rollback detallada + monitoreo post-deploy
+- **docs/README.md**: Índice completo actualizado con CONTRIBUTING.md y SKILLS.md
 - **CONTRIBUTING.md**: Guía nueva de contribución con PR template, convenciones de commits y code review
+
+### 🚀 Features (Reportes)
+- **Exportación Excel con formato**: Nuevo endpoint `GET /api/export/excel` genera archivo `.xlsx` con múltiples hojas (Products, Customers, Invoices, Audit Log) y estilos profesionales:
+  - Header verde corporativo (#14532d) con texto blanco
+  - Formato de moneda (`$1,234.56`), fechas regionalizadas (`dd/mm/yyyy`)
+  - Auto-filtros y headers congelados en cada hoja
+  - Ancho de columna automático
+- **Frontend**: Botón "Exportar Excel" en vista Auditoría (junto a CSV existente)
+- **Backend**: Servicio `ExcelExportService` con `exceljs`; exporta hasta 10,000 logs de auditoría
 
 ### 🐛 Correcciones
 - **TypeScript**: Eliminado uso de `any` en middleware de request logging

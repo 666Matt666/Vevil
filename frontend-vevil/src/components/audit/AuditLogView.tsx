@@ -88,6 +88,14 @@ const AuditLogView: React.FC = () => {
         exportAuditToCsv(logs, formatDateCsv);
     };
 
+    const handleExportExcel = async () => {
+        try {
+            await auditApi.exportExcel();
+        } catch (err) {
+            alert(getErrorMessage(err, 'Error al exportar Excel'));
+        }
+    };
+
     return (
         <div className="responsive-padding" style={{ padding: '32px' }}>
             <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'flex-start', gap: '16px', marginBottom: '24px' }}>
@@ -99,24 +107,44 @@ const AuditLogView: React.FC = () => {
                         Historial de acciones (quién hizo qué y cuándo).
                     </p>
                 </div>
-                <button
-                    type="button"
-                    aria-label="Exportar auditoría a CSV"
-                    onClick={handleExportCsv}
-                    disabled={logs.length === 0}
-                    style={{
-                        padding: '10px 20px',
-                        backgroundColor: logs.length === 0 ? '#cbd5e1' : '#0f766e',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '8px',
-                        fontWeight: 600,
-                        cursor: logs.length === 0 ? 'not-allowed' : 'pointer',
-                        whiteSpace: 'nowrap',
-                    }}
-                >
-                    📥 Exportar CSV
-                </button>
+                <div style={{ display: 'flex', gap: '12px' }}>
+                    <button
+                        type="button"
+                        aria-label="Exportar auditoría a CSV"
+                        onClick={handleExportCsv}
+                        disabled={logs.length === 0}
+                        style={{
+                            padding: '10px 20px',
+                            backgroundColor: logs.length === 0 ? '#cbd5e1' : '#0f766e',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '8px',
+                            fontWeight: 600,
+                            cursor: logs.length === 0 ? 'not-allowed' : 'pointer',
+                            whiteSpace: 'nowrap',
+                        }}
+                    >
+                        📥 Exportar CSV
+                    </button>
+                    <button
+                        type="button"
+                        aria-label="Exportar auditoría a Excel"
+                        onClick={handleExportExcel}
+                        disabled={logs.length === 0}
+                        style={{
+                            padding: '10px 20px',
+                            backgroundColor: logs.length === 0 ? '#cbd5e1' : '#14532d',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '8px',
+                            fontWeight: 600,
+                            cursor: logs.length === 0 ? 'not-allowed' : 'pointer',
+                            whiteSpace: 'nowrap',
+                        }}
+                    >
+                        📊 Exportar Excel
+                    </button>
+                </div>
             </div>
 
             {/* Filtros */}

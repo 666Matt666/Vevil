@@ -15,10 +15,12 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.CustomersController = void 0;
 const common_1 = require("@nestjs/common");
 const passport_1 = require("@nestjs/passport");
+const swagger_1 = require("@nestjs/swagger");
+const audit_service_1 = require("../audit/audit.service");
+const customer_entity_1 = require("./customer.entity");
 const customers_service_1 = require("./customers.service");
 const create_customer_dto_1 = require("./dto/create-customer.dto");
 const update_customer_dto_1 = require("./dto/update-customer.dto");
-const audit_service_1 = require("../audit/audit.service");
 let CustomersController = class CustomersController {
     constructor(customersService, auditService) {
         this.customersService = customersService;
@@ -83,6 +85,9 @@ let CustomersController = class CustomersController {
 exports.CustomersController = CustomersController;
 __decorate([
     (0, common_1.Post)(),
+    (0, swagger_1.ApiOperation)({ summary: 'Crear un nuevo cliente' }),
+    (0, swagger_1.ApiResponse)({ status: 201, description: 'Cliente creado exitosamente', type: customer_entity_1.Customer }),
+    (0, swagger_1.ApiBearerAuth)(),
     __param(0, (0, common_1.Body)()),
     __param(1, (0, common_1.Request)()),
     __metadata("design:type", Function),
@@ -91,6 +96,9 @@ __decorate([
 ], CustomersController.prototype, "create", null);
 __decorate([
     (0, common_1.Get)(),
+    (0, swagger_1.ApiOperation)({ summary: 'Obtener lista de clientes (con soporte de paginación)' }),
+    (0, swagger_1.ApiResponse)({ status: 200, description: 'Lista de clientes obtenida exitosamente', type: [customer_entity_1.Customer] }),
+    (0, swagger_1.ApiBearerAuth)(),
     __param(0, (0, common_1.Query)('page')),
     __param(1, (0, common_1.Query)('limit')),
     __param(2, (0, common_1.Query)('search')),
@@ -101,12 +109,19 @@ __decorate([
 ], CustomersController.prototype, "findAll", null);
 __decorate([
     (0, common_1.Get)('meta/departments'),
+    (0, swagger_1.ApiOperation)({ summary: 'Obtener lista de departamentos únicos' }),
+    (0, swagger_1.ApiResponse)({ status: 200, description: 'Lista de departamentos', type: [String] }),
+    (0, swagger_1.ApiBearerAuth)(),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", void 0)
 ], CustomersController.prototype, "getDepartments", null);
 __decorate([
     (0, common_1.Get)(':id'),
+    (0, swagger_1.ApiOperation)({ summary: 'Obtener un cliente por ID' }),
+    (0, swagger_1.ApiResponse)({ status: 200, description: 'Cliente encontrado', type: customer_entity_1.Customer }),
+    (0, swagger_1.ApiResponse)({ status: 404, description: 'Cliente no encontrado' }),
+    (0, swagger_1.ApiBearerAuth)(),
     __param(0, (0, common_1.Param)('id')),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String]),
@@ -114,6 +129,10 @@ __decorate([
 ], CustomersController.prototype, "findOne", null);
 __decorate([
     (0, common_1.Patch)(':id'),
+    (0, swagger_1.ApiOperation)({ summary: 'Actualizar un cliente' }),
+    (0, swagger_1.ApiResponse)({ status: 200, description: 'Cliente actualizado', type: customer_entity_1.Customer }),
+    (0, swagger_1.ApiResponse)({ status: 404, description: 'Cliente no encontrado' }),
+    (0, swagger_1.ApiBearerAuth)(),
     __param(0, (0, common_1.Param)('id')),
     __param(1, (0, common_1.Body)()),
     __param(2, (0, common_1.Request)()),
@@ -123,6 +142,11 @@ __decorate([
 ], CustomersController.prototype, "update", null);
 __decorate([
     (0, common_1.Delete)(':id'),
+    (0, common_1.HttpCode)(204),
+    (0, swagger_1.ApiOperation)({ summary: 'Eliminar un cliente' }),
+    (0, swagger_1.ApiResponse)({ status: 204, description: 'Cliente eliminado' }),
+    (0, swagger_1.ApiResponse)({ status: 404, description: 'Cliente no encontrado' }),
+    (0, swagger_1.ApiBearerAuth)(),
     __param(0, (0, common_1.Param)('id')),
     __param(1, (0, common_1.Request)()),
     __metadata("design:type", Function),
@@ -130,6 +154,7 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], CustomersController.prototype, "remove", null);
 exports.CustomersController = CustomersController = __decorate([
+    (0, swagger_1.ApiTags)('Customers'),
     (0, common_1.Controller)('customers'),
     (0, common_1.UseGuards)((0, passport_1.AuthGuard)('jwt')),
     __metadata("design:paramtypes", [customers_service_1.CustomersService,

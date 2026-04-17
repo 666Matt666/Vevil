@@ -9,16 +9,17 @@ import { SecurityHeadersMiddleware } from './common/middleware/security-headers.
 
 // Helper: Construye lista de orígenes permitidos
 function buildCorsOrigins(): (string | RegExp)[] {
-  const defaultOrigins: (string | RegExp)[] = [
-    /^http:\/\/localhost(:\d+)?$/,
-    'http://localhost:3000',
-    /^https:\/\/[^.]+\.vercel\.app$/,
-    /\.vercel\.dev$/,
-    'https://vevil-dtt7ta.fly.dev',
-    /^https:\/\/vevil\.fly\.dev$/,
-    'https://vevil-qa.fly.dev',
-    /^https:\/\/vevil-dev\.fly\.dev$/,
-  ];
+   const defaultOrigins: (string | RegExp)[] = [
+     /^http:\/\/localhost(:\d+)?$/,
+     'http://localhost:3000',
+     /^https:\/\/[^.]+\.vercel\.app$/,
+     /\.vercel\.dev$/,
+     'https://vevil-dtt7ta.fly.dev',
+     /^https:\/\/vevil\.fly\.dev$/,
+     'https://vevil-qa.fly.dev',
+     /^https:\/\/vevil-dev\.fly\.dev$/,
+     'https://evil-backend.onrender.com',
+   ];
 
   const envOrigins = process.env.CORS_ORIGINS
     ? process.env.CORS_ORIGINS.split(',').map((o) => o.trim()).filter(Boolean)

@@ -627,7 +627,7 @@ const Dashboard: React.FC = () => {
                                 tickFormatter={(value) => `₲${(value / 1000).toFixed(0)}k`}
                             />
                             <Tooltip 
-                                formatter={(value: number) => [formatMoney(value, 'PYG'), 'Ingresos']}
+                                formatter={(value) => [formatMoney((value as number) || 0, 'PYG'), 'Ingresos']}
                                 labelFormatter={(label) => new Date(label).toLocaleDateString('es-PY')}
                                 contentStyle={{ 
                                     borderRadius: '8px', 

@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { invoicesApi, Invoice, customersApi, Customer, productsApi, Product, getErrorMessage } from '../../services/api';
 import { getEnabledCurrencies, formatMoney, getInvoiceConfig, getCompanyConfig, formatInvoiceNumber } from '../settings/Settings';
 import { TableSkeleton } from '../ui/TableSkeleton';
@@ -34,6 +34,12 @@ const inputStyle: React.CSSProperties = {
     boxSizing: 'border-box'
 };
 
+const cardStyle: React.CSSProperties = {
+    backgroundColor: 'white',
+    borderRadius: '12px',
+    padding: '24px',
+};
+
 const labelStyle: React.CSSProperties = {
     display: 'block',
     fontSize: '14px',
@@ -42,9 +48,11 @@ const labelStyle: React.CSSProperties = {
     marginBottom: '6px'
 };
 
-interface InvoiceItem {
+// Line item for invoice form
+interface InvoiceFormItem {
     productId: number;
     quantity: number;
+    discountPercent?: number;
 }
 
 // Estados de pago
@@ -64,6 +72,7 @@ const statusColors: Record<PaymentStatus, { bg: string; text: string }> = {
 
 const InvoiceList: React.FC = () => {
     const navigate = useNavigate();
+    const location = useLocation();
     const { showToast } = useToast();
     const [invoices, setInvoices] = useState<Invoice[]>([]);
     const [totalInvoices, setTotalInvoices] = useState(0);
@@ -99,7 +108,7 @@ const InvoiceList: React.FC = () => {
     const [selectedCustomerId, setSelectedCustomerId] = useState<string>('');
     const [selectedCurrency, setSelectedCurrency] = useState<string>('PYG');
     const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>('cash');
-    const [items, setItems] = useState<InvoiceItem[]>([{ productId: 0, quantity: 1 }]);
+    const [items, setItems] = useState<InvoiceFormItem[]>([{ productId: 0, quantity: 1 }]);
     const [invoiceNotes, setInvoiceNotes] = useState<string>('');
     const [invoiceDiscount, setInvoiceDiscount] = useState<number>(0);
     const [invoiceDueDate, setInvoiceDueDate] = useState<string>('');
@@ -137,8 +146,9 @@ const InvoiceList: React.FC = () => {
         try {
             await invoicesApi.updateStatus(invoiceId, status);
             setInvoices(prev => prev.map(inv => inv.id === invoiceId ? { ...inv, status } : inv));
+            showToast('Estado de factura actualizado', 'success');
         } catch (err) {
-            alert(getErrorMessage(err, 'Error al actualizar estado'));
+            showToast(getErrorMessage(err, 'Error al actualizar estado'), 'error');
         }
     };
 
@@ -157,8 +167,9 @@ const InvoiceList: React.FC = () => {
             await invoicesApi.updateStatus(invoiceToCancel.id, 'cancelled');
             setInvoices(prev => prev.map(inv => inv.id === invoiceToCancel.id ? { ...inv, status: 'cancelled' } : inv));
             setInvoiceToCancel(null);
+            showToast('Factura anulada exitosamente', 'success');
         } catch (err) {
-            alert(getErrorMessage(err, 'Error al anular factura'));
+            showToast(getErrorMessage(err, 'Error al anular factura'), 'error');
         } finally {
             setCancelling(false);
         }
@@ -196,7 +207,7 @@ const InvoiceList: React.FC = () => {
             setShowEditModal(false);
             loadData(invoicePage);
         } catch (err) {
-            alert(getErrorMessage(err, 'Error al actualizar factura'));
+            showToast(getErrorMessage(err, 'Error al actualizar factura'), 'error');
         } finally {
             setSaving(false);
         }
@@ -236,7 +247,7 @@ const InvoiceList: React.FC = () => {
             setShowDeleteModal(false);
             loadData(invoicePage);
         } catch (err) {
-            alert(getErrorMessage(err, 'Error al eliminar factura'));
+            showToast(getErrorMessage(err, 'Error al eliminar factura'), 'error');
         } finally {
             setDeleting(false);
         }
@@ -289,13 +300,24 @@ const InvoiceList: React.FC = () => {
         });
     };
 
-    const openCreateModal = () => {
-        setSelectedCustomerId('');
+    const openCreateModal = (customerId?: string) => {
+        setSelectedCustomerId(customerId ?? '');
         setSelectedCurrency('PYG');
         setSelectedPaymentMethod('cash');
         setItems([{ productId: 0, quantity: 1 }]);
         setShowModal(true);
     };
+
+    // Handle URL query param to open create invoice modal with customer preselected
+    useEffect(() => {
+        const params = new URLSearchParams(location.search);
+        const createFor = params.get('createForCustomer');
+        if (createFor) {
+            openCreateModal(createFor);
+            // Clean the URL to avoid re-opening modal on refresh
+            navigate(location.pathname, { replace: true });
+        }
+    }, [location.search, navigate, openCreateModal]);
 
     const closeModal = () => {
         setShowModal(false);
@@ -317,7 +339,7 @@ const InvoiceList: React.FC = () => {
         if (!templateName) return;
         const validItems = items.filter(i => i.productId > 0);
         if (validItems.length === 0) {
-            alert('Agregá al menos un producto antes de guardar la plantilla');
+            showToast('Agregá al menos un producto antes de guardar la plantilla', 'error');
             return;
         }
         const newTemplates = [...invoiceTemplates, {
@@ -328,7 +350,7 @@ const InvoiceList: React.FC = () => {
         }];
         setInvoiceTemplates(newTemplates);
         localStorage.setItem('invoice_templates', JSON.stringify(newTemplates));
-        alert('Plantilla guardada');
+        showToast('Plantilla guardada correctamente', 'success');
     };
 
     const loadTemplate = (template: typeof invoiceTemplates[0]) => {
@@ -357,7 +379,8 @@ const InvoiceList: React.FC = () => {
         setItems(newItems);
     };
 
-    const calculateTotal = () => {
+    // Memoized calculations to prevent unnecessary re-renders
+    const total = useMemo(() => {
         return items.reduce((sum, item) => {
             const product = products.find(p => p.id === item.productId);
             if (product) {
@@ -367,13 +390,12 @@ const InvoiceList: React.FC = () => {
             }
             return sum;
         }, 0);
-    };
+    }, [items, products]);
 
-    const calculateFinalTotal = () => {
-        const subtotal = calculateTotal();
-        const discount = subtotal * (invoiceDiscount / 100);
-        return subtotal - discount;
-    };
+    const finalTotal = useMemo(() => {
+        const discount = total * (invoiceDiscount / 100);
+        return total - discount;
+    }, [total, invoiceDiscount]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -412,8 +434,7 @@ const InvoiceList: React.FC = () => {
                 items: validItems,
                 notes: invoiceNotes || undefined,
                 discountPercent: invoiceDiscount || undefined,
-                dueDate: invoiceDueDate || undefined,
-                sendEmail: sendEmailToCustomer ? 1 : 0
+                dueDate: invoiceDueDate || undefined
             });
             closeModal();
             showToast('Factura creada exitosamente', 'success');
@@ -624,7 +645,7 @@ const InvoiceList: React.FC = () => {
                         📄 PDF
                     </button>
                     <button 
-                        onClick={openCreateModal}
+                        onClick={() => openCreateModal()}
                         style={{
                             ...buttonStyle,
                             padding: '12px 24px',
@@ -783,7 +804,7 @@ const InvoiceList: React.FC = () => {
                     <p style={{ fontSize: '48px', margin: '0 0 16px 0' }}>📄</p>
                     <p style={{ color: '#1e293b', fontSize: '18px', fontWeight: 600, margin: '0 0 8px 0' }}>No hay facturas registradas</p>
                     <p style={{ color: '#64748b', margin: '0 0 24px 0' }}>Creá tu primera factura para empezar a cobrar.</p>
-                    <button onClick={openCreateModal} style={{ ...buttonStyle, backgroundColor: '#f97316', color: 'white' }}>
+                    <button onClick={() => openCreateModal()} style={{ ...buttonStyle, backgroundColor: '#f97316', color: 'white' }}>
                         Crear primera factura
                     </button>
                 </div>
@@ -875,6 +896,44 @@ const InvoiceList: React.FC = () => {
                                                     title="Ver detalle"
                                                 >
                                                     👁️
+                                                </button>
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.preventDefault();
+                                                        try {
+                                                            exportInvoiceToPdf(invoice, false);
+                                                        } catch (err) {
+                                                            showToast(getErrorMessage(err, 'No se pudo abrir el PDF'), 'error');
+                                                        }
+                                                    }}
+                                                    style={{
+                                                        ...buttonStyle,
+                                                        backgroundColor: '#7c3aed',
+                                                        color: 'white',
+                                                        padding: '8px 12px'
+                                                    }}
+                                                    title="Ver factura (PDF)"
+                                                >
+                                                    📄 Ver
+                                                </button>
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.preventDefault();
+                                                        try {
+                                                            exportInvoiceToPdf(invoice, true);
+                                                        } catch (err) {
+                                                            showToast(getErrorMessage(err, 'No se pudo descargar el PDF'), 'error');
+                                                        }
+                                                    }}
+                                                    style={{
+                                                        ...buttonStyle,
+                                                        backgroundColor: '#3b82f6',
+                                                        color: 'white',
+                                                        padding: '8px 12px'
+                                                    }}
+                                                    title="Descargar PDF"
+                                                >
+                                                    ⬇️
                                                 </button>
                                                 <button
                                                     onClick={() => printInvoice(invoice)}
@@ -1261,30 +1320,30 @@ const InvoiceList: React.FC = () => {
                                 borderRadius: '8px',
                                 marginBottom: '24px'
                             }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                                    <span style={{ fontSize: '14px', color: '#64748b' }}>Subtotal:</span>
-                                    <span style={{ fontSize: '16px', color: '#1e293b' }}>
-                                        {formatMoney(calculateTotal(), selectedCurrency)}
-                                    </span>
-                                </div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                                        <span style={{ fontSize: '14px', color: '#64748b' }}>Subtotal:</span>
+                                        <span style={{ fontSize: '16px', color: '#1e293b' }}>
+                                            {formatMoney(total, selectedCurrency)}
+                                        </span>
+                                    </div>
                                 {invoiceDiscount > 0 && (
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                                         <span style={{ fontSize: '14px', color: '#16a34a' }}>Descuento ({invoiceDiscount}%):</span>
                                         <span style={{ fontSize: '16px', color: '#16a34a' }}>
-                                            -{formatMoney(calculateTotal() * (invoiceDiscount / 100), selectedCurrency)}
+                                            -{formatMoney(total * (invoiceDiscount / 100), selectedCurrency)}
                                         </span>
                                     </div>
                                 )}
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                                     <span style={{ fontSize: '14px', color: '#64748b' }}>IVA (10%):</span>
                                     <span style={{ fontSize: '16px', color: '#1e293b' }}>
-                                        {formatMoney(calculateFinalTotal() * 0.10, selectedCurrency)}
+                                        {formatMoney(finalTotal * 0.10, selectedCurrency)}
                                     </span>
                                 </div>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '8px', borderTop: '1px solid #e2e8f0' }}>
                                     <span style={{ fontSize: '16px', fontWeight: 600, color: '#475569' }}>Total:</span>
                                     <span style={{ fontSize: '24px', fontWeight: 700, color: '#f97316' }}>
-                                        {formatMoney(calculateFinalTotal() * 1.10, selectedCurrency)}
+                                        {formatMoney(finalTotal * 1.10, selectedCurrency)}
                                     </span>
                                 </div>
                             </div>

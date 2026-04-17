@@ -193,6 +193,7 @@ export interface UserProfile {
     lastName?: string;
     role?: string;
     isActive?: boolean;
+    avatar?: string;
 }
 export interface LoginResponse {
     access_token: string;
@@ -724,6 +725,7 @@ export interface Customer {
     address_zip?: string;
     google_maps_link?: string;
     tax_id?: string;
+    creditBalance?: number;
 }
 
 export const customersApi = {
@@ -851,10 +853,10 @@ export const invoicesApi = {
         return response.json();
     },
 
-    create: async (invoice: { 
-        customerId: number; 
-        currency?: string; 
-        status?: string; 
+    create: async (invoice: {
+        customerId: number;
+        currency?: string;
+        status?: string;
         items: { productId: number; quantity: number; discountPercent?: number }[];
         notes?: string;
         discountPercent?: number;
@@ -864,7 +866,14 @@ export const invoicesApi = {
             method: 'POST',
             body: JSON.stringify(invoice),
         });
-        if (!response.ok) throw new Error('Error al crear factura');
+        if (!response.ok) {
+            let errorMsg = 'Error al crear factura';
+            try {
+                const errBody = await response.json();
+                errorMsg = errBody.message || errBody.error || errorMsg;
+            } catch { }
+            throw new Error(errorMsg);
+        }
         return response.json();
     },
 
@@ -888,7 +897,14 @@ export const invoicesApi = {
             method: 'POST',
             body: JSON.stringify(body),
         });
-        if (!response.ok) throw new Error('Error al registrar pago');
+        if (!response.ok) {
+            let errorMsg = 'Error al registrar pago';
+            try {
+                const errBody = await response.json();
+                errorMsg = errBody.message || errBody.error || errorMsg;
+            } catch { }
+            throw new Error(errorMsg);
+        }
         return response.json();
     },
 
@@ -944,6 +960,10 @@ export const statsApi = {
             totalRevenue: invoices.reduce((sum, inv) => sum + Number(inv.total), 0),
         };
     },
+    getBasicStats: async () => {
+        // Alias for getDashboardStats for compatibility
+        return statsApi.getDashboardStats();
+    },
 };
 
 // ============ MÉTRICAS (CONTROLES) ============
@@ -961,6 +981,8 @@ export interface DashboardMetrics {
     lowStockProducts: number;
     lowStockList: { id: number; name: string; stock: number; minStock: number }[];
     topProductsSold: { productId: number; productName: string; quantitySold: number }[];
+    pendingInvoices: number;
+    pendingInvoicesAmount: number;
     periodFrom?: string;
     periodTo?: string;
     periodRevenue?: number;
@@ -1046,6 +1068,7 @@ export interface SystemUser {
     isActive: boolean;
     createdAt: string;
     updatedAt: string;
+    avatar?: string;
 }
 
 // Tipos de respuesta para usersApi

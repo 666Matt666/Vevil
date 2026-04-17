@@ -1,5 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { customersApi, Customer, invoicesApi, Invoice, Payment as ApiPayment, getErrorMessage } from '../../services/api';
+import { useToast } from '../../hooks/useToast';
 import { formatMoney } from '../settings/Settings';
 import { LoadingSpinner } from '../ui/LoadingSpinner';
 import { ErrorMessage } from '../ui/ErrorMessage';
@@ -36,9 +38,12 @@ interface CustomerAccount {
     totalDebt: number;
     payments: (ApiPayment & { invoiceId: number })[];
     totalPaid: number;
+    creditBalance: number;
 }
 
 const AccountsReceivable: React.FC = () => {
+    const navigate = useNavigate();
+    const { showToast } = useToast();
     const [customers, setCustomers] = useState<Customer[]>([]);
     const [invoices, setInvoices] = useState<Invoice[]>([]);
     const [loading, setLoading] = useState(true);
@@ -73,7 +78,7 @@ const AccountsReceivable: React.FC = () => {
         }
     };
 
-    const getCustomerAccounts = (): CustomerAccount[] => {
+    const customerAccounts = useMemo((): CustomerAccount[] => {
         return customers.map(customer => {
             const pendingInvoices = invoices.filter(inv =>
                 inv.customerId === customer.id && inv.status === 'pending'
@@ -94,21 +99,27 @@ const AccountsReceivable: React.FC = () => {
                 pendingInvoices,
                 totalDebt,
                 payments,
-                totalPaid
+                totalPaid,
+                creditBalance: customer.creditBalance || 0,
             };
-        }).filter(acc => acc.totalDebt > 0 || acc.payments.length > 0)
-          .sort((a, b) => b.totalDebt - a.totalDebt);
-    };
+        }).sort((a, b) => b.totalDebt - a.totalDebt);
+    }, [customers, invoices]);
 
-    const customerAccounts = getCustomerAccounts();
-    const totalPending = customerAccounts.reduce((sum, acc) => sum + acc.totalDebt, 0);
-    const selectedAccount = customerAccounts.find(acc => acc.customer.id === selectedCustomerId);
+    const totalPending = useMemo(() => 
+        customerAccounts.reduce((sum, acc) => sum + acc.totalDebt, 0),
+        [customerAccounts]
+    );
 
-    const handlePayment = async (e: React.FormEvent) => {
+    const selectedAccount = useMemo(() =>
+        customerAccounts.find(acc => acc.customer.id === selectedCustomerId),
+        [customerAccounts, selectedCustomerId]
+    );
+
+    const handlePayment = useCallback(async (e: React.FormEvent) => {
         e.preventDefault();
         const invoiceId = paymentForm.invoiceId ? parseInt(paymentForm.invoiceId, 10) : 0;
         if (!invoiceId || !paymentForm.amount) {
-            alert('Seleccioná una factura e ingresá el monto');
+            showToast('Seleccioná una factura e ingresá el monto', 'error');
             return;
         }
         try {
@@ -119,33 +130,36 @@ const AccountsReceivable: React.FC = () => {
             setShowPaymentModal(false);
             setPaymentForm({ invoiceId: '', amount: '', method: 'cash' });
             loadData();
+            showToast('Pago registrado exitosamente', 'success');
         } catch (err) {
-            alert(getErrorMessage(err, 'Error al registrar pago'));
+            showToast(getErrorMessage(err, 'Error al registrar pago'), 'error');
         }
-    };
+    }, [paymentForm, loadData, showToast]);
 
-    const markInvoiceAsPaid = async (invoiceId: number) => {
+    const markInvoiceAsPaid = useCallback(async (invoiceId: number) => {
         try {
             await invoicesApi.updateStatus(invoiceId, 'paid');
             loadData();
+            showToast('Factura marcada como pagada', 'success');
         } catch (err) {
-            alert(getErrorMessage(err, 'Error al actualizar'));
+            showToast(getErrorMessage(err, 'Error al actualizar'), 'error');
         }
-    };
+    }, [loadData, showToast]);
 
-    const handleDeletePayment = async () => {
+    const handleDeletePayment = useCallback(async () => {
         if (!paymentToDelete) return;
         try {
             setDeletingPayment(true);
             await invoicesApi.deletePayment(paymentToDelete.invoiceId, paymentToDelete.paymentId);
             setPaymentToDelete(null);
             loadData();
+            showToast('Pago eliminado exitosamente', 'success');
         } catch (err) {
-            alert(getErrorMessage(err, 'Error al eliminar pago'));
+            showToast(getErrorMessage(err, 'Error al eliminar pago'), 'error');
         } finally {
             setDeletingPayment(false);
         }
-    };
+    }, [paymentToDelete, loadData, showToast]);
 
     const formatDate = (dateString: string) => {
         return new Date(dateString).toLocaleDateString('es-PY', {
@@ -176,6 +190,28 @@ const AccountsReceivable: React.FC = () => {
                 <p style={{ fontSize: '16px', color: '#64748b', margin: '4px 0 0 0' }}>
                     Gestión de clientes con crédito y cobranzas
                 </p>
+<div style={{ marginTop: '16px', display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+                    <button
+                        onClick={() => navigate('/customers')}
+                        style={{
+                            ...buttonStyle,
+                            backgroundColor: '#6366f1',
+                            color: 'white'
+                        }}
+                    >
+                        👤 Ver Clientes
+                    </button>
+                    <button
+                        onClick={() => navigate('/invoices')}
+                        style={{
+                            ...buttonStyle,
+                            backgroundColor: '#f59e0b',
+                            color: 'white'
+                        }}
+                    >
+                        🧾 Nueva Factura
+                    </button>
+                </div>
             </div>
 
             {/* Resumen */}
@@ -208,21 +244,34 @@ const AccountsReceivable: React.FC = () => {
             {/* Lista de clientes con deuda */}
             {customerAccounts.length === 0 ? (
                 <div style={{ ...cardStyle, textAlign: 'center', padding: '48px' }}>
-                    <p style={{ fontSize: '48px', margin: '0 0 16px 0' }}>✅</p>
+                    <p style={{ fontSize: '48px', margin: '0 0 16px 0' }}>👥</p>
                     <p style={{ color: '#64748b', margin: 0 }}>
-                        No hay cuentas pendientes de cobro
+                        No hay clientes registrados
                     </p>
                     <p style={{ color: '#94a3b8', fontSize: '14px', margin: '8px 0 0 0' }}>
-                        Los clientes con facturas "Pendientes" aparecerán aquí
+                        Hacé clic en "Agregar Cliente" para crear uno y gestionar su cuenta corriente
                     </p>
                 </div>
             ) : (
                 <div style={{ display: 'grid', gridTemplateColumns: selectedCustomerId ? '1fr 1fr' : '1fr', gap: '24px' }}>
                     {/* Lista de clientes */}
                     <div style={cardStyle}>
-                        <h3 style={{ margin: '0 0 16px 0', fontSize: '18px', fontWeight: 600, color: '#1e293b' }}>
-                            Clientes con Cuenta Corriente
-                        </h3>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                            <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 600, color: '#1e293b' }}>
+                                Clientes con Cuenta Corriente
+                            </h3>
+<button
+                                onClick={() => navigate('/customers')}
+                                style={{
+                                    ...buttonStyle,
+                                    backgroundColor: '#22c55e',
+                                    color: 'white',
+                                    fontSize: '13px'
+                                }}
+                            >
+                                ➕ Agregar Cliente
+                            </button>
+                        </div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                             {customerAccounts.map(account => (
                                 <div
@@ -293,25 +342,46 @@ const AccountsReceivable: React.FC = () => {
                                         </p>
                                     )}
                                 </div>
-                                <button
-                                    onClick={() => {
-                                        const firstId = selectedAccount.pendingInvoices[0]?.id;
-                                        setPaymentForm({
-                                            invoiceId: firstId ? String(firstId) : '',
-                                            amount: '',
-                                            method: 'cash'
-                                        });
-                                        setShowPaymentModal(true);
-                                    }}
-                                    style={{
-                                        ...buttonStyle,
-                                        backgroundColor: '#22c55e',
-                                        color: 'white',
-                                        padding: '10px 20px'
-                                    }}
-                                >
-                                    💵 Registrar Pago
-                                </button>
+<div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                                    <button
+                                        onClick={() => navigate(`/customers?edit=${selectedAccount.customer.id}`)}
+                                        style={{
+                                            ...buttonStyle,
+                                            backgroundColor: '#6366f1',
+                                            color: 'white'
+                                        }}
+                                    >
+                                        ✏️ Editar Cliente
+                                    </button>
+                                    <button
+                                        onClick={() => {
+                                            const firstId = selectedAccount.pendingInvoices[0]?.id;
+                                            setPaymentForm({
+                                                invoiceId: firstId ? String(firstId) : '',
+                                                amount: '',
+                                                method: 'cash'
+                                            });
+                                            setShowPaymentModal(true);
+                                        }}
+                                        style={{
+                                            ...buttonStyle,
+                                            backgroundColor: '#22c55e',
+                                            color: 'white'
+                                        }}
+                                    >
+                                        💰 Acreditar Pago
+                                    </button>
+                                    <button
+                                        onClick={() => navigate(`/invoices?createForCustomer=${selectedAccount.customer.id}`)}
+                                        style={{
+                                            ...buttonStyle,
+                                            backgroundColor: '#f97316',
+                                            color: 'white'
+                                        }}
+                                    >
+                                        🧾 Crear Factura
+                                    </button>
+                                </div>
                             </div>
 
                             {/* Balance */}
@@ -345,6 +415,14 @@ const AccountsReceivable: React.FC = () => {
                                         {formatMoney(selectedAccount.totalDebt, 'PYG')}
                                     </p>
                                 </div>
+                                {selectedAccount.creditBalance > 0 && (
+                                    <div>
+                                        <p style={{ margin: 0, fontSize: '12px', color: '#64748b' }}>Saldo a Favor</p>
+                                        <p style={{ margin: '4px 0 0 0', fontSize: '20px', fontWeight: 700, color: '#22c55e' }}>
+                                            {formatMoney(selectedAccount.creditBalance, 'PYG')}
+                                        </p>
+                                    </div>
+                                )}
                             </div>
 
                             {/* Facturas pendientes */}
@@ -373,31 +451,31 @@ const AccountsReceivable: React.FC = () => {
                                                 <span style={{ fontWeight: 700, color: '#1e293b' }}>
                                                     {formatMoney(Number(inv.total), inv.currency ?? 'PYG')}
                                                 </span>
-                                                <button
-                                                    type="button"
-                                                    onClick={async () => {
-                                                        try {
-                                                            const result = await invoicesApi.sendReminder(inv.id);
-                                                            if (result.sent) {
-                                                                alert('Recordatorio enviado por email al cliente.');
-                                                            } else {
-                                                                alert(result.reason || 'No se pudo enviar.');
+                                                    <button
+                                                        type="button"
+                                                        onClick={async () => {
+                                                            try {
+                                                                const result = await invoicesApi.sendReminder(inv.id);
+                                                                if (result.sent) {
+                                                                    showToast('Recordatorio enviado por email al cliente.', 'success');
+                                                                } else {
+                                                                    showToast(result.reason || 'No se pudo enviar', 'warning');
+                                                                }
+                                                            } catch (e) {
+                                                                showToast(getErrorMessage(e, 'Error al enviar recordatorio'), 'error');
                                                             }
-                                                        } catch (e) {
-                                                            alert(getErrorMessage(e, 'Error al enviar recordatorio'));
-                                                        }
-                                                    }}
-                                                    style={{
-                                                        ...buttonStyle,
-                                                        backgroundColor: '#eff6ff',
-                                                        color: '#1d4ed8',
-                                                        fontSize: '12px',
-                                                        padding: '6px 12px'
-                                                    }}
-                                                    title="Enviar email de recordatorio al cliente"
-                                                >
-                                                    📧 Recordatorio
-                                                </button>
+                                                        }}
+                                                        style={{
+                                                            ...buttonStyle,
+                                                            backgroundColor: '#eff6ff',
+                                                            color: '#1d4ed8',
+                                                            fontSize: '12px',
+                                                            padding: '6px 12px'
+                                                        }}
+                                                        title="Enviar email de recordatorio al cliente"
+                                                    >
+                                                        📧 Recordatorio
+                                                    </button>
                                                 <button
                                                     onClick={() => markInvoiceAsPaid(inv.id)}
                                                     style={{
@@ -518,6 +596,30 @@ const AccountsReceivable: React.FC = () => {
                                         </option>
                                     ))}
                                 </select>
+
+                                {selectedAccount.creditBalance > 0 && paymentForm.invoiceId && (() => {
+                                    const inv = selectedAccount.pendingInvoices.find(i => i.id === Number(paymentForm.invoiceId));
+                                    if (inv) {
+                                        const apply = Math.min(selectedAccount.creditBalance, Number(inv.total));
+                                        return (
+                                            <div style={{
+                                                marginTop: '12px',
+                                                padding: '12px',
+                                                backgroundColor: '#f0fdf4',
+                                                borderRadius: '8px',
+                                                fontSize: '14px',
+                                                color: '#166534'
+                                            }}>
+                                                💰 Cliente tiene saldo a favor de {formatMoney(selectedAccount.creditBalance, 'PYG')}.<br />
+                                                Se aplicarán automáticamente <strong>{formatMoney(apply, 'PYG')}</strong> a esta factura.<br />
+                                                <span style={{ fontSize: '12px', color: '#374151' }}>
+                                                    El monto ingresado se cubrirá primero con saldo a favor y el resto con el método de pago seleccionado.
+                                                </span>
+                                            </div>
+                                        );
+                                    }
+                                    return null;
+                                })()}
                             </div>
                             <div style={{ marginBottom: '20px' }}>
                                 <label style={{ display: 'block', fontSize: '14px', fontWeight: 500, color: '#374151', marginBottom: '6px' }}>
@@ -653,15 +755,3 @@ const AccountsReceivable: React.FC = () => {
 };
 
 export default AccountsReceivable;
-
-
-
-
-
-
-
-
-
-
-
-

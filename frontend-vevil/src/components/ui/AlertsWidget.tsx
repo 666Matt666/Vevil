@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { getInvoiceConfig, getAlertsConfig } from '../settings/Settings';
 import { productsApi, metricsApi } from '../../services/api';
-import { formatMoney } from '../settings/Settings';
 import { useToast } from '../../hooks/useToast';
 
 interface Alert {
@@ -15,23 +14,24 @@ interface Alert {
 const NOTIFICATION_KEY = 'vevil_last_notification';
 const NOTIFICATION_INTERVAL = 5 * 60 * 1000;
 
-export const AlertsWidget: React.FC = () => {
+export const AlertsWidget: React.FC<{ compact?: boolean }> = ({ compact = false }) => {
     const [alerts, setAlerts] = useState<Alert[]>([]);
-    const [isOpen, setIsOpen] = useState(false);
+    const [panelOpen, setPanelOpen] = useState(false);
     const [notificationsEnabled, setNotificationsEnabled] = useState(false);
     const { showToast } = useToast();
     const panelRef = useRef<HTMLDivElement>(null);
     const [hasNewAlert, setHasNewAlert] = useState(false);
 
     useEffect(() => {
+        if (compact) return;
         const handleClickOutside = (event: MouseEvent) => {
             if (panelRef.current && !panelRef.current.contains(event.target as Node)) {
-                setIsOpen(false);
+                setPanelOpen(false);
             }
         };
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, []);
+    }, [compact]);
 
     const requestNotificationPermission = async () => {
         if ('Notification' in window && Notification.permission === 'default') {
@@ -62,22 +62,22 @@ export const AlertsWidget: React.FC = () => {
     const checkAlerts = async () => {
         const newAlerts: Alert[] = [];
         const config = getAlertsConfig();
-        
+
         try {
             const products = await productsApi.getAll();
             const metrics = await metricsApi.getMetrics();
-            
+
             if (config.pendingInvoicesEnabled && (metrics.pendingInvoices || 0) > 0) {
                 const pendingAmount = metrics.pendingInvoicesAmount || 0;
                 newAlerts.push({
                     type: 'warning',
                     title: '📋 Facturas Pendientes',
-                    message: `${metrics.pendingInvoices} factura${metrics.pendingInvoices > 1 ? 's' : ''} pendiente${metrics.pendingInvoices > 1 ? 's' : ''} (${formatMoney(pendingAmount, 'PYG')})`,
+                    message: `${metrics.pendingInvoices} factura${metrics.pendingInvoices > 1 ? 's' : ''} pendiente${metrics.pendingInvoices > 1 ? 's' : ''} (${pendingAmount.toLocaleString('es-PY')})`,
                     key: 'pending_invoices',
                     timestamp: Date.now()
                 });
             }
-            
+
             if (config.lowStockEnabled) {
                 const threshold = config.lowStockThreshold;
                 const lowStock = products.filter(p => {
@@ -94,14 +94,14 @@ export const AlertsWidget: React.FC = () => {
                     });
                 }
             }
-            
+
             if (config.timbradoExpiryWarningDays > 0) {
                 const invoiceConfig = getInvoiceConfig();
                 if (invoiceConfig.timbrado && invoiceConfig.timbradoVigenciaHasta) {
                     const expiryDate = new Date(invoiceConfig.timbradoVigenciaHasta);
                     const today = new Date();
                     const daysUntilExpiry = Math.ceil((expiryDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-                    
+
                     if (daysUntilExpiry <= 0) {
                         newAlerts.push({
                             type: 'error',
@@ -127,16 +127,14 @@ export const AlertsWidget: React.FC = () => {
             const canNotify = !lastNotification || (now - parseInt(lastNotification)) > NOTIFICATION_INTERVAL;
 
             if (newAlerts.length > 0) {
-                // Check if there are new alerts compared to previous state
                 const prevAlerts = alerts.map(a => a.key);
                 const hasNew = newAlerts.some(a => !prevAlerts.includes(a.key));
-                
+
                 if (hasNew) {
                     setHasNewAlert(true);
                     setTimeout(() => setHasNewAlert(false), 2000);
                 }
 
-                // Show toast for new critical alerts
                 const criticalAlert = newAlerts.find(a => a.type === 'error');
                 if (criticalAlert && canNotify) {
                     showToast(criticalAlert.message, 'error');
@@ -152,7 +150,7 @@ export const AlertsWidget: React.FC = () => {
         } catch (e) {
             console.error('Error checking alerts:', e);
         }
-        
+
         setAlerts(newAlerts);
     };
 
@@ -162,13 +160,58 @@ export const AlertsWidget: React.FC = () => {
         info: { bg: '#dbeafe', border: '#3b82f6', text: '#1e40af', icon: 'ℹ️' }
     };
 
-    if (alerts.length === 0) return null;
-
     const errorCount = alerts.filter(a => a.type === 'error').length;
     const warningCount = alerts.filter(a => a.type === 'warning').length;
 
+    // Compact mode: show as horizontal alerts above content
+    if (compact) {
+        if (alerts.length === 0) return null;
+
+        return (
+            <div style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '8px',
+                marginBottom: '16px'
+            }}>
+                {alerts.map((alert) => {
+                    const c = colors[alert.type];
+                    return (
+                        <div
+                            key={alert.key}
+                            style={{
+                                padding: '12px 16px',
+                                borderRadius: '10px',
+                                backgroundColor: c.bg,
+                                border: `1px solid ${c.border}`,
+                                color: c.text,
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '10px',
+                                fontSize: '14px',
+                                fontWeight: 500,
+                                animation: 'slideIn 0.2s ease-out'
+                            }}
+                        >
+                            <span style={{ fontSize: '18px' }}>{c.icon}</span>
+                            <span style={{ flex: 1 }}>{alert.title}: {alert.message}</span>
+                        </div>
+                    );
+                })}
+                <style>{`
+                    @keyframes slideIn {
+                        from { opacity: 0; transform: translateY(-10px); }
+                        to { opacity: 1; transform: translateY(0); }
+                    }
+                `}</style>
+            </div>
+        );
+    }
+
+    if (alerts.length === 0) return null;
+
     return (
-        <div 
+        <div
             ref={panelRef}
             style={{
                 position: 'fixed',
@@ -178,7 +221,7 @@ export const AlertsWidget: React.FC = () => {
             }}
         >
             <button
-                onClick={() => setIsOpen(!isOpen)}
+                onClick={() => setPanelOpen(!panelOpen)}
                 style={{
                     position: 'relative',
                     padding: '12px 16px',
@@ -216,8 +259,8 @@ export const AlertsWidget: React.FC = () => {
                     {alerts.length}
                 </span>
             </button>
-            
-            {isOpen && (
+
+            {panelOpen && (
                 <div style={{
                     marginTop: '12px',
                     width: '340px',
@@ -239,12 +282,12 @@ export const AlertsWidget: React.FC = () => {
                             <span style={{ fontSize: '20px' }}>
                                 {errorCount > 0 ? '🚨' : '⚠️'}
                             </span>
-                            <span style={{ 
-                                fontWeight: 600, 
+                            <span style={{
+                                fontWeight: 600,
                                 color: errorCount > 0 ? '#991b1b' : '#92400e',
                                 fontSize: '15px'
                             }}>
-                                {errorCount > 0 
+                                {errorCount > 0
                                     ? `${errorCount} Alerta${errorCount > 1 ? 's' : ''} Crítica${errorCount > 1 ? 's' : ''}`
                                     : `${warningCount} Aviso${warningCount > 1 ? 's' : ''}`
                                 }
@@ -265,7 +308,7 @@ export const AlertsWidget: React.FC = () => {
                             🔄
                         </button>
                     </div>
-                    
+
                     <div style={{ maxHeight: '320px', overflowY: 'auto' }}>
                         {alerts.map((alert, i) => (
                             <div
@@ -280,23 +323,23 @@ export const AlertsWidget: React.FC = () => {
                                 onMouseEnter={(e) => e.currentTarget.style.backgroundColor = colors[alert.type].border + '20'}
                                 onMouseLeave={(e) => e.currentTarget.style.backgroundColor = colors[alert.type].bg}
                             >
-                                <div style={{ 
-                                    display: 'flex', 
-                                    alignItems: 'flex-start', 
-                                    gap: '10px' 
+                                <div style={{
+                                    display: 'flex',
+                                    alignItems: 'flex-start',
+                                    gap: '10px'
                                 }}>
                                     <span style={{ fontSize: '18px', lineHeight: 1 }}>{colors[alert.type].icon}</span>
                                     <div style={{ flex: 1 }}>
-                                        <div style={{ 
-                                            fontWeight: 600, 
-                                            fontSize: '14px', 
+                                        <div style={{
+                                            fontWeight: 600,
+                                            fontSize: '14px',
                                             color: colors[alert.type].text,
                                             marginBottom: '4px'
                                         }}>
                                             {alert.title}
                                         </div>
-                                        <div style={{ 
-                                            fontSize: '13px', 
+                                        <div style={{
+                                            fontSize: '13px',
                                             color: colors[alert.type].text,
                                             opacity: 0.9,
                                             lineHeight: 1.4
@@ -339,14 +382,8 @@ export const AlertsWidget: React.FC = () => {
 
             <style>{`
                 @keyframes slideIn {
-                    from {
-                        opacity: 0;
-                        transform: translateY(-10px);
-                    }
-                    to {
-                        opacity: 1;
-                        transform: translateY(0);
-                    }
+                    from { opacity: 0; transform: translateY(-10px); }
+                    to { opacity: 1; transform: translateY(0); }
                 }
                 @keyframes pulse {
                     0%, 100% { opacity: 1; }

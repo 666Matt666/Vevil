@@ -11,6 +11,7 @@ import { ProductsService } from '../products/products.service';
 import { CustomersService } from '../customers/customers.service';
 import { StockMovementsService } from '../stock-movements/stock-movements.service';
 import { MailService } from '../mail/mail.service';
+import { Customer } from '../customers/customer.entity';
 
 @Injectable()
 export class InvoicesService {
@@ -19,6 +20,8 @@ export class InvoicesService {
         private invoicesRepository: Repository<Invoice>,
         @InjectRepository(Payment)
         private paymentsRepository: Repository<Payment>,
+        @InjectRepository(Customer)
+        private customersRepository: Repository<Customer>,
         private productsService: ProductsService,
         private customersService: CustomersService,
         private stockMovementsService: StockMovementsService,
@@ -198,12 +201,62 @@ export class InvoicesService {
 
     async addPayment(invoiceId: number, dto: CreatePaymentDto) {
         const invoice = await this.findOne(invoiceId);
-        const payment = this.paymentsRepository.create({
-            invoiceId,
-            amount: dto.amount,
-            method: dto.method,
-        });
-        return this.paymentsRepository.save(payment);
+        const customer = invoice.customer;
+
+        // Suma de pagos existentes
+        const existingPayments = invoice.payments || [];
+        const totalPaid = existingPayments.reduce((sum, p) => sum + Number(p.amount), 0);
+        const pending = Number(invoice.total) - totalPaid;
+
+        if (pending <= 0) {
+            throw new BadRequestException('La factura ya está pagada completamente');
+        }
+
+        const requestedAmount = Number(dto.amount);
+        if (requestedAmount <= 0) {
+            throw new BadRequestException('El monto debe ser mayor a 0');
+        }
+        if (requestedAmount > pending) {
+            throw new BadRequestException(`El monto no puede superar el pendiente (${pending})`);
+        }
+
+        const creditAvailable = Number(customer.creditBalance) || 0;
+        const creditToApply = Math.min(creditAvailable, requestedAmount);
+        const cashAmount = requestedAmount - creditToApply;
+
+        // Actualizar saldo del cliente si se usa crédito
+        if (creditToApply > 0) {
+            customer.creditBalance = creditAvailable - creditToApply;
+            await this.customersRepository.save(customer);
+        }
+
+        let cashPayment: Payment | null = null;
+        if (cashAmount > 0) {
+            cashPayment = this.paymentsRepository.create({
+                invoiceId,
+                amount: cashAmount,
+                method: dto.method,
+            });
+            await this.paymentsRepository.save(cashPayment);
+        }
+
+        let creditPayment: Payment | null = null;
+        if (creditToApply > 0) {
+            creditPayment = this.paymentsRepository.create({
+                invoiceId,
+                amount: creditToApply,
+                method: 'credit',
+            });
+            await this.paymentsRepository.save(creditPayment);
+        }
+
+        // Actualizar estado de la factura
+        const newTotalPaid = totalPaid + creditToApply + cashAmount;
+        invoice.status = newTotalPaid >= Number(invoice.total) ? 'paid' : 'pending';
+        await this.invoicesRepository.save(invoice);
+
+        // Devolver el pago correspondiente al método solicitado (efectivo/tarjeta) o el de crédito si solo aplicó ese
+        return cashPayment || creditPayment;
     }
 
     /**
@@ -216,7 +269,24 @@ export class InvoicesService {
         if (!payment) {
             throw new NotFoundException('Pago no encontrado');
         }
+
+        // Si el pago fue con saldo a favor, restituir el crédito
+        if (payment.method === 'credit') {
+            const invoice = await this.findOne(invoiceId);
+            const customer = invoice.customer;
+            customer.creditBalance = Number(customer.creditBalance) + Number(payment.amount);
+            await this.customersRepository.save(customer);
+        }
+
         await this.paymentsRepository.remove(payment);
+
+        // Recalcular estado de la factura
+        const invoice = await this.findOne(invoiceId);
+        const payments = await this.paymentsRepository.find({ where: { invoiceId } });
+        const totalPaid = payments.reduce((sum, p) => sum + Number(p.amount), 0);
+        invoice.status = totalPaid >= Number(invoice.total) ? 'paid' : 'pending';
+        await this.invoicesRepository.save(invoice);
+
         return payment;
     }
 

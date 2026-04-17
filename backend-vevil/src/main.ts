@@ -2,25 +2,28 @@ import { Logger, ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import cookieParser from 'cookie-parser';
-
+import helmet from 'helmet';
 import { AppModule } from './app.module';
-import { SecurityHeadersMiddleware } from './common/middleware/security-headers.middleware';
 import { AllExceptionsFilter } from './http-exception.filter';
+import { SecurityHeadersMiddleware } from './common/middleware/security-headers.middleware';
 
 // Helper: Construye lista de orígenes permitidos
 function buildCorsOrigins(): (string | RegExp)[] {
   const defaultOrigins: (string | RegExp)[] = [
     /^http:\/\/localhost(:\d+)?$/,
+    'http://localhost:3000',
     /^https:\/\/[^.]+\.vercel\.app$/,
     /\.vercel\.dev$/,
     'https://vevil-dtt7ta.fly.dev',
+    /^https:\/\/vevil\.fly\.dev$/,
     'https://vevil-qa.fly.dev',
+    /^https:\/\/vevil-dev\.fly\.dev$/,
   ];
-  
+
   const envOrigins = process.env.CORS_ORIGINS
     ? process.env.CORS_ORIGINS.split(',').map((o) => o.trim()).filter(Boolean)
     : [];
-  
+
   return [...envOrigins, ...defaultOrigins];
 }
 
@@ -43,33 +46,45 @@ function isOriginAllowed(
 async function bootstrap() {
   try {
     const logger = new Logger('Bootstrap');
-    
+
     if (process.env.NODE_ENV !== 'production') {
       logger.log('Iniciando aplicación Vevil...');
     } else {
       logger.log('Iniciando en PRODUCCIÓN...');
     }
-    
+
     const app = await NestFactory.create(AppModule);
+
+    // Security: Helmet.js headers
+    app.use(helmet({
+      contentSecurityPolicy: {
+        directives: {
+          defaultSrc: ["'self'"],
+          scriptSrc: ["'self'", "'unsafe-inline'"],
+          styleSrc: ["'self'", "'unsafe-inline'"],
+          imgSrc: ["'self'", "data:", "https:"],
+          connectSrc: ["'self'", process.env.API_URL || 'http://localhost:3000'],
+        },
+      },
+      crossOriginEmbedderPolicy: false,
+    }));
 
     // Middleware para parsear cookies (necesario para HttpOnly cookies)
     app.use(cookieParser());
-    
+
     // Security headers (debe ir temprano en el middleware chain)
     const securityHeadersMiddleware = new SecurityHeadersMiddleware();
     app.use(securityHeadersMiddleware.use.bind(securityHeadersMiddleware));
 
     // Configuración de CORS - whitelist explícita para seguridad
     const corsOrigins = buildCorsOrigins();
-    
+
     app.enableCors({
       origin: (requestOrigin, callback) => {
-        // Si no hay origin (como en requests de servidor), permitir
         if (!requestOrigin) {
           return callback(null, true);
         }
-        
-        // Verificar contra whitelist
+
         const isAllowed = isOriginAllowed(requestOrigin, corsOrigins);
         if (isAllowed) {
           callback(null, true);
@@ -120,7 +135,6 @@ async function bootstrap() {
 
     // Puerto configurable para producción (Render usa PORT)
     const port = process.env.PORT || 3000;
-    // Escuchar en todas las interfaces (0.0.0.0) para permitir acceso desde otros dispositivos
     await app.listen(port, '0.0.0.0');
 
     logger.log('Aplicación iniciada correctamente');
@@ -134,7 +148,6 @@ async function bootstrap() {
     const errorLogger = new Logger('BootstrapError');
     errorLogger.error(`Error al iniciar la aplicación: ${(error as Error).message}`);
 
-    // Mensajes de ayuda según el tipo de error
     const errorMessage = (error as Error).message || '';
     if (errorMessage.includes('ECONNREFUSED') || errorMessage.includes('Connection refused')) {
       errorLogger.error('\n💡 PROBLEMA: No se puede conectar a la base de datos');

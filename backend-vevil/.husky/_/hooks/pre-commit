@@ -1,0 +1,14 @@
+#!/bin/sh
+. "$(dirname "$0")/../husky.sh"
+
+# Backend pre-commit hook
+# Ejecuta: typecheck + lint + unit tests
+
+echo "🔍 Running typecheck..."
+npm run typecheck
+
+echo "📝 Running lint..."
+npm run lint
+
+echo "🧪 Running tests..."
+npm test

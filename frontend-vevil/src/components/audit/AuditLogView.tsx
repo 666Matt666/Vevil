@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { auditApi, type AuditLogItem } from '../../services/api';
-import { getErrorMessage } from '../../services/api';
-import { LoadingSpinner } from '../ui/LoadingSpinner';
-import { ErrorMessage } from '../ui/ErrorMessage';
-import { Pagination } from '../ui/Pagination';
-import { exportAuditToCsv } from '../../utils/exportCsv';
+
 import { useProfile } from '../../hooks/useAuth';
+import { auditApi, getErrorMessage, type AuditLogItem } from '../../services/api';
+import { exportAuditToCsv } from '../../utils/exportCsv';
+
+import { ErrorMessage } from '../ui/ErrorMessage';
+import { LoadingSpinner } from '../ui/LoadingSpinner';
+import { Pagination } from '../ui/Pagination';
 
 const ENTITY_TYPES = [
     { value: '', label: 'Todos' },

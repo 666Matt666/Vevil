@@ -66,6 +66,7 @@ const InvoiceDetail: React.FC = () => {
 
     const subtotal = Number(invoice.total) / (1 + IVA_RATE);
     const iva = Number(invoice.total) - subtotal;
+    const total = Number(invoice.total);
     const company = getCompanyConfig();
     const currency = invoice.currency ?? 'PYG';
 

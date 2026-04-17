@@ -1,6 +1,7 @@
 /**
  * Genera un PDF de una factura con jsPDF.
  * Usa datos de empresa desde Configuración (getCompanyConfig).
+ * Si no hay logo configurado, usa el logo por defecto de /logoVevil.jpg.
  */
 import jsPDF from 'jspdf';
 import type { Invoice } from '../services/api';
@@ -16,7 +17,7 @@ function formatMoney(value: number, currency: string = 'PYG'): string {
     return `${currency} ${value.toLocaleString('es-PY', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
 }
 
-export function exportInvoiceToPdf(invoice: Invoice): void {
+export function exportInvoiceToPdf(invoice: Invoice, download: boolean = true): void {
     const company = getCompanyConfig();
     const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
     const pageW = doc.internal.pageSize.getWidth();
@@ -24,15 +25,23 @@ export function exportInvoiceToPdf(invoice: Invoice): void {
     const lineH = 6;
     const margin = 20;
 
-    // Logo de empresa (si existe)
-    if (company.logoUrl) {
+    // Logo de empresa (si existe en config, sino usar por defecto)
+    const logoTry = [
+        company.logoUrl,
+        '/logoVevil.jpg'
+    ];
+
+    let logoPlaced = false;
+    for (let i = 0; i < logoTry.length && !logoPlaced; i++) {
+        const logoUrl = logoTry[i];
+        if (!logoUrl) continue;
         try {
             const logoSize = 25;
-            doc.addImage(company.logoUrl, 'PNG', margin, 10, logoSize, logoSize);
+            doc.addImage(logoUrl, 'JPEG', margin, 10, logoSize, logoSize);
             y = 10 + logoSize + 6;
+            logoPlaced = true;
         } catch (e) {
-            console.warn('Error loading logo:', e);
-            y = 20;
+            console.warn('Error loading logo from', logoUrl, e);
         }
     }
 
@@ -144,5 +153,11 @@ export function exportInvoiceToPdf(invoice: Invoice): void {
     doc.text('Total:', pageW - margin - 50, y);
     doc.text(formatMoney(total, currency), pageW - margin, y, { align: 'right' });
 
-    doc.save(`factura_${String(invoice.id).padStart(7, '0')}.pdf`);
+    if (download) {
+        doc.save(`factura_${String(invoice.id).padStart(7, '0')}.pdf`);
+    } else {
+        const pdfBlob = doc.output('blob');
+        const url = URL.createObjectURL(pdfBlob);
+        window.open(url, '_blank');
+    }
 }

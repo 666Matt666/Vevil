@@ -113,13 +113,27 @@ const InvoiceDetail: React.FC = () => {
                     padding: '32px',
                     display: 'flex',
                     justifyContent: 'space-between',
-                    alignItems: 'flex-start'
+                    alignItems: 'center'
                 }}>
-                    <div>
-                        <h1 style={{ margin: 0, fontSize: '28px', fontWeight: 700 }}>FACTURA</h1>
-                        <p style={{ margin: '8px 0 0 0', color: '#94a3b8', fontSize: '14px' }}>
-                            N° {String(invoice.id).padStart(7, '0')}
-                        </p>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                        <img
+                            src="/logoVevil.jpg"
+                            alt="Logo Vevil"
+                            style={{
+                                height: '48px',
+                                width: 'auto',
+                                objectFit: 'contain'
+                            }}
+                            onError={(e) => {
+                                e.currentTarget.style.display = 'none';
+                            }}
+                        />
+                        <div>
+                            <h1 style={{ margin: 0, fontSize: '28px', fontWeight: 700 }}>FACTURA</h1>
+                            <p style={{ margin: '8px 0 0 0', color: '#94a3b8', fontSize: '14px' }}>
+                                N° {String(invoice.id).padStart(7, '0')}
+                            </p>
+                        </div>
                     </div>
                     <div style={{ textAlign: 'right' }}>
                         <p style={{ margin: 0, fontSize: '24px', fontWeight: 700, color: '#818cf8' }}>Vevil</p>

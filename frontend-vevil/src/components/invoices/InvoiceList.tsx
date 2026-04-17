@@ -898,6 +898,30 @@ const InvoiceList: React.FC = () => {
                                                     👁️
                                                 </button>
                                                 <button
+                                                    onClick={() => exportInvoiceToPdf(invoice, false)}
+                                                    style={{
+                                                        ...buttonStyle,
+                                                        backgroundColor: '#7c3aed',
+                                                        color: 'white',
+                                                        padding: '8px 12px'
+                                                    }}
+                                                    title="Ver factura (PDF)"
+                                                >
+                                                    📄 Ver
+                                                </button>
+                                                <button
+                                                    onClick={() => exportInvoiceToPdf(invoice, true)}
+                                                    style={{
+                                                        ...buttonStyle,
+                                                        backgroundColor: '#3b82f6',
+                                                        color: 'white',
+                                                        padding: '8px 12px'
+                                                    }}
+                                                    title="Descargar PDF"
+                                                >
+                                                    ⬇️
+                                                </button>
+                                                <button
                                                     onClick={() => printInvoice(invoice)}
                                                     style={{
                                                         ...buttonStyle,

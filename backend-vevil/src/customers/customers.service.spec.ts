@@ -3,6 +3,7 @@ import { getRepositoryToken } from '@nestjs/typeorm';
 import { NotFoundException } from '@nestjs/common';
 import { CustomersService } from './customers.service';
 import { Customer } from './customer.entity';
+import { Invoice } from '../invoices/invoice.entity';
 
 describe('CustomersService', () => {
   let service: CustomersService;
@@ -15,15 +16,16 @@ describe('CustomersService', () => {
     phones: [],
   };
 
-  beforeEach(async () => {
-    repository = {
-      find: jest.fn(),
-      findOneBy: jest.fn(),
-      create: jest.fn(),
-      save: jest.fn(),
-      merge: jest.fn(),
-      remove: jest.fn(),
-    };
+   beforeEach(async () => {
+     repository = {
+       find: jest.fn(),
+       findOne: jest.fn(),
+       findOneBy: jest.fn(),
+       create: jest.fn(),
+       save: jest.fn(),
+       merge: jest.fn(),
+       remove: jest.fn(),
+     };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -31,6 +33,12 @@ describe('CustomersService', () => {
         {
           provide: getRepositoryToken(Customer),
           useValue: repository,
+        },
+        {
+          provide: getRepositoryToken(Invoice),
+          useValue: {
+            find: jest.fn(),
+          },
         },
       ],
     }).compile();

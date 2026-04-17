@@ -1,12 +1,19 @@
-import { Controller, Get, Post, Patch, Put, Delete, Body, Param, UseGuards, Request, Query } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Put, Delete, Body, Param, UseGuards, Request, Query, HttpCode } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
-import { InvoicesService } from './invoices.service';
-import { CreateInvoiceDto } from './dto/create-invoice.dto';
-import { UpdateInvoiceStatusDto } from './dto/update-invoice-status.dto';
-import { UpdateInvoiceDto } from './dto/update-invoice.dto';
-import { CreatePaymentDto } from './dto/create-payment.dto';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+
 import { AuditService } from '../audit/audit.service';
 
+import { CreateInvoiceDto } from './dto/create-invoice.dto';
+import { CreatePaymentDto } from './dto/create-payment.dto';
+import { UpdateInvoiceStatusDto } from './dto/update-invoice-status.dto';
+import { UpdateInvoiceDto } from './dto/update-invoice.dto';
+import { Invoice } from './invoice.entity';
+import { InvoicesService } from './invoices.service';
+import { Payment } from './payment.entity';
+
+
+@ApiTags('Invoices')
 @Controller('invoices')
 @UseGuards(AuthGuard('jwt'))
 export class InvoicesController {
@@ -21,6 +28,9 @@ export class InvoicesController {
     }
 
     @Post()
+    @ApiOperation({ summary: 'Crear una nueva factura (con transacción y stock)' })
+    @ApiResponse({ status: 201, description: 'Factura creada exitosamente', type: Invoice })
+    @ApiBearerAuth()
     async create(@Body() createInvoiceDto: CreateInvoiceDto, @Request() req: any) {
         const created = await this.invoicesService.create(createInvoiceDto);
         await this.auditService.log({
@@ -35,6 +45,9 @@ export class InvoicesController {
     }
 
     @Get()
+    @ApiOperation({ summary: 'Obtener lista de facturas (con paginación y filtros)' })
+    @ApiResponse({ status: 200, description: 'Lista de facturas obtenida exitosamente', type: [Invoice] })
+    @ApiBearerAuth()
     async findAll(
         @Query('page') pageStr?: string,
         @Query('limit') limitStr?: string,
@@ -60,6 +73,9 @@ export class InvoicesController {
     }
 
     @Patch(':id/status')
+    @ApiOperation({ summary: 'Actualizar el estado de una factura' })
+    @ApiResponse({ status: 200, description: 'Estado actualizado', type: Invoice })
+    @ApiBearerAuth()
     async updateStatus(@Param('id') id: string, @Body() dto: UpdateInvoiceStatusDto, @Request() req: any) {
         const previous = await this.invoicesService.findOne(+id);
         const updated = await this.invoicesService.updateStatus(+id, dto.status);
@@ -76,11 +92,17 @@ export class InvoicesController {
     }
 
     @Get(':id/payments')
+    @ApiOperation({ summary: 'Obtener pagos de una factura' })
+    @ApiResponse({ status: 200, description: 'Lista de pagos', type: [Payment] })
+    @ApiBearerAuth()
     getPayments(@Param('id') id: string) {
         return this.invoicesService.getPayments(+id);
     }
 
     @Post(':id/payments')
+    @ApiOperation({ summary: 'Agregar un pago a una factura' })
+    @ApiResponse({ status: 201, description: 'Pago creado', type: Payment })
+    @ApiBearerAuth()
     async addPayment(@Param('id') id: string, @Body() dto: CreatePaymentDto, @Request() req: any) {
         const payment = await this.invoicesService.addPayment(+id, dto);
         await this.auditService.log({
@@ -95,6 +117,9 @@ export class InvoicesController {
     }
 
     @Delete(':invoiceId/payments/:paymentId')
+    @ApiOperation({ summary: 'Eliminar un pago de una factura' })
+    @ApiResponse({ status: 200, description: 'Pago eliminado' })
+    @ApiBearerAuth()
     async deletePayment(
         @Param('invoiceId') invoiceId: string,
         @Param('paymentId') paymentId: string,
@@ -113,11 +138,18 @@ export class InvoicesController {
     }
 
     @Get(':id')
+    @ApiOperation({ summary: 'Obtener una factura por ID' })
+    @ApiResponse({ status: 200, description: 'Factura encontrada', type: Invoice })
+    @ApiResponse({ status: 404, description: 'Factura no encontrada' })
+    @ApiBearerAuth()
     findOne(@Param('id') id: string) {
         return this.invoicesService.findOne(+id);
     }
 
     @Post(':id/send-reminder')
+    @ApiOperation({ summary: 'Enviar recordatorio de pago por email' })
+    @ApiResponse({ status: 200, description: 'Resultado del envío' })
+    @ApiBearerAuth()
     async sendReminder(@Param('id') id: string, @Request() req: any) {
         const result = await this.invoicesService.sendReminder(+id);
         await this.auditService.log({
@@ -132,6 +164,10 @@ export class InvoicesController {
     }
 
     @Put(':id')
+    @ApiOperation({ summary: 'Actualizar una factura (solo pendiente/cancelada)' })
+    @ApiResponse({ status: 200, description: 'Factura actualizada', type: Invoice })
+    @ApiResponse({ status: 400, description: 'No se puede editar factura pagada' })
+    @ApiBearerAuth()
     async update(@Param('id') id: string, @Body() dto: UpdateInvoiceDto, @Request() req: any) {
         const previous = await this.invoicesService.findOne(+id);
         const updated = await this.invoicesService.update(+id, dto);
@@ -148,6 +184,11 @@ export class InvoicesController {
     }
 
     @Delete(':id')
+    @HttpCode(204)
+    @ApiOperation({ summary: 'Eliminar una factura (solo pendiente/cancelada)' })
+    @ApiResponse({ status: 204, description: 'Factura eliminada' })
+    @ApiResponse({ status: 400, description: 'No se puede eliminar factura pagada o con pagos' })
+    @ApiBearerAuth()
     async remove(@Param('id') id: string, @Request() req: any) {
         const invoice = await this.invoicesService.findOne(+id);
         await this.invoicesService.remove(+id);

@@ -1,10 +1,16 @@
 import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Request, Query } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
-import { ProductsService } from './products.service';
-import { CreateProductDto } from './dto/create-product.dto';
-import { UpdateProductDto } from './dto/update-product.dto';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+
 import { AuditService } from '../audit/audit.service';
 
+import { CreateProductDto } from './dto/create-product.dto';
+import { UpdateProductDto } from './dto/update-product.dto';
+import { Product } from './product.entity';
+import { ProductsService } from './products.service';
+
+
+@ApiTags('Products')
 @Controller('products')
 @UseGuards(AuthGuard('jwt'))
 export class ProductsController {
@@ -19,6 +25,9 @@ export class ProductsController {
     }
 
     @Post()
+    @ApiOperation({ summary: 'Crear un nuevo producto' })
+    @ApiResponse({ status: 201, description: 'Producto creado exitosamente', type: Product })
+    @ApiBearerAuth()
     async create(@Body() createProductDto: CreateProductDto, @Request() req: any) {
         const created = await this.productsService.create(createProductDto);
         await this.auditService.log({
@@ -33,6 +42,9 @@ export class ProductsController {
     }
 
     @Get()
+    @ApiOperation({ summary: 'Obtener lista de productos (con soporte de paginación)' })
+    @ApiResponse({ status: 200, description: 'Lista de productos obtenida exitosamente', type: [Product] })
+    @ApiBearerAuth()
     async findAll(
         @Query('page') pageStr?: string,
         @Query('limit') limitStr?: string,
@@ -49,11 +61,19 @@ export class ProductsController {
     }
 
     @Get(':id')
+    @ApiOperation({ summary: 'Obtener un producto por ID' })
+    @ApiResponse({ status: 200, description: 'Producto encontrado', type: Product })
+    @ApiResponse({ status: 404, description: 'Producto no encontrado' })
+    @ApiBearerAuth()
     findOne(@Param('id') id: string) {
         return this.productsService.findOne(+id);
     }
 
     @Patch(':id')
+    @ApiOperation({ summary: 'Actualizar un producto' })
+    @ApiResponse({ status: 200, description: 'Producto actualizado', type: Product })
+    @ApiResponse({ status: 404, description: 'Producto no encontrado' })
+    @ApiBearerAuth()
     async update(@Param('id') id: string, @Body() updateProductDto: UpdateProductDto, @Request() req: any) {
         const previous = await this.productsService.findOne(+id);
         const updated = await this.productsService.update(+id, updateProductDto);
@@ -70,6 +90,10 @@ export class ProductsController {
     }
 
     @Delete(':id')
+    @ApiOperation({ summary: 'Eliminar un producto' })
+    @ApiResponse({ status: 200, description: 'Producto eliminado' })
+    @ApiResponse({ status: 404, description: 'Producto no encontrado' })
+    @ApiBearerAuth()
     async remove(@Param('id') id: string, @Request() req: any) {
         const removed = await this.productsService.remove(+id);
         await this.auditService.log({

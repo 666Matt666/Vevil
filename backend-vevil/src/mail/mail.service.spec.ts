@@ -1,89 +1,90 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
-import { MailerService } from '@nestjs-modules/mailer';
+import { Resend } from 'resend';
 import { MailService } from './mail.service';
+
+jest.mock('resend');
 
 describe('MailService', () => {
   let service: MailService;
-  let mailerService: any;
   let configService: any;
+  const mockResendInstance = {
+    emails: {
+      send: jest.fn().mockResolvedValue({}),
+    },
+  };
 
-  beforeEach(async () => {
-    mailerService = {
-      sendMail: jest.fn().mockResolvedValue({}),
-    };
+  beforeEach(() => {
+    jest.clearAllMocks();
+    (Resend as jest.Mock).mockClear();
+    (Resend as jest.Mock).mockReturnValue(mockResendInstance);
+  });
 
+  async function createService(configOverrides: Record<string, any> = {}) {
     configService = {
       get: jest.fn((key: string) => {
-        const config: Record<string, string | undefined> = {
-          MAIL_HOST: 'smtp.example.com',
-          MAIL_FROM: 'noreply@vevil.com',
-          MAIL_FROM_NAME: 'Vevil',
+        const defaults: Record<string, any> = {
+          RESEND_API_KEY: 'test-resend-key',
           NODE_ENV: 'test',
         };
-        return config[key];
+        // Use hasOwnProperty to differentiate between undefined and missing
+        if (Object.prototype.hasOwnProperty.call(configOverrides, key)) {
+          return configOverrides[key];
+        }
+        return defaults[key] ?? null;
       }),
     };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         MailService,
-        { provide: MailerService, useValue: mailerService },
         { provide: ConfigService, useValue: configService },
       ],
     }).compile();
 
-    service = module.get<MailService>(MailService);
-    jest.clearAllMocks();
-  });
+    return module.get<MailService>(MailService);
+  }
 
-  it('should be defined', () => {
+  it('should be defined', async () => {
+    service = await createService();
     expect(service).toBeDefined();
   });
 
   describe('isConfigured', () => {
-    it('should return true when MAIL_HOST is set', () => {
+    it('should return true when RESEND_API_KEY is set', async () => {
+      service = await createService();
       expect(service.isConfigured()).toBe(true);
+      expect(Resend).toHaveBeenCalledWith('test-resend-key');
     });
 
-    it('should return false when MAIL_HOST is not set', () => {
-      configService.get.mockImplementation((key: string) => {
-        if (key === 'MAIL_HOST') return undefined;
-        return null;
-      });
-
+    it('should return false when RESEND_API_KEY is not set', async () => {
+      service = await createService({ RESEND_API_KEY: undefined });
       expect(service.isConfigured()).toBe(false);
+      expect(Resend).not.toHaveBeenCalled();
     });
   });
 
   describe('sendResetPasswordEmail', () => {
     it('should send reset password email when configured', async () => {
-      const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
-
+      service = await createService();
       await service.sendResetPasswordEmail('user@example.com', 'https://example.com/reset');
 
-      expect(mailerService.sendMail).toHaveBeenCalledWith(
+      expect(mockResendInstance.emails.send).toHaveBeenCalledWith(
         expect.objectContaining({
           to: 'user@example.com',
           subject: expect.stringContaining('Restablecer'),
         }),
       );
-
-      consoleSpy.mockRestore();
     });
 
     it('should log link in development when not configured', async () => {
-      configService.get.mockImplementation((key: string) => {
-        if (key === 'MAIL_HOST') return undefined;
-        if (key === 'NODE_ENV') return 'development';
-        return null;
-      });
+      service = await createService({ RESEND_API_KEY: undefined, NODE_ENV: 'development' });
       const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
 
       await service.sendResetPasswordEmail('user@example.com', 'https://example.com/reset');
 
       expect(consoleSpy).toHaveBeenCalledWith(
-        '[Mail] Reset password link (MAIL_* not configured):',
+        '[Mail] Reset password link (RESEND not configured):',
         'https://example.com/reset',
       );
 
@@ -93,9 +94,10 @@ describe('MailService', () => {
 
   describe('sendRegistrationConfirmationEmail', () => {
     it('should send confirmation email when configured', async () => {
+      service = await createService();
       await service.sendRegistrationConfirmationEmail('user@example.com', 'https://example.com/confirm');
 
-      expect(mailerService.sendMail).toHaveBeenCalledWith(
+      expect(mockResendInstance.emails.send).toHaveBeenCalledWith(
         expect.objectContaining({
           to: 'user@example.com',
           subject: expect.stringContaining('Confirmá'),
@@ -106,9 +108,10 @@ describe('MailService', () => {
 
   describe('sendPaymentReminderEmail', () => {
     it('should send payment reminder email when configured', async () => {
+      service = await createService();
       await service.sendPaymentReminderEmail('customer@example.com', 'John Doe', 'INV-001', 100000, 'PYG');
 
-      expect(mailerService.sendMail).toHaveBeenCalledWith(
+      expect(mockResendInstance.emails.send).toHaveBeenCalledWith(
         expect.objectContaining({
           to: 'customer@example.com',
           subject: expect.stringContaining('Recordatorio'),
@@ -119,9 +122,10 @@ describe('MailService', () => {
 
   describe('sendSetPasswordEmail', () => {
     it('should send set password email when configured', async () => {
+      service = await createService();
       await service.sendSetPasswordEmail('user@example.com', 'https://example.com/set-password');
 
-      expect(mailerService.sendMail).toHaveBeenCalledWith(
+      expect(mockResendInstance.emails.send).toHaveBeenCalledWith(
         expect.objectContaining({
           to: 'user@example.com',
           subject: expect.stringContaining('Creá'),

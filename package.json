@@ -10,7 +10,15 @@
     "dev:frontend": "npx cross-env VITE_API_URL=http://localhost:3000/api npm run dev --prefix frontend-vevil",
     "db:migrate": "npm run migration:run --prefix backend-vevil",
     "pre-deploy:local": "npm run dev:up && npx wait-on -d 2000 -t 30000 tcp:localhost:5432 && npm run db:migrate && echo Listo. Ejecuta npm run dev y abre http://localhost:5173. Checklist en docs/PRE_DEPLOY_LOCAL_CHECK.md",
-    "e2e:local": "npm run e2e:full:local --prefix frontend-vevil"
+    "e2e:local": "npm run e2e:full:local --prefix frontend-vevil",
+    "lint": "npm run lint --workspaces --if-present",
+    "lint:backend": "npm run lint --prefix backend-vevil",
+    "lint:frontend": "npm run lint --prefix frontend-vevil",
+    "typecheck": "npm run build --prefix backend-vevil && npm run build --prefix frontend-vevil",
+    "test": "npm run test --workspaces --if-present",
+    "test:backend": "npm run test --prefix backend-vevil",
+    "test:frontend": "npm run test --prefix frontend-vevil",
+    "test:cov": "npm run test:cov --prefix backend-vevil"
   },
   "devDependencies": {
     "concurrently": "^9.2.1",

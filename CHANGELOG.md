@@ -31,6 +31,7 @@ y este proyecto adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.0.h
 
 ### 🐛 Correcciones
 - **TypeScript**: Eliminado uso de `any` en middleware de request logging
+- **Testing**: Corregidos tests de componentes UI (EmptyState, Pagination) con API actualizada
 
 ### ⚠ Breaking Changes
 Ninguno (cambios backwards-compatible)

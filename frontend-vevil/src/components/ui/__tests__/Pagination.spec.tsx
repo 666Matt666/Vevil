@@ -14,7 +14,7 @@ describe('Pagination', () => {
         label="productos"
       />
     );
-    expect(screen.getByText(/mostrando 5 productos/i)).toBeInTheDocument();
+    expect(screen.getByText(/mostrando 1-5 de 5 productos/i)).toBeInTheDocument();
   });
 
   it('muestra Anterior y Siguiente cuando hay varias páginas', () => {

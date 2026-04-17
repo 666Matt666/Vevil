@@ -24,8 +24,7 @@ describe('EmptyState', () => {
       <EmptyState
         icon="👥"
         title="No items"
-        actionLabel="Add Item"
-        onAction={mockOnAction}
+        action={<button onClick={mockOnAction}>Add Item</button>}
       />
     );
 

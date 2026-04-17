@@ -1,13 +1,12 @@
-import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { customersApi, Customer, getErrorMessage } from '../../services/api';
-import { TableSkeleton } from '../ui/TableSkeleton';
-import { ErrorMessage } from '../ui/ErrorMessage';
-import { SuccessMessage } from '../ui/SuccessMessage';
-import { Pagination } from '../ui/Pagination';
-import { ConfirmModal } from '../ui/ConfirmModal';
-import { exportCustomersToCsv } from '../../utils/exportCsv';
-import { fadeInUp } from '../../hooks/useAnimations';
+ import React, { useState, useEffect } from 'react';
+ import { motion } from 'framer-motion';
+ import { customersApi, Customer, getErrorMessage } from '../../services/api';
+ import { TableSkeleton } from '../ui/TableSkeleton';
+ import { ErrorMessage } from '../ui/ErrorMessage';
+ import { SuccessMessage } from '../ui/SuccessMessage';
+ import { Pagination } from '../ui/Pagination';
+ import { ConfirmModal } from '../ui/ConfirmModal';
+ import { fadeInUp } from '../../hooks/useAnimations';
 
 const PAGE_SIZE_OPTIONS = [10, 20, 50];
 
@@ -243,17 +242,12 @@ const CustomerList: React.FC = () => {
         }
     };
 
-    const getMainPhone = (phones?: { type: string; number: string }[]) => {
-        if (!phones || phones.length === 0) return '-';
-        return phones[0].number;
-    };
-
-    // Wrapper para exportar CSV (toma Customer en lugar de phones)
-    const getCustomerMainPhone = (customer: Customer): string => {
-        return getMainPhone(customer.phones as undefined | { type: string; number: string }[] | undefined);
-    };
-
-    if (loading) {
+     const getMainPhone = (phones?: { type: string; number: string }[]) => {
+         if (!phones || phones.length === 0) return '-';
+         return phones[0].number;
+     };
+ 
+     if (loading) {
         return (
             <div className="responsive-padding" style={{ padding: '32px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
@@ -289,34 +283,37 @@ const CustomerList: React.FC = () => {
                         {total} clientes registrados
                     </p>
                 </div>
-                <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-                    <button
-                        type="button"
-                        onClick={() => exportCustomersToCsv(customers, getCustomerMainPhone)}
-                        style={{
-                            ...buttonStyle,
-                            padding: '10px 18px',
-                            backgroundColor: 'white',
-                            color: '#64748b',
-                            border: '1px solid #e2e8f0',
-                        }}
-                        title="Descargar listado en CSV (Excel)"
-                    >
-                        📥 Exportar CSV
-                    </button>
-                    <button
-                        onClick={openCreateModal}
-                        style={{
-                            ...buttonStyle,
-                            padding: '12px 20px',
-                            backgroundColor: '#22c55e',
-                            color: 'white',
-                            whiteSpace: 'nowrap'
-                        }}
-                    >
-                        + Nuevo Cliente
-                    </button>
-                </div>
+                 <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+                     <button
+                         type="button"
+                         onClick={() => customersApi.exportExcel()}
+                         style={{
+                             padding: '10px 20px',
+                             backgroundColor: '#14532d',
+                             color: 'white',
+                             border: 'none',
+                             borderRadius: '8px',
+                             fontWeight: 600,
+                             cursor: 'pointer',
+                             whiteSpace: 'nowrap',
+                         }}
+                         title="Exportar clientes a Excel"
+                     >
+                         📊 Exportar Excel
+                     </button>
+                     <button
+                         onClick={openCreateModal}
+                         style={{
+                             ...buttonStyle,
+                             padding: '12px 20px',
+                             backgroundColor: '#22c55e',
+                             color: 'white',
+                             whiteSpace: 'nowrap'
+                         }}
+                     >
+                         + Nuevo Cliente
+                     </button>
+                 </div>
             </div>
 
             {successMessage && (

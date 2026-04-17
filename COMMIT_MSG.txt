@@ -1,0 +1,16 @@
+feat: agregar exportación Excel con formato profesional para reportes
+
+Backend:
+- ExcelExportService con ExcelJS (múltiples hojas, estilos corporativos)
+- Header verde #14532d, formatos de moneda y fecha, auto-filtro, filas congeladas
+- Nuevo endpoint GET /api/export/excel con DevJwtAuthGuard
+- Incluye Products, Customers, Invoices (con items), Audit Log (hasta 10k)
+
+Frontend:
+- auditApi.exportExcel() en services/api.ts
+- Botón "Exportar Excel" en AuditLogView (junto a CSV, color #14532d)
+- Descarga automática con nombre vevil-export-YYYY-MM-DD.xlsx
+
+Correcciones:
+- Mock de MailService: agregado isConfigured() en invoices.service.spec.ts
+- Eliminado frontend-vevil/.eslintrc.js (conflictivo con type: module)

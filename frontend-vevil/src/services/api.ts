@@ -611,13 +611,28 @@ export const productsApi = {
         if (!response.ok) throw new Error('Error al actualizar producto');
         return response.json();
     },
-    delete: async (id: number): Promise<void> => {
-        const response = await fetchWithAuth(`/products/${id}`, {
-            method: 'DELETE',
-        });
-        if (!response.ok) throw new Error('Error al eliminar producto');
-    },
-};
+     delete: async (id: number): Promise<void> => {
+         const response = await fetchWithAuth(`/products/${id}`, {
+             method: 'DELETE',
+         });
+         if (!response.ok) throw new Error('Error al eliminar producto');
+     },
+ 
+     /** Exporta productos a Excel */
+     exportExcel: async (): Promise<void> => {
+         const response = await fetchWithAuth('/export/excel/products');
+         if (!response.ok) throw new Error('Error al exportar Excel');
+         const blob = await response.blob();
+         const url = window.URL.createObjectURL(blob);
+         const a = document.createElement('a');
+         a.href = url;
+         a.download = `vevil-productos-${new Date().toISOString().split('T')[0]}.xlsx`;
+         document.body.appendChild(a);
+         a.click();
+         a.remove();
+         window.URL.revokeObjectURL(url);
+     },
+ };
 
 // ============ PROVEEDORES ============
 export interface Supplier {
@@ -782,16 +797,31 @@ export const customersApi = {
         return response.json();
     },
 
-    delete: async (id: number): Promise<void> => {
-        const response = await fetchWithAuth(`/customers/${id}`, {
-            method: 'DELETE',
-        });
-        if (!response.ok) {
-            const data = await response.json();
-            throw new Error(data.message || 'Error al eliminar cliente');
-        }
-    },
-};
+     delete: async (id: number): Promise<void> => {
+         const response = await fetchWithAuth(`/customers/${id}`, {
+             method: 'DELETE',
+         });
+         if (!response.ok) {
+             const data = await response.json();
+             throw new Error(data.message || 'Error al eliminar cliente');
+         }
+     },
+ 
+     /** Exporta clientes a Excel */
+     exportExcel: async (): Promise<void> => {
+         const response = await fetchWithAuth('/export/excel/customers');
+         if (!response.ok) throw new Error('Error al exportar Excel');
+         const blob = await response.blob();
+         const url = window.URL.createObjectURL(blob);
+         const a = document.createElement('a');
+         a.href = url;
+         a.download = `vevil-clientes-${new Date().toISOString().split('T')[0]}.xlsx`;
+         document.body.appendChild(a);
+         a.click();
+         a.remove();
+         window.URL.revokeObjectURL(url);
+     },
+ };
 
 // ============ FACTURAS ============
 export interface InvoiceItem {
@@ -934,15 +964,35 @@ export const invoicesApi = {
         return response.json();
     },
 
-    /** Elimina una factura (solo facturas pending o cancelled pueden eliminarse). */
-    remove: async (id: number): Promise<{ success: boolean }> => {
-        const response = await fetchWithAuth(`/invoices/${id}`, {
-            method: 'DELETE',
-        });
-        if (!response.ok) throw new Error('Error al eliminar factura');
-        return response.json();
-    },
-};
+     /** Elimina una factura (solo facturas pending o cancelled pueden eliminarse). */
+     remove: async (id: number): Promise<{ success: boolean }> => {
+         const response = await fetchWithAuth(`/invoices/${id}`, {
+             method: 'DELETE',
+         });
+         if (!response.ok) throw new Error('Error al eliminar factura');
+         return response.json();
+     },
+ 
+     /** Exporta facturas a Excel */
+     exportExcel: async (filters?: { from?: string; to?: string }): Promise<void> => {
+         const params = new URLSearchParams();
+         if (filters?.from) params.set('from', filters.from);
+         if (filters?.to) params.set('to', filters.to);
+         const qs = params.toString();
+         const url = `/export/excel/invoices${qs ? '?' + qs : ''}`;
+         const response = await fetchWithAuth(url);
+         if (!response.ok) throw new Error('Error al exportar Excel');
+         const blob = await response.blob();
+         const urlObj = window.URL.createObjectURL(blob);
+         const a = document.createElement('a');
+         a.href = urlObj;
+         a.download = `vevil-facturas-${new Date().toISOString().split('T')[0]}.xlsx`;
+         document.body.appendChild(a);
+         a.click();
+         a.remove();
+         window.URL.revokeObjectURL(urlObj);
+     },
+ };
 
 // ============ ESTADÍSTICAS ============
 export const statsApi = {
@@ -1057,13 +1107,13 @@ export const auditApi = {
         return response.json();
     },
     exportExcel: async (): Promise<void> => {
-        const response = await fetchWithAuth('/export/excel');
+        const response = await fetchWithAuth('/export/excel/audit');
         if (!response.ok) throw new Error('Error al exportar Excel');
         const blob = await response.blob();
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `vevil-export-${new Date().toISOString().split('T')[0]}.xlsx`;
+        a.download = `vevil-auditoria-${new Date().toISOString().split('T')[0]}.xlsx`;
         document.body.appendChild(a);
         a.click();
         a.remove();

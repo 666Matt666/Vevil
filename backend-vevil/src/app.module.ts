@@ -21,6 +21,7 @@ import { PendingRegistrationsModule } from './pending-registrations/pending-regi
 import { WebAuthnModule } from './webauthn/webauthn.module';
 import { AuditModule } from './audit/audit.module';
 import { BackupModule } from './backup/backup.module';
+import { ExportModule } from './export/export.module';
 import { SuppliersModule } from './suppliers/suppliers.module';
 import { PublicModule } from './public/public.module';
 import { ClientUsersModule } from './client-users/client-users.module';
@@ -147,9 +148,11 @@ import { HealthModule } from './health/health.module';
     WebAuthnModule,
      AuditModule,
 
-     BackupModule,
+      BackupModule,
 
-     HealthModule,  // Health checks
+      ExportModule,
+
+      HealthModule,  // Health checks
 
      SuppliersModule,
 

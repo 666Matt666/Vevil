@@ -23,38 +23,70 @@ export class ExcelExportService {
     fgColor: { argb: this.CORPORATE_GREEN },
   } as any;
 
-  async generateExcelBuffer(data: ExportData): Promise<Buffer> {
-    const workbook = new ExcelJS.Workbook();
-    workbook.creator = 'Vevil System';
-    workbook.created = new Date();
-
-    // --- Hoja: Products ---
-    await this.createProductsSheet(workbook, data.products);
-
-    // --- Hoja: Customers ---
-    await this.createCustomersSheet(workbook, data.customers);
-
-    // --- Hoja: Invoices ---
-    await this.createInvoicesSheet(workbook, data.invoices);
-
-    // --- Hoja: Audit Log ---
-    await this.createAuditSheet(workbook, data.auditLogs);
-
-    // Auto-column width en todas las hojas
-    workbook.eachSheet((sheet) => {
-      sheet.columns.forEach((col) => {
-        let maxLength = 10;
-        col.eachCell({ includeEmpty: true }, (cell) => {
-          const cellValue = cell.value?.toString() || '';
-          maxLength = Math.max(maxLength, cellValue.length);
-        });
-        col.width = Math.min(maxLength + 2, 50);
-      });
-    });
-
-    // writeBuffer() retorna Buffer en Node; as cast para satisfacer TS
-    return await workbook.xlsx.writeBuffer() as unknown as Buffer;
-  }
+   async generateExcelBuffer(data: ExportData): Promise<Buffer> {
+     const workbook = new ExcelJS.Workbook();
+     workbook.creator = 'Vevil System';
+     workbook.created = new Date();
+ 
+     // --- Hoja: Products ---
+     await this.createProductsSheet(workbook, data.products);
+ 
+     // --- Hoja: Customers ---
+     await this.createCustomersSheet(workbook, data.customers);
+ 
+     // --- Hoja: Invoices ---
+     await this.createInvoicesSheet(workbook, data.invoices);
+ 
+     // --- Hoja: Audit Log ---
+     await this.createAuditSheet(workbook, data.auditLogs);
+ 
+     // Auto-column width en todas las hojas
+     workbook.eachSheet((sheet) => {
+       sheet.columns.forEach((col) => {
+         let maxLength = 10;
+         col.eachCell({ includeEmpty: true }, (cell) => {
+           const cellValue = cell.value?.toString() || '';
+           maxLength = Math.max(maxLength, cellValue.length);
+         });
+         col.width = Math.min(maxLength + 2, 50);
+       });
+     });
+ 
+     // writeBuffer() retorna Buffer en Node; as cast para satisfacer TS
+     return await workbook.xlsx.writeBuffer() as unknown as Buffer;
+   }
+ 
+   async generateProductsExcel(products: Product[]): Promise<Buffer> {
+     const workbook = new ExcelJS.Workbook();
+     workbook.creator = 'Vevil System';
+     workbook.created = new Date();
+     await this.createProductsSheet(workbook, products);
+     return await workbook.xlsx.writeBuffer() as unknown as Buffer;
+   }
+ 
+   async generateCustomersExcel(customers: Customer[]): Promise<Buffer> {
+     const workbook = new ExcelJS.Workbook();
+     workbook.creator = 'Vevil System';
+     workbook.created = new Date();
+     await this.createCustomersSheet(workbook, customers);
+     return await workbook.xlsx.writeBuffer() as unknown as Buffer;
+   }
+ 
+   async generateInvoicesExcel(invoices: Invoice[]): Promise<Buffer> {
+     const workbook = new ExcelJS.Workbook();
+     workbook.creator = 'Vevil System';
+     workbook.created = new Date();
+     await this.createInvoicesSheet(workbook, invoices);
+     return await workbook.xlsx.writeBuffer() as unknown as Buffer;
+   }
+ 
+   async generateAuditExcel(auditLogs: AuditLog[]): Promise<Buffer> {
+     const workbook = new ExcelJS.Workbook();
+     workbook.creator = 'Vevil System';
+     workbook.created = new Date();
+     await this.createAuditSheet(workbook, auditLogs);
+     return await workbook.xlsx.writeBuffer() as unknown as Buffer;
+   }
 
   private createProductsSheet(workbook: ExcelJS.Workbook, products: Product[]) {
     const sheet = workbook.addWorksheet('Products');

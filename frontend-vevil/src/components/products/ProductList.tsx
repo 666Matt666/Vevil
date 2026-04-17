@@ -1,15 +1,14 @@
-import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { productsApi, Product, getErrorMessage } from '../../services/api';
-import { getEnabledCurrencies, formatMoney } from '../settings/Settings';
-import { LoadingSpinner } from '../ui/LoadingSpinner';
-import { TableSkeleton } from '../ui/TableSkeleton';
-import { ErrorMessage } from '../ui/ErrorMessage';
-import { SuccessMessage } from '../ui/SuccessMessage';
-import { Pagination } from '../ui/Pagination';
-import { ConfirmModal } from '../ui/ConfirmModal';
-import { exportProductsToCsv } from '../../utils/exportCsv';
-import { fadeInUp, staggerContainer } from '../../hooks/useAnimations';
+ import React, { useState, useEffect } from 'react';
+ import { motion } from 'framer-motion';
+ import { productsApi, Product, getErrorMessage } from '../../services/api';
+ import { getEnabledCurrencies, formatMoney } from '../settings/Settings';
+ import { LoadingSpinner } from '../ui/LoadingSpinner';
+ import { TableSkeleton } from '../ui/TableSkeleton';
+ import { ErrorMessage } from '../ui/ErrorMessage';
+ import { SuccessMessage } from '../ui/SuccessMessage';
+ import { Pagination } from '../ui/Pagination';
+ import { ConfirmModal } from '../ui/ConfirmModal';
+ import { fadeInUp, staggerContainer } from '../../hooks/useAnimations';
 
 // Estilos comunes
 const buttonStyle: React.CSSProperties = {
@@ -303,24 +302,26 @@ const ProductList: React.FC = () => {
                         {products.length} productos en inventario
                     </p>
                 </div>
-                <motion.div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }} variants={staggerContainer}>
-                    <motion.button
-                        type="button"
-                        onClick={() => exportProductsToCsv(products, getTypeLabel, (cat) => CATEGORY_OPTIONS.find((o) => o.value === cat)?.label ?? cat)}
-                        style={{
-                            ...buttonStyle,
-                            padding: '10px 18px',
-                            backgroundColor: 'white',
-                            color: '#64748b',
-                            border: '1px solid #e2e8f0',
-                        }}
-                        title="Descargar listado en CSV (Excel)"
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
-                    >
-                        📥 Exportar CSV
-                    </motion.button>
-                    <motion.button 
+                 <motion.div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }} variants={staggerContainer}>
+                     <motion.button
+                         type="button"
+                         onClick={() => productsApi.exportExcel()}
+                         style={{
+                             padding: '10px 20px',
+                             backgroundColor: '#14532d',
+                             color: 'white',
+                             border: 'none',
+                             borderRadius: '8px',
+                             fontWeight: 600,
+                             cursor: 'pointer',
+                         }}
+                         title="Exportar productos a Excel"
+                         whileHover={{ scale: 1.02 }}
+                         whileTap={{ scale: 0.98 }}
+                     >
+                         📊 Exportar Excel
+                     </motion.button>
+                     <motion.button 
                         onClick={openCreateModal}
                         style={{
                             ...buttonStyle,

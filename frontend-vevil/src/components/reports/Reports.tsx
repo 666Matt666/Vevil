@@ -183,25 +183,41 @@ const Reports: React.FC = () => {
     const salesByDay = getSalesByDay();
     const topProducts = getTopProducts();
     const topCustomers = getTopCustomers();
-    const maxSale = Math.max(...salesByDay.map(s => s.total), 1);
-
-    const exportToCSV = () => {
-        const BOM = '\uFEFF';
-        let csv = 'Fecha,N° Factura,Cliente,Total\n';
-        filteredInvoices.forEach(inv => {
-            const date = new Date(inv.date).toLocaleDateString('es-PY');
-            const customerName = (inv.customer?.name || 'N/A').replace(/"/g, '""');
-            csv += `${date},${inv.id},"${customerName}",${Number(inv.total)}\n`;
-        });
-        const filename = `reporte_ventas_${new Date().toISOString().split('T')[0]}.csv`;
-        const blob = new Blob([BOM + csv], { type: 'text/csv;charset=utf-8;' });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = filename;
-        link.click();
-        URL.revokeObjectURL(url);
-    };
+     const maxSale = Math.max(...salesByDay.map(s => s.total), 1);
+ 
+     const exportToExcel = async () => {
+         // Calcular rango de fechas según el filtro actual
+         const now = new Date();
+         let startDate: Date;
+         let endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
+ 
+         switch (dateRange) {
+             case 'today':
+                 startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                 break;
+             case 'week':
+                 startDate = new Date(now);
+                 startDate.setDate(now.getDate() - 7);
+                 break;
+             case 'month':
+                 startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+                 break;
+             case 'year':
+                 startDate = new Date(now.getFullYear(), 0, 1);
+                 break;
+             case 'custom':
+                 startDate = customStartDate ? new Date(customStartDate) : new Date(0);
+                 endDate = customEndDate ? new Date(customEndDate + 'T23:59:59') : endDate;
+                 break;
+             default:
+                 startDate = new Date(0);
+         }
+ 
+         const fromStr = startDate.toISOString().split('T')[0];
+         const toStr = endDate.toISOString().split('T')[0];
+ 
+         await invoicesApi.exportExcel({ from: fromStr, to: toStr });
+     };
 
     // Imprimir reporte
     const printReport = () => {
@@ -317,20 +333,20 @@ const Reports: React.FC = () => {
                         Análisis de ventas y rendimiento
                     </p>
                 </div>
-                <div style={{ display: 'flex', gap: '8px' }}>
-                    <button 
-                        onClick={exportToCSV}
-                        style={{ ...buttonStyle, backgroundColor: '#22c55e', color: 'white' }}
-                    >
-                        📥 Exportar CSV
-                    </button>
-                    <button 
-                        onClick={printReport}
-                        style={{ ...buttonStyle, backgroundColor: '#3b82f6', color: 'white' }}
-                    >
-                        🖨️ Imprimir
-                    </button>
-                </div>
+                 <div style={{ display: 'flex', gap: '8px' }}>
+                     <button 
+                         onClick={exportToExcel}
+                         style={{ ...buttonStyle, backgroundColor: '#14532d', color: 'white' }}
+                     >
+                         📊 Exportar Excel
+                     </button>
+                     <button 
+                         onClick={printReport}
+                         style={{ ...buttonStyle, backgroundColor: '#3b82f6', color: 'white' }}
+                     >
+                         🖨️ Imprimir
+                     </button>
+                 </div>
             </div>
 
             {/* Filtros de fecha */}

@@ -1,17 +1,16 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { motion } from 'framer-motion';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { invoicesApi, Invoice, customersApi, Customer, productsApi, Product, getErrorMessage } from '../../services/api';
-import { getEnabledCurrencies, formatMoney, getInvoiceConfig, getCompanyConfig, formatInvoiceNumber } from '../settings/Settings';
-import { TableSkeleton } from '../ui/TableSkeleton';
-import { ErrorMessage } from '../ui/ErrorMessage';
-import { SuccessMessage } from '../ui/SuccessMessage';
-import { Pagination } from '../ui/Pagination';
-import { ConfirmModal } from '../ui/ConfirmModal';
-import { exportInvoicesToCsv } from '../../utils/exportCsv';
-import { exportInvoiceToPdf } from '../../utils/exportInvoicePdf';
-import { fadeInUp } from '../../hooks/useAnimations';
-import { useToast } from '../../hooks/useToast';
+ import React, { useState, useEffect, useMemo, useCallback } from 'react';
+ import { motion } from 'framer-motion';
+ import { useNavigate, useLocation } from 'react-router-dom';
+ import { invoicesApi, Invoice, customersApi, Customer, productsApi, Product, getErrorMessage } from '../../services/api';
+ import { getEnabledCurrencies, formatMoney, getInvoiceConfig, getCompanyConfig, formatInvoiceNumber } from '../settings/Settings';
+ import { TableSkeleton } from '../ui/TableSkeleton';
+ import { ErrorMessage } from '../ui/ErrorMessage';
+ import { SuccessMessage } from '../ui/SuccessMessage';
+ import { Pagination } from '../ui/Pagination';
+ import { ConfirmModal } from '../ui/ConfirmModal';
+ import { exportInvoiceToPdf } from '../../utils/exportInvoicePdf';
+ import { fadeInUp } from '../../hooks/useAnimations';
+ import { useToast } from '../../hooks/useToast';
 
 const PAGE_SIZE_OPTIONS = [10, 20, 50];
 
@@ -615,17 +614,19 @@ const InvoiceList: React.FC = () => {
                 <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
                     <button
                         type="button"
-                        onClick={() => exportInvoicesToCsv(invoices, formatInvoiceNumber)}
+                        onClick={() => invoicesApi.exportExcel()}
                         style={{
-                            ...buttonStyle,
-                            padding: '10px 18px',
-                            backgroundColor: 'white',
-                            color: '#64748b',
-                            border: '1px solid #e2e8f0',
+                            padding: '10px 20px',
+                            backgroundColor: '#14532d',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '8px',
+                            fontWeight: 600,
+                            cursor: 'pointer',
                         }}
-                        title="Descargar listado en CSV (Excel)"
+                        title="Exportar facturas a Excel"
                     >
-                        📥 Exportar CSV
+                        📊 Exportar Excel
                     </button>
                     <button
                         type="button"

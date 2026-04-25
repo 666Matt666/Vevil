@@ -9,6 +9,7 @@ interface Alert {
     message: string;
     key: string;
     timestamp: number;
+    lowStock?: any[];
 }
 
 const NOTIFICATION_KEY = 'vevil_last_notification';
@@ -85,12 +86,18 @@ export const AlertsWidget: React.FC<{ compact?: boolean }> = ({ compact = false 
                     return (p.stock ?? 0) <= productMinStock;
                 });
                 if (lowStock.length > 0) {
+                    const productNames = lowStock.slice(0, 3).map(p => p.name).join(', ');
+                    const moreCount = lowStock.length - 3;
+                    const message = lowStock.length <= 3
+                        ? `¡${productNames}!`
+                        : `${productNames}${moreCount > 0 ? ` y ${moreCount} más` : ''}`;
                     newAlerts.push({
                         type: 'warning',
-                        title: '⚠️ Stock Bajo',
-                        message: `${lowStock.length} producto${lowStock.length > 1 ? 's' : ''} con stock bajo`,
+                        title: 'Stock Bajo',
+                        message,
                         key: 'low_stock',
-                        timestamp: Date.now()
+                        timestamp: Date.now(),
+                        lowStock
                     });
                 }
             }
@@ -278,21 +285,20 @@ export const AlertsWidget: React.FC<{ compact?: boolean }> = ({ compact = false 
                         justifyContent: 'space-between',
                         alignItems: 'center'
                     }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <span style={{ fontSize: '20px' }}>
-                                {errorCount > 0 ? '🚨' : '⚠️'}
-                            </span>
-                            <span style={{
-                                fontWeight: 600,
-                                color: errorCount > 0 ? '#991b1b' : '#92400e',
-                                fontSize: '15px'
-                            }}>
-                                {errorCount > 0
-                                    ? `${errorCount} Alerta${errorCount > 1 ? 's' : ''} Crítica${errorCount > 1 ? 's' : ''}`
-                                    : `${warningCount} Aviso${warningCount > 1 ? 's' : ''}`
-                                }
-                            </span>
-                        </div>
+                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                         {errorCount > 0 && <span style={{ fontSize: '20px' }}>🚨</span>}
+                         {warningCount > 0 && errorCount === 0 && <span style={{ fontSize: '20px' }}>⚠️</span>}
+                         <span style={{
+                             fontWeight: 600,
+                             color: errorCount > 0 ? '#991b1b' : '#92400e',
+                             fontSize: '15px'
+                         }}>
+                             {errorCount > 0
+                                 ? `${errorCount} Alerta${errorCount > 1 ? 's' : ''} Crítica${errorCount > 1 ? 's' : ''}`
+                                 : `${warningCount} Aviso${warningCount > 1 ? 's' : ''}`
+                             }
+                         </span>
+                     </div>
                         <button
                             onClick={(e) => { e.stopPropagation(); checkAlerts(); }}
                             style={{
@@ -311,17 +317,22 @@ export const AlertsWidget: React.FC<{ compact?: boolean }> = ({ compact = false 
 
                     <div style={{ maxHeight: '320px', overflowY: 'auto' }}>
                         {alerts.map((alert, i) => (
-                            <div
+                             <div
                                 key={alert.key}
                                 style={{
                                     padding: '14px 20px',
                                     backgroundColor: colors[alert.type].bg,
                                     borderBottom: i < alerts.length - 1 ? `1px solid ${colors[alert.type].border}30` : 'none',
-                                    cursor: 'pointer',
+                                    cursor: alert.key === 'low_stock' ? 'pointer' : 'default',
                                     transition: 'background-color 0.15s'
                                 }}
                                 onMouseEnter={(e) => e.currentTarget.style.backgroundColor = colors[alert.type].border + '20'}
                                 onMouseLeave={(e) => e.currentTarget.style.backgroundColor = colors[alert.type].bg}
+                                onClick={() => {
+                                    if (alert.key === 'low_stock') {
+                                        window.location.hash = '#/products';
+                                    }
+                                }}
                             >
                                 <div style={{
                                     display: 'flex',
